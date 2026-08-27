@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/*
+ * Semantic theme layer.
+ *
+ * Tailwind utilities resolve to CSS custom properties, and the BrandProvider
+ * rewrites those properties at runtime. That indirection is what makes the
+ * console white-label: no component ever names a colour.
+ *
+ * The values here are only fallbacks for the pre-hydration paint — the active
+ * brand is injected as an inline style on <html> during SSR.
+ */
+:root {
+  --brand-primary: #160850;
+  --brand-primary-hover: #22145a;
+  --brand-on-primary: #faf9f8;
+  --brand-accent: #0c98d4;
+  --brand-accent-soft: #edf6fd;
+  --brand-on-accent: #ffffff;
+
+  --brand-surface: #faf9f8;
+  --brand-surface-raised: #ffffff;
+  --brand-surface-sunken: #f1efed;
+  --brand-border: #e4e0dc;
+  --brand-border-strong: #cfc9c2;
+
+  --brand-text: #160850;
+  --brand-text-muted: #6b6577;
+  --brand-text-on-dark: #faf9f8;
+
+  --brand-success: #4d8a04;
+  --brand-success-soft: #dffaa0;
+  --brand-warning: #b26a00;
+  --brand-warning-soft: #fdf0d5;
+  --brand-danger: #d81f21;
+  --brand-danger-soft: #ffdad6;
+
+  --brand-radius: 10px;
+  --brand-font-sans: var(--font-inter-tight);
+  --brand-font-display: var(--font-inter-tight);
+}
+
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-on-primary: var(--brand-on-primary);
+  --color-accent: var(--brand-accent);
+  --color-accent-soft: var(--brand-accent-soft);
+  --color-on-accent: var(--brand-on-accent);
+
+  --color-surface: var(--brand-surface);
+  --color-surface-raised: var(--brand-surface-raised);
+  --color-surface-sunken: var(--brand-surface-sunken);
+  --color-line: var(--brand-border);
+  --color-line-strong: var(--brand-border-strong);
+
+  --color-ink: var(--brand-text);
+  --color-ink-muted: var(--brand-text-muted);
+  --color-ink-on-dark: var(--brand-text-on-dark);
+
+  --color-success: var(--brand-success);
+  --color-success-soft: var(--brand-success-soft);
+  --color-warning: var(--brand-warning);
+  --color-warning-soft: var(--brand-warning-soft);
+  --color-danger: var(--brand-danger);
+  --color-danger-soft: var(--brand-danger-soft);
+
+  --radius-brand: var(--brand-radius);
+
+  --font-sans: var(--brand-font-sans);
+  --font-display: var(--brand-font-display);
+}
+
+body {
+  background: var(--brand-surface);
+  color: var(--brand-text);
+  font-family: var(--brand-font-sans), "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures everywhere numbers are compared in a column. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Brand-aware focus ring, applied globally rather than per-component. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
