@@ -107,5 +107,7 @@ match the real product instead of a guess.
 - All figures in `src/lib/demo-data.ts` are illustrative placeholders, not real
   Nuvei data. They are fixed rather than randomised so the demo renders
   identically every time.
-- The logos in `src/lib/brand.ts` are typographic stand-ins, not the official
-  vector wordmarks. Drop the real SVG into the `logo` field to replace them.
+- The Nuvei mark is the official wordmark, with the artboard and navy container
+  stripped so it sits on already-themed chrome; the full lockup is kept at
+  `public/brand/nuvei-logo-lockup.svg`. The Northwind Pay mark is a typographic
+  stand-in for the invented demo brand.
