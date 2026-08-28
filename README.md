@@ -72,12 +72,33 @@ nuvei.com, so the default skin matches the live brand:
 
 Typeface: **Inter Tight** (Nuvei's 2026 brand face), loaded via `next/font`.
 
+## Signing in
+
+The console sits behind a login. Credentials:
+
+```
+NuveiDemo / Changeme123
+```
+
+They are also printed on the login screen so the demo is self-documenting.
+Override them with `DEMO_USERNAME` / `DEMO_PASSWORD` (see `.env.example`).
+
+This is **demo-grade auth**, deliberately: one shared account, no user store. The
+session cookie is httpOnly and HMAC-signed so it cannot be forged in devtools,
+the credential check is constant-time, and sessions expire after 8 hours — but
+it is not a substitute for real authentication. `src/proxy.ts` gates every route
+and verifies the signature rather than just checking the cookie exists.
+
+Set `AUTH_SECRET` to a random value anywhere this is reachable by anyone else.
+
 ## Project layout
 
 ```
 src/
+  proxy.ts              route gate (Next 16's successor to middleware.ts)
   app/
     layout.tsx          brand resolution + font loading
+    login/              login page, form, and session actions
     globals.css         semantic token → Tailwind mapping
     page.tsx            Overview dashboard
     <area>/page.tsx     scaffolded console areas
@@ -94,8 +115,9 @@ src/
 
 ## Status
 
-**Built:** the theming system, app shell, navigation, and the Overview
-dashboard (KPIs, provider traffic, routing rules, recent transactions).
+**Built:** the theming system, login and session handling, app shell,
+navigation, and the Overview dashboard (KPIs, provider traffic, routing rules,
+recent transactions).
 
 **Scaffolded but intentionally empty:** Transactions, Routing rules, Providers,
 Risk & fraud, Disputes, Analytics, Settings. These route and theme correctly but

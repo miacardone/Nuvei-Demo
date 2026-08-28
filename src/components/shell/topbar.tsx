@@ -1,6 +1,7 @@
 "use client";
 
 import { BrandMark } from "@/components/brand-mark";
+import { logout } from "@/app/login/actions";
 import { Icon } from "./icon";
 import { BrandSwitcher } from "./brand-switcher";
 
@@ -8,7 +9,7 @@ export function Topbar({ title }: { title: string }) {
   return (
     <header className="flex h-16 items-center gap-4 border-b border-line bg-surface-raised px-6">
       <span className="text-primary lg:hidden">
-        <BrandMark className="h-5 w-auto" />
+        <BrandMark className="h-5" />
       </span>
 
       <h1 className="font-display text-lg font-semibold tracking-tight">
@@ -27,6 +28,14 @@ export function Topbar({ title }: { title: string }) {
         <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-sm font-semibold text-primary">
           MC
         </span>
+        <form action={logout}>
+          <button
+            type="submit"
+            className="text-sm text-ink-muted transition-colors hover:text-ink"
+          >
+            Sign out
+          </button>
+        </form>
       </div>
     </header>
   );
