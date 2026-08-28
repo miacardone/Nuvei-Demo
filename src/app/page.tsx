@@ -33,40 +33,49 @@ export default function OverviewPage() {
 
         <div className="grid gap-6 xl:grid-cols-3">
           <Card title="Traffic by provider" className="xl:col-span-2">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-sunken text-left text-xs uppercase tracking-wide text-ink-muted">
-                <tr>
-                  <th className="px-5 py-2.5 font-medium">Provider</th>
-                  <th className="px-5 py-2.5 font-medium">Region</th>
-                  <th className="px-5 py-2.5 font-medium">Share</th>
-                  <th className="px-5 py-2.5 font-medium">Auth rate</th>
-                  <th className="px-5 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {providers.map((p, i) => (
-                  <tr key={`${p.name}-${p.region}`} className={i > 0 ? "border-t border-line" : ""}>
-                    <td className="px-5 py-3 font-medium">{p.name}</td>
-                    <td className="px-5 py-3 text-ink-muted">{p.region}</td>
-                    <td className="px-5 py-3">
-                      <span className="flex items-center gap-2">
-                        <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-sunken">
-                          <span
-                            className="block h-full rounded-full bg-accent"
-                            style={{ width: `${p.share}%` }}
-                          />
-                        </span>
-                        <span className="tnum text-ink-muted">{p.share}%</span>
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 tnum">{p.authRate.toFixed(1)}%</td>
-                    <td className="px-5 py-3">
-                      <StatusPill status={p.status} />
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[34rem] text-sm">
+                <thead className="bg-surface-sunken text-left text-xs uppercase tracking-wide text-ink-muted">
+                  <tr>
+                    <th className="px-5 py-2.5 font-medium">Provider</th>
+                    <th className="px-5 py-2.5 font-medium">Region</th>
+                    <th className="px-5 py-2.5 font-medium">Share</th>
+                    <th className="px-5 py-2.5 font-medium">Auth rate</th>
+                    <th className="px-5 py-2.5 font-medium">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {providers.map((p, i) => (
+                    <tr
+                      key={`${p.name}-${p.region}`}
+                      className={i > 0 ? "border-t border-line" : ""}
+                    >
+                      <td className="px-5 py-3 font-medium">{p.name}</td>
+                      <td className="px-5 py-3 text-ink-muted">{p.region}</td>
+                      <td className="px-5 py-3">
+                        <span className="flex items-center gap-2">
+                          <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-sunken">
+                            <span
+                              className="block h-full rounded-full bg-accent"
+                              style={{ width: `${p.share}%` }}
+                            />
+                          </span>
+                          <span className="tnum text-ink-muted">
+                            {p.share}%
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 tnum">
+                        {p.authRate.toFixed(1)}%
+                      </td>
+                      <td className="px-5 py-3">
+                        <StatusPill status={p.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
 
           <Card title="Active routing rules">
@@ -77,7 +86,7 @@ export default function OverviewPage() {
                     <p className="text-sm font-medium">{rule.name}</p>
                     <StatusPill status={rule.enabled ? "active" : "paused"} />
                   </div>
-                  <p className="mt-1 font-mono text-xs leading-relaxed text-ink-muted">
+                  <p className="mt-1 code break-words text-xs leading-relaxed text-ink-muted">
                     {rule.condition}
                   </p>
                   <p className="mt-1 text-xs text-accent">→ {rule.action}</p>
@@ -88,34 +97,39 @@ export default function OverviewPage() {
         </div>
 
         <Card title="Recent transactions">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-sunken text-left text-xs uppercase tracking-wide text-ink-muted">
-              <tr>
-                <th className="px-5 py-2.5 font-medium">Transaction</th>
-                <th className="px-5 py-2.5 font-medium">Merchant</th>
-                <th className="px-5 py-2.5 font-medium">Amount</th>
-                <th className="px-5 py-2.5 font-medium">Method</th>
-                <th className="px-5 py-2.5 font-medium">Routed to</th>
-                <th className="px-5 py-2.5 font-medium">Status</th>
-                <th className="px-5 py-2.5 font-medium">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentTransactions.map((t, i) => (
-                <tr key={t.id} className={i > 0 ? "border-t border-line" : ""}>
-                  <td className="px-5 py-3 font-mono text-xs">{t.id}</td>
-                  <td className="px-5 py-3 font-medium">{t.merchant}</td>
-                  <td className="px-5 py-3 tnum">{t.amount}</td>
-                  <td className="px-5 py-3 text-ink-muted">{t.method}</td>
-                  <td className="px-5 py-3 text-ink-muted">{t.provider}</td>
-                  <td className="px-5 py-3">
-                    <StatusPill status={t.status} />
-                  </td>
-                  <td className="px-5 py-3 tnum text-ink-muted">{t.time}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[52rem] text-sm">
+              <thead className="bg-surface-sunken text-left text-xs uppercase tracking-wide text-ink-muted">
+                <tr>
+                  <th className="px-5 py-2.5 font-medium">Transaction</th>
+                  <th className="px-5 py-2.5 font-medium">Merchant</th>
+                  <th className="px-5 py-2.5 font-medium">Amount</th>
+                  <th className="px-5 py-2.5 font-medium">Method</th>
+                  <th className="px-5 py-2.5 font-medium">Routed to</th>
+                  <th className="px-5 py-2.5 font-medium">Status</th>
+                  <th className="px-5 py-2.5 font-medium">Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recentTransactions.map((t, i) => (
+                  <tr
+                    key={t.id}
+                    className={i > 0 ? "border-t border-line" : ""}
+                  >
+                    <td className="px-5 py-3 code text-xs">{t.id}</td>
+                    <td className="px-5 py-3 font-medium">{t.merchant}</td>
+                    <td className="px-5 py-3 tnum">{t.amount}</td>
+                    <td className="px-5 py-3 text-ink-muted">{t.method}</td>
+                    <td className="px-5 py-3 text-ink-muted">{t.provider}</td>
+                    <td className="px-5 py-3">
+                      <StatusPill status={t.status} />
+                    </td>
+                    <td className="px-5 py-3 tnum text-ink-muted">{t.time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
     </AppShell>

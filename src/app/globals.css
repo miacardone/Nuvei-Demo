@@ -67,8 +67,14 @@
 
   --radius-brand: var(--brand-radius);
 
-  --font-sans: var(--brand-font-sans);
-  --font-display: var(--brand-font-display);
+  /* One identical fallback chain everywhere. Without it the utilities and the
+     body rule degrade to different faces if the webfont fails to load. */
+  --font-sans: var(--brand-font-sans), "Inter", system-ui, sans-serif;
+  --font-display: var(--brand-font-display), "Inter", system-ui, sans-serif;
+  /* Mapped deliberately: an undefined --font-mono falls back to a per-OS stack
+     (SF Mono on macOS, Consolas on Windows), so the same page would render in
+     different typefaces on different machines. */
+  --font-mono: var(--brand-font-sans), "Inter", system-ui, sans-serif;
 }
 
 body {
@@ -81,6 +87,15 @@ body {
 /* Tabular figures everywhere numbers are compared in a column. */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* Machine-ish text — rule expressions, transaction IDs. Stays in the brand
+   typeface so the page is set in exactly one family, and earns its "code"
+   reading from tabular figures and loosened tracking instead of a second
+   font that would differ per operating system. */
+.code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 /* Brand-aware focus ring, applied globally rather than per-component. */
