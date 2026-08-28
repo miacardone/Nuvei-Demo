@@ -53,12 +53,21 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** True when the server has no password configured, so sign-in cannot succeed
+ *  for anyone. Surfaced separately from a wrong password: an unconfigured
+ *  server is an operator problem, and silently reporting it as "wrong
+ *  credentials" sends you hunting for a typo that does not exist. */
+export function isAuthConfigured(): boolean {
+  return Boolean(DEMO_PASSWORD);
+}
+
 export function verifyCredentials(username: string, password: string): boolean {
   if (!DEMO_PASSWORD) {
     // Fail closed rather than falling back to a default anyone could guess.
     console.error(
       "[auth] DEMO_PASSWORD is not set — every sign-in will be refused. " +
-        "Add it to .env.local (see .env.example).",
+        "Add it to .env.local (see .env.example), then restart the dev server: " +
+        "Next only reads env files at startup.",
     );
     return false;
   }

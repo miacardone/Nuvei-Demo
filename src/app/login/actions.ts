@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   SESSION_COOKIE,
   createSessionValue,
+  isAuthConfigured,
   sessionCookieOptions,
   verifyCredentials,
 } from "@/lib/auth";
@@ -15,8 +16,17 @@ export async function login(
   _prev: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
-  const username = String(formData.get("username") ?? "");
-  const password = String(formData.get("password") ?? "");
+  // Trimmed: a trailing space picked up when pasting a credential is the most
+  // common cause of a "correct" password being rejected.
+  const username = String(formData.get("username") ?? "").trim();
+  const password = String(formData.get("password") ?? "").trim();
+
+  if (!isAuthConfigured()) {
+    return {
+      error:
+        "Sign-in is not configured on the server. Set DEMO_PASSWORD in .env.local and restart the dev server.",
+    };
+  }
 
   if (!verifyCredentials(username, password)) {
     // Deliberately vague: never reveal which of the two was wrong.
