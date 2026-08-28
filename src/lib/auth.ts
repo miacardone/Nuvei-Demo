@@ -17,8 +17,18 @@
  */
 const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "NuveiDemo";
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
+/**
+ * Session-signing key. The development fallback is published in this public
+ * repository, so it must never be used where the app is reachable: anyone
+ * could forge a session cookie with it and bypass the login entirely. In
+ * production an unset AUTH_SECRET therefore disables sign-in rather than
+ * silently falling back.
+ */
 const AUTH_SECRET =
-  process.env.AUTH_SECRET ?? "cpo-demo-development-secret-not-for-production";
+  process.env.AUTH_SECRET ??
+  (process.env.NODE_ENV === "production"
+    ? undefined
+    : "cpo-demo-development-secret-not-for-production");
 
 export const SESSION_COOKIE = "cpo_session";
 /** Sessions last a working day — long enough to demo, short enough to expire. */
@@ -34,6 +44,7 @@ function base64url(bytes: ArrayBuffer): string {
 }
 
 async function sign(payload: string): Promise<string> {
+  if (!AUTH_SECRET) throw new Error("AUTH_SECRET is not set");
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(AUTH_SECRET),
@@ -58,10 +69,18 @@ function safeEqual(a: string, b: string): boolean {
  *  server is an operator problem, and silently reporting it as "wrong
  *  credentials" sends you hunting for a typo that does not exist. */
 export function isAuthConfigured(): boolean {
-  return Boolean(DEMO_PASSWORD);
+  return Boolean(DEMO_PASSWORD) && Boolean(AUTH_SECRET);
 }
 
 export function verifyCredentials(username: string, password: string): boolean {
+  if (!AUTH_SECRET) {
+    console.error(
+      "[auth] AUTH_SECRET is not set in production — sign-in is disabled. " +
+        "Without it, session cookies could be forged using the public " +
+        "development fallback.",
+    );
+    return false;
+  }
   if (!DEMO_PASSWORD) {
     // Fail closed rather than falling back to a default anyone could guess.
     console.error(
@@ -85,7 +104,7 @@ export async function createSessionValue(username: string): Promise<string> {
 
 /** Returns the username if the cookie is authentic and unexpired, else null. */
 export async function readSession(value: string | undefined): Promise<string | null> {
-  if (!value) return null;
+  if (!value || !AUTH_SECRET) return null;
   const parts = value.split(".");
   if (parts.length !== 3) return null;
   const [username, issued, signature] = parts;

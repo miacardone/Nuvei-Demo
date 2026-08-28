@@ -94,7 +94,23 @@ the credential check is constant-time, and sessions expire after 8 hours — but
 it is not a substitute for real authentication. `src/proxy.ts` gates every route
 and verifies the signature rather than just checking the cookie exists.
 
-Set `AUTH_SECRET` to a random value anywhere this is reachable by anyone else.
+### Deploying
+
+`.env.local` is gitignored and never ships. Set these on the host (Vercel:
+Project → Settings → Environment Variables), then redeploy — env vars are read
+at build/boot, so an existing deployment will not pick them up on its own:
+
+| Variable | Notes |
+| --- | --- |
+| `DEMO_USERNAME` | Not secret. |
+| `DEMO_PASSWORD` | Required. Sign-in is refused if unset. |
+| `AUTH_SECRET` | **Required in production.** Long random value. |
+
+`AUTH_SECRET` matters more than it looks: session cookies are signed with it,
+and its development fallback is committed to this public repository. If it were
+used on a reachable deployment, anyone could forge a session cookie and bypass
+the login without knowing the password. In production an unset `AUTH_SECRET`
+therefore disables sign-in outright rather than falling back.
 
 ## Project layout
 
