@@ -10,8 +10,13 @@
  * both in `proxy.ts` and in server components.
  */
 
+/**
+ * Credentials come from the environment only. Nothing sensitive is committed:
+ * this repository is public, so a password living in source is a published
+ * password. Set them in `.env.local` (gitignored) — see `.env.example`.
+ */
 const DEMO_USERNAME = process.env.DEMO_USERNAME ?? "NuveiDemo";
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "Changeme123";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD;
 const AUTH_SECRET =
   process.env.AUTH_SECRET ?? "cpo-demo-development-secret-not-for-production";
 
@@ -49,6 +54,14 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function verifyCredentials(username: string, password: string): boolean {
+  if (!DEMO_PASSWORD) {
+    // Fail closed rather than falling back to a default anyone could guess.
+    console.error(
+      "[auth] DEMO_PASSWORD is not set — every sign-in will be refused. " +
+        "Add it to .env.local (see .env.example).",
+    );
+    return false;
+  }
   // Both comparisons always run, so the timing does not reveal which failed.
   const userOk = safeEqual(username, DEMO_USERNAME);
   const passOk = safeEqual(password, DEMO_PASSWORD);
@@ -84,6 +97,3 @@ export const sessionCookieOptions = {
   maxAge: SESSION_MAX_AGE_SECONDS,
   secure: process.env.NODE_ENV === "production",
 } as const;
-
-/** Shown on the login screen so the demo is self-documenting. */
-export const demoHint = { username: DEMO_USERNAME, password: DEMO_PASSWORD };

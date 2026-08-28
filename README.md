@@ -10,7 +10,14 @@ npm install
 npm run dev
 ```
 
-## How the white-labelling works
+## Chameleon — the white-label theming engine
+
+**Chameleon** is the name for the theming layer described below. It is fully
+wired but its brand picker is **hidden by default**, so a client sees only their
+own brand. Set `NEXT_PUBLIC_BRAND_SWITCHER=on` to expose the picker and demo a
+live re-skin.
+
+### How it works
 
 There are three layers, and components only ever touch the top one.
 
@@ -46,8 +53,8 @@ const acme: Brand = {
 };
 ```
 
-Two skins ship today — switch between them with the **Brand** control in the
-top bar:
+Two skins ship today. With `NEXT_PUBLIC_BRAND_SWITCHER=on`, switch between them
+using the **Brand** control in the top bar:
 
 | Brand | Role |
 | --- | --- |
@@ -76,12 +83,10 @@ Typeface: **Inter Tight** (Nuvei's 2026 brand face), loaded via `next/font`.
 
 The console sits behind a login. Credentials:
 
-```
-NuveiDemo / Changeme123
-```
-
-They are also printed on the login screen so the demo is self-documenting.
-Override them with `DEMO_USERNAME` / `DEMO_PASSWORD` (see `.env.example`).
+Credentials live in `.env.local` (gitignored) and are **never committed** — this
+repository is public, so a password in tracked source is a published password.
+Copy `.env.example` to `.env.local` and set `DEMO_PASSWORD`; sign-in is refused
+outright if it is unset, rather than falling back to a guessable default.
 
 This is **demo-grade auth**, deliberately: one shared account, no user store. The
 session cookie is httpOnly and HMAC-signed so it cannot be forged in devtools,
@@ -108,7 +113,9 @@ src/
     shell/              sidebar, topbar, brand switcher, icons
     ui/                 card, status pill, delta, pending panel
   lib/
-    brand.ts            brand definitions and tokens
+    auth.ts             credential check and session signing
+    brand.ts            Chameleon brand definitions and tokens
+    features.ts         feature flags (brand picker visibility)
     nav.ts              console navigation
     demo-data.ts        deterministic sandbox data
 ```

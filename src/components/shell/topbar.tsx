@@ -2,6 +2,7 @@
 
 import { BrandMark } from "@/components/brand-mark";
 import { logout } from "@/app/login/actions";
+import { features } from "@/lib/features";
 import { Icon } from "./icon";
 import { BrandSwitcher } from "./brand-switcher";
 
@@ -17,7 +18,7 @@ export function Topbar({ title }: { title: string }) {
       </h1>
 
       <div className="ml-auto flex items-center gap-4">
-        <BrandSwitcher />
+        {features.brandSwitcher && <BrandSwitcher />}
         <button
           type="button"
           aria-label="Notifications"
