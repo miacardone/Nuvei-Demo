@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/shell/app-shell";
 import { Card } from "@/components/ui/card";
+import { DataTable, type Column } from "@/components/ui/data-table";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Delta } from "@/components/ui/delta";
 import {
@@ -7,7 +8,56 @@ import {
   providers,
   recentTransactions,
   routingRules,
+  type Provider,
+  type Transaction,
 } from "@/lib/demo-data";
+
+const providerColumns: Column<Provider>[] = [
+  { key: "name", header: "Provider", cell: (p) => p.name, primary: true, className: "font-medium" },
+  { key: "region", header: "Region", cell: (p) => p.region, className: "text-ink-muted" },
+  {
+    key: "share",
+    header: "Share",
+    cell: (p) => (
+      <span className="flex items-center justify-end gap-2 md:justify-start">
+        <span className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-sunken md:w-24">
+          <span
+            className="block h-full rounded-full bg-accent"
+            style={{ width: `${p.share}%` }}
+          />
+        </span>
+        <span className="tnum text-ink-muted">{p.share}%</span>
+      </span>
+    ),
+  },
+  {
+    key: "auth",
+    header: "Auth rate",
+    cell: (p) => `${p.authRate.toFixed(1)}%`,
+    className: "tnum",
+  },
+  {
+    key: "status",
+    header: "Status",
+    cell: (p) => <StatusPill status={p.status} />,
+    trailing: true,
+  },
+];
+
+const transactionColumns: Column<Transaction>[] = [
+  { key: "id", header: "Transaction", cell: (t) => t.id, secondary: true, className: "code text-xs" },
+  { key: "merchant", header: "Merchant", cell: (t) => t.merchant, primary: true, className: "font-medium" },
+  { key: "amount", header: "Amount", cell: (t) => t.amount, className: "tnum" },
+  { key: "method", header: "Method", cell: (t) => t.method, className: "text-ink-muted" },
+  { key: "provider", header: "Routed to", cell: (t) => t.provider, className: "text-ink-muted" },
+  {
+    key: "status",
+    header: "Status",
+    cell: (t) => <StatusPill status={t.status} />,
+    trailing: true,
+  },
+  { key: "time", header: "Time", cell: (t) => t.time, className: "tnum text-ink-muted" },
+];
 
 export default function OverviewPage() {
   return (
@@ -33,49 +83,11 @@ export default function OverviewPage() {
 
         <div className="grid gap-6 xl:grid-cols-3">
           <Card title="Traffic by provider" className="xl:col-span-2">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[34rem] text-sm">
-                <thead className="bg-surface-sunken text-left text-xs uppercase tracking-wide text-ink-muted">
-                  <tr>
-                    <th className="px-5 py-2.5 font-medium">Provider</th>
-                    <th className="px-5 py-2.5 font-medium">Region</th>
-                    <th className="px-5 py-2.5 font-medium">Share</th>
-                    <th className="px-5 py-2.5 font-medium">Auth rate</th>
-                    <th className="px-5 py-2.5 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {providers.map((p, i) => (
-                    <tr
-                      key={`${p.name}-${p.region}`}
-                      className={i > 0 ? "border-t border-line" : ""}
-                    >
-                      <td className="px-5 py-3 font-medium">{p.name}</td>
-                      <td className="px-5 py-3 text-ink-muted">{p.region}</td>
-                      <td className="px-5 py-3">
-                        <span className="flex items-center gap-2">
-                          <span className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-sunken">
-                            <span
-                              className="block h-full rounded-full bg-accent"
-                              style={{ width: `${p.share}%` }}
-                            />
-                          </span>
-                          <span className="tnum text-ink-muted">
-                            {p.share}%
-                          </span>
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 tnum">
-                        {p.authRate.toFixed(1)}%
-                      </td>
-                      <td className="px-5 py-3">
-                        <StatusPill status={p.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={providerColumns}
+              rows={providers}
+              rowKey={(p) => `${p.name}-${p.region}`}
+            />
           </Card>
 
           <Card title="Active routing rules">
@@ -97,39 +109,11 @@ export default function OverviewPage() {
         </div>
 
         <Card title="Recent transactions">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[52rem] text-sm">
-              <thead className="bg-surface-sunken text-left text-xs uppercase tracking-wide text-ink-muted">
-                <tr>
-                  <th className="px-5 py-2.5 font-medium">Transaction</th>
-                  <th className="px-5 py-2.5 font-medium">Merchant</th>
-                  <th className="px-5 py-2.5 font-medium">Amount</th>
-                  <th className="px-5 py-2.5 font-medium">Method</th>
-                  <th className="px-5 py-2.5 font-medium">Routed to</th>
-                  <th className="px-5 py-2.5 font-medium">Status</th>
-                  <th className="px-5 py-2.5 font-medium">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.map((t, i) => (
-                  <tr
-                    key={t.id}
-                    className={i > 0 ? "border-t border-line" : ""}
-                  >
-                    <td className="px-5 py-3 code text-xs">{t.id}</td>
-                    <td className="px-5 py-3 font-medium">{t.merchant}</td>
-                    <td className="px-5 py-3 tnum">{t.amount}</td>
-                    <td className="px-5 py-3 text-ink-muted">{t.method}</td>
-                    <td className="px-5 py-3 text-ink-muted">{t.provider}</td>
-                    <td className="px-5 py-3">
-                      <StatusPill status={t.status} />
-                    </td>
-                    <td className="px-5 py-3 tnum text-ink-muted">{t.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={transactionColumns}
+            rows={recentTransactions}
+            rowKey={(t) => t.id}
+          />
         </Card>
       </div>
     </AppShell>
