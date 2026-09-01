@@ -299,7 +299,23 @@ export const nuveiBrand = {
     help: true,
   },
 
-  demoCredentials: { username: 'NuveiDemo', password: 'Nuvei!234' },
+  /**
+   * Demo gate credentials.
+   *
+   * READ THIS BEFORE TREATING IT AS SECURITY. This console is a static SPA with
+   * no server, so whatever value ends up here is compiled into the JavaScript
+   * bundle and is readable by anyone who opens devtools on the deployed site.
+   * The gate keeps a demo link from being wandered into; it does not protect
+   * anything, and no real credential should ever be put here.
+   *
+   * Sourced from the environment so the value is at least not committed to a
+   * public repository. Set VITE_DEMO_USERNAME / VITE_DEMO_PASSWORD in
+   * .env.local locally and in the host's environment for a deployment.
+   */
+  demoCredentials: {
+    username: import.meta.env?.VITE_DEMO_USERNAME || 'NuveiDemo',
+    password: import.meta.env?.VITE_DEMO_PASSWORD || '',
+  },
 };
 
 /* ------------------------------------------------------------------ *

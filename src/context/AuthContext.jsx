@@ -23,7 +23,11 @@ export function AuthProvider({ children }) {
     await new Promise((r) => setTimeout(r, 320));
     setBusy(false);
 
-    const ok = username === brand.demoCredentials.username && password === brand.demoCredentials.password;
+    // An unset password must not mean "any password will do".
+    const expected = brand.demoCredentials.password;
+    const ok = Boolean(expected)
+      && username.trim() === brand.demoCredentials.username
+      && password.trim() === expected;
     if (!ok) {
       setError('Those credentials were not recognized.');
       return false;
