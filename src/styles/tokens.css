@@ -1,0 +1,334 @@
+/* ============================================================
+   DESIGN TOKENS
+   Colour variables (--c-*) are written at runtime by BrandProvider from
+   brand.config.js. The values below are static fallbacks for the frame
+   before that effect runs. Keep them in sync with the Expedia tenant.
+   ============================================================ */
+
+:root {
+  --c-primary: #0057d9;
+  --c-primary-deep: #00348a;
+  --c-primary-tint: #e4edfc;
+  --c-primary-wash: #f4f8fe;
+
+  --c-nav-rail: #001b3d;
+  --c-nav-rail-deep: #00122a;
+  --c-nav-active: #ffb81c;
+  --c-nav-ink: #d9e3f5;
+  --c-nav-ink-muted: #7a8fb5;
+
+  --c-ink: #0b1b33;
+  --c-ink-muted: #51637f;
+  --c-ink-subtle: #8394ac;
+  --c-canvas: #f2f5fa;
+  --c-surface: #ffffff;
+  --c-surface-sunken: #f7f9fc;
+  --c-line: #dee5f0;
+  --c-line-strong: #c2cee0;
+
+  --c-success: #0f7b4f;
+  --c-success-tint: #e4f4ec;
+  --c-warning: #9a5b00;
+  --c-warning-tint: #fbf0dd;
+  --c-danger: #b3261e;
+  --c-danger-tint: #fbe9e7;
+  --c-info: #3f51b5;
+  --c-info-tint: #eceefb;
+
+  --c-scheme-visa: #1a1f71;
+  --c-scheme-mastercard: #c8102e;
+  --c-scheme-amex: #016fd0;
+
+  /* Validated categorical ramp — see brand.config.js for why this order */
+  --c-series-0: #0057d9;
+  --c-series-1: #3d82ff;
+  --c-series-2: #8ab4ff;
+  --c-series-3: #c9dfff;
+  --c-series-4: #00348a;
+  --c-series-contrast: #b3261e;
+  --c-series-neutral: #66768f;
+
+  /* Type — one family everywhere: headings, body copy, case numbers,
+     amounts, emails, reference IDs. No separate monospace face. */
+  --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --fs-display: 1.75rem;
+  --fs-h1: 1.25rem;
+  --fs-h2: 1rem;
+  --fs-h3: 0.875rem;
+  --fs-body: 0.8125rem;
+  --fs-small: 0.75rem;
+  --fs-micro: 0.6875rem;
+  --fs-nano: 0.625rem;
+
+  /* Space — 4px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Shape */
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(11, 27, 51, 0.06), 0 1px 3px rgba(11, 27, 51, 0.04);
+  --shadow-raised: 0 8px 28px rgba(11, 27, 51, 0.14), 0 2px 6px rgba(11, 27, 51, 0.08);
+  --shadow-popover: 0 12px 32px rgba(11, 27, 51, 0.18), 0 3px 8px rgba(11, 27, 51, 0.1);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --dur-fast: 110ms;
+  --dur: 190ms;
+
+  /* Layout */
+  --rail-w: 236px;
+  --rail-w-collapsed: 60px;
+  --topbar-h: 52px;
+
+  /* Stacking — popovers and tooltips live above everything, in a portal */
+  --z-sticky: 20;
+  --z-modal: 100;
+  --z-popover: 800;
+  --z-tooltip: 1000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+
+/* ==================================================================
+ * Merged in from the other Dispute Lab builds — styles for components
+ * this build carries that the Expedia base did not.
+ * ================================================================== */
+
+/* --- from the Vinted build --- */
+/* ============================================================
+   DESIGN TOKENS
+   Colour variables (--c-*) are written at runtime by BrandProvider from
+   brand.config.js. The values below are static fallbacks for the frame
+   before that effect runs. Keep them in sync with the Vinted tenant.
+   ============================================================ */
+
+:root {
+  --c-primary: #007782;
+  --c-primary-deep: #00565e;
+  --c-primary-tint: #e4f1f1;
+  --c-primary-wash: #f3f9f9;
+
+  --c-nav-rail: #04343a;
+  --c-nav-rail-deep: #022a2f;
+  --c-nav-active: #00a0ad;
+  --c-nav-ink: #d6e7e8;
+  --c-nav-ink-muted: #7fa0a4;
+
+  --c-ink: #0b2e32;
+  --c-ink-muted: #5a7377;
+  --c-ink-subtle: #8ca3a6;
+  --c-canvas: #f2f5f5;
+  --c-surface: #ffffff;
+  --c-surface-sunken: #f7fafa;
+  --c-line: #dce7e7;
+  --c-line-strong: #bfd3d3;
+
+  --c-success: #0f7b4f;
+  --c-success-tint: #e4f4ec;
+  --c-warning: #9a5b00;
+  --c-warning-tint: #fbf0dd;
+  --c-danger: #b3261e;
+  --c-danger-tint: #fbe9e7;
+  --c-info: #3f51b5;
+  --c-info-tint: #eceefb;
+
+  --c-scheme-visa: #1a1f71;
+  --c-scheme-mastercard: #c8102e;
+  --c-scheme-amex: #016fd0;
+
+  /* Validated categorical ramp — see brand.config.js for why this order */
+  --c-series-0: #007782;
+  --c-series-1: #00a0ad;
+  --c-series-2: #6fc5c9;
+  --c-series-3: #b9e0e1;
+  --c-series-4: #04343a;
+  --c-series-contrast: #b3261e;
+  --c-series-neutral: #6b7f82;
+
+  /* Type — ONE family everywhere: headings, body copy, case numbers, amounts,
+     emails, reference IDs. This build ran three (Plus Jakarta Sans for
+     headings, Inter for copy, JetBrains Mono for data), which put two
+     typefaces inside a single table row — a JetBrains case ID next to an Inter
+     reason label — and three inside a card. At 11-13px that reads as
+     inconsistency rather than hierarchy, and the mono face was noticeably
+     wider, so the same column needed more room to say less.
+
+     Weight, size and colour carry the hierarchy instead. Figures keep their
+     alignment through `font-variant-numeric: tabular-nums` rather than a
+     monospaced face — that is the only property a proportional font was
+     actually missing here.
+
+     `--font-display` and `--font-mono` are kept as names, pointed at the same
+     stack, so no stylesheet still asking for one can reintroduce a second
+     typeface. */
+  --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --fs-display: 1.75rem;
+  --fs-h1: 1.25rem;
+  --fs-h2: 1rem;
+  --fs-h3: 0.875rem;
+  --fs-body: 0.8125rem;
+  --fs-small: 0.75rem;
+  --fs-micro: 0.6875rem;
+  --fs-nano: 0.625rem;
+
+  /* Space — 4px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Shape */
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(11, 46, 50, 0.06), 0 1px 3px rgba(11, 46, 50, 0.04);
+  --shadow-raised: 0 8px 28px rgba(11, 46, 50, 0.14), 0 2px 6px rgba(11, 46, 50, 0.08);
+  --shadow-popover: 0 12px 32px rgba(11, 46, 50, 0.18), 0 3px 8px rgba(11, 46, 50, 0.1);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --dur-fast: 110ms;
+  --dur: 190ms;
+
+  /* Layout */
+  --rail-w: 236px;
+  --rail-w-collapsed: 60px;
+  --topbar-h: 52px;
+
+  /* Stacking — popovers and tooltips live above everything, in a portal */
+  --z-sticky: 20;
+  --z-modal: 100;
+  --z-popover: 800;
+  --z-tooltip: 1000;
+}
+
+/* --- from the Nutrameg build --- */
+/* ============================================================
+   DESIGN TOKENS
+   Colour variables (--c-*) are written at runtime by BrandProvider from
+   brand.config.js. The values below are static fallbacks for the frame
+   before that effect runs. Keep them in sync with the Nutrameg tenant.
+   ============================================================ */
+
+:root {
+  --c-primary: #3dbf7b;
+  --c-primary-deep: #1db578;
+  --c-primary-tint: #e3f5ec;
+  --c-primary-wash: #f3fbf7;
+
+  --c-nav-rail: #18141e;
+  --c-nav-rail-deep: #100d15;
+  --c-nav-active: #4ecb8d;
+  --c-nav-ink: #e4ede9;
+  --c-nav-ink-muted: #8ca89a;
+
+  --c-ink: #161b18;
+  --c-ink-muted: #5b6b63;
+  --c-ink-subtle: #8b9990;
+  --c-canvas: #f5f9f7;
+  --c-surface: #ffffff;
+  --c-surface-sunken: #fafcfb;
+  --c-line: #e1eae5;
+  --c-line-strong: #c9d6ce;
+
+  --c-success: #1f8a55;
+  --c-success-tint: #e3f5ea;
+  --c-warning: #9a6b00;
+  --c-warning-tint: #fbf0dd;
+  --c-danger: #b3261e;
+  --c-danger-tint: #fbe9e7;
+  --c-info: #3b6ea5;
+  --c-info-tint: #eaf1f8;
+
+  --c-scheme-visa: #1a1f71;
+  --c-scheme-mastercard: #c8102e;
+  --c-scheme-amex: #016fd0;
+
+  /* Validated categorical ramp — see brand.config.js for why this order */
+  --c-series-0: #3dbf7b;
+  --c-series-1: #5ecb93;
+  --c-series-2: #8fdbb4;
+  --c-series-3: #c3ecd6;
+  --c-series-4: #161b18;
+  --c-series-contrast: #b3261e;
+  --c-series-neutral: #7c8b84;
+
+  /* Type */
+  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fs-display: 1.75rem;
+  --fs-h1: 1.25rem;
+  --fs-h2: 1rem;
+  --fs-h3: 0.875rem;
+  --fs-body: 0.8125rem;
+  --fs-small: 0.75rem;
+  --fs-micro: 0.6875rem;
+  --fs-nano: 0.625rem;
+
+  /* Space — 4px base */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Shape */
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(11, 46, 50, 0.06), 0 1px 3px rgba(11, 46, 50, 0.04);
+  --shadow-raised: 0 8px 28px rgba(11, 46, 50, 0.14), 0 2px 6px rgba(11, 46, 50, 0.08);
+  --shadow-popover: 0 12px 32px rgba(11, 46, 50, 0.18), 0 3px 8px rgba(11, 46, 50, 0.1);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --dur-fast: 110ms;
+  --dur: 190ms;
+
+  /* Layout */
+  --rail-w: 236px;
+  --rail-w-collapsed: 60px;
+  --topbar-h: 52px;
+
+  /* Stacking — popovers and tooltips live above everything, in a portal */
+  --z-sticky: 20;
+  --z-modal: 100;
+  --z-popover: 800;
+  --z-tooltip: 1000;
+}
