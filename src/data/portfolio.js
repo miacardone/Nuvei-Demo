@@ -187,12 +187,12 @@ const FINDINGS_POOL = {
   Low: [
     'Established processing history with no material chargeback trend',
     'Strong win rate on recent representments',
-    'Diversified booking mix across entities and markets',
+    'Diversified transaction mix across entities and markets',
     'Clean KYC file, no adverse media',
   ],
   Medium: [
     'Chargeback ratio trending toward the early-warning threshold',
-    'Moderate concentration in a single booking category',
+    'Moderate concentration in a single merchant category',
     'Supplier documentation turnaround slower than target',
     'Banking history under three years',
   ],

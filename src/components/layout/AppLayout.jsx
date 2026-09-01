@@ -13,7 +13,7 @@ const SIDEBAR_KEY = 'edc.sidebarCollapsed';
 
 const NOTIFICATIONS = [
   { id: 'n1', title: 'Cases due within 24 hours', detail: '18 cases across three queues.', hours: 1, read: false },
-  { id: 'n2', title: 'Consolidation detected', detail: 'A booking is disputed through two channels.', hours: 3, read: false },
+  { id: 'n2', title: 'Consolidation detected', detail: 'A transaction is disputed through two channels.', hours: 3, read: false },
   { id: 'n3', title: 'Upload completed', detail: '147 of 148 rows imported.', hours: 6, read: true },
 ];
 

@@ -5,10 +5,12 @@ import { DataTable, ExportButtons, Pagination } from '@/components/ui/DataTable'
 import { SearchInput } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { MERCHANTS, UNDERWRITING_REVIEWS } from '@/data/portfolio';
+import { describe as describeIndemnity, settingsFor } from '@/data/indemnification';
+import useIndemnification from '@/hooks/useIndemnification';
 import { weeklySeries } from '@/domain/metrics';
 import { useToast } from '@/context/ToastContext';
 import { usePerspective } from '@/hooks/usePerspective';
-import { formatDate, formatNumber } from '@/utils/format';
+import { formatCurrency, formatDate, formatNumber } from '@/utils/format';
 
 const reviewDateOf = (r) => r.reviewDate;
 const DAY = 86_400_000;
@@ -29,6 +31,9 @@ function weeklyAverage(rows, weeks, valueFn, dateOf) {
  * relationship with the acquirer. See src/data/portfolio.js for how each
  * review's risk score, findings and recommendation are simulated.
  */
+
+/** Recommendations that accept risk on a condition, rather than clean approvals. */
+const CONDITIONAL = new Set(['Approve with conditions', 'Decline', 'Escalate']);
 
 const RECOMMENDATION_TONE = {
   Approve: 'success',
@@ -102,12 +107,34 @@ export function Underwriting() {
   const escalationsSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 6, () => 1, (r) => r.recommendation === 'Escalate', reviewDateOf), []);
   const declinesSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 6, () => 1, (r) => r.recommendation === 'Decline', reviewDateOf), []);
 
+  // Subscribing here is what keeps this column honest: change a merchant's
+  // terms on their record and this table reflects it without a reload.
+  useIndemnification();
+
   const columns = [
     { key: 'merchantName', header: 'Merchant', fw: 12, sortable: true, cell: (r) => <TruncatedText value={r.merchantName} className="small strong" /> },
     { key: 'reviewType', header: 'Review type', fw: 7, align: 'center', cell: (r) => <Badge tone="neutral">{r.reviewType}</Badge> },
     { key: 'riskScore', header: 'Risk score', fw: 8, sortable: true, cell: (r) => <ScoreBar score={r.riskScore} /> },
     { key: 'findings', header: 'Findings', fw: 20, cell: (r) => <TruncatedText value={r.findings.join('; ')} className="small" /> },
     { key: 'recommendation', header: 'Recommendation', fw: 10, sortable: true, align: 'center', cell: (r) => <StatusIcon icon={RECOMMENDATION_ICON[r.recommendation] ?? 'searchCheck'} tone={RECOMMENDATION_TONE[r.recommendation] ?? 'neutral'} label={r.recommendation} /> },
+    {
+      key: 'indemnification',
+      header: 'Indemnification',
+      fw: 9,
+      align: 'center',
+      /* Read-only. A commercial term is edited in exactly one place — the
+         merchant's record — so it can never be set to two different values
+         from two screens. Shown here because this is where the risk decision
+         is made, and a condition you cannot see is a condition you forget to
+         price. */
+      cell: (r) => {
+        const entry = settingsFor(r.merchantId);
+        const label = describeIndemnity(entry, formatCurrency);
+        if (entry?.enabled) return <Badge tone="primary">{label}</Badge>;
+        // Risk accepted on a condition but never priced — the row worth arguing about.
+        return <Badge tone={CONDITIONAL.has(r.recommendation) ? 'warning' : 'muted'}>{label}</Badge>;
+      },
+    },
     { key: 'reviewer', header: 'Reviewer', fw: 10, cell: (r) => <TruncatedText value={r.reviewer} className="mono small" /> },
     { key: 'reviewDate', header: 'Review date', fw: 7, sortable: true, cell: (r) => <span className="small">{formatDate(r.reviewDate)}</span> },
   ];

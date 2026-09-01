@@ -110,7 +110,7 @@ export const LAST_NOTES = [
   'Docs received, in review',
   'Cardholder contacted issuer directly',
   'Partial refund applied',
-  'Supplier confirms booking was honoured',
+  'Merchant confirms the transaction was fulfilled',
   'Cancellation request logged with supplier',
   'Authenticity report requested',
   'Below write-off threshold',

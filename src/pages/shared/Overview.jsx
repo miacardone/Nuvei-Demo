@@ -142,7 +142,7 @@ export function Overview() {
           >
             <Donut data={donuts[0].slices} centerValue={formatNumber(donuts[0].total)} centerLabel={donuts[0].scheme.label} size={150} />
           </Card>
-          <Card title="Intake Mix" description="Share of all cases coming in as chargebacks vs. booking claims." bodyClassName="card__body--chart card__body--pie-row">
+          <Card title="Intake Mix" description="Share of all cases coming in as chargebacks vs. cardholder claims." bodyClassName="card__body--chart card__body--pie-row">
             <Donut data={typeSplit} variant="pie" size={150} />
           </Card>
           <Card

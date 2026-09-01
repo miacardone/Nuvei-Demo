@@ -282,7 +282,7 @@ export const nuveiBrand = {
   consolidation: {
     rules: [
       { id: 'same_card', label: 'Same card', minSize: 2, windowDays: 90, openOnly: false, description: 'Multiple disputes presented on one PAN.' },
-      { id: 'same_order', label: 'Same booking', minSize: 2, windowDays: 120, openOnly: false, description: 'One booking disputed more than once, including across intake paths.' },
+      { id: 'same_order', label: 'Same transaction', minSize: 2, windowDays: 120, openOnly: false, description: 'One transaction disputed more than once, including across intake paths.' },
       { id: 'same_seller', label: 'Same supplier', minSize: 3, windowDays: 30, openOnly: true, description: 'A cluster of open disputes against one supplier inside 30 days.' },
     ],
   },

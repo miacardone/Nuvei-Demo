@@ -53,7 +53,7 @@ export const CASE_COLUMNS = [
   { key: 'cardholder', header: 'Cardholder', appliesTo: 'chargeback', width: '150px', fw: 10, description: 'The cardholder who filed the dispute.' },
   { key: 'mid', header: 'MID', appliesTo: 'chargeback', width: '130px', fw: 8, mono: true, description: 'Merchant ID the transaction was processed under.' },
 
-  { key: 'itemTitle', header: 'Item', appliesTo: 'claim', width: '220px', fw: 14, description: 'The booking or item this claim is about.' },
+  { key: 'itemTitle', header: 'Item', appliesTo: 'claim', width: '220px', fw: 14, description: 'The transaction or item this claim is about.' },
   { key: 'claimReason', header: 'Claim reason', appliesTo: 'claim', width: '160px', fw: 10, sortable: true, description: 'Why the traveler raised this claim.' },
   { key: 'buyer', header: 'Buyer', appliesTo: 'claim', width: '150px', fw: 10, description: 'The traveler who filed the claim.' },
   { key: 'seller', header: 'Seller', appliesTo: 'claim', width: '150px', fw: 10, description: 'The supplier the booking was made with.' },

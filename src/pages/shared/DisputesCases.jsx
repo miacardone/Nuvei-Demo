@@ -21,12 +21,12 @@ const COPY = {
   acquirer: {
     title: 'Disputes',
     description: `Every chargeback and ${brand.terms.claimProgramme} claim across the ${brand.terms.seller} portfolio.`,
-    search: 'Case #, ARN, booking, reservation, merchant…',
+    search: 'Case #, ARN, transaction, line item, merchant…',
   },
   issuer: {
     title: 'Disputes',
     description: `Every chargeback and ${brand.terms.claimProgramme} claim raised by your ${brand.terms.buyer}s.`,
-    search: 'Case #, ARN, booking, cardholder…',
+    search: 'Case #, ARN, transaction, cardholder…',
   },
 };
 
