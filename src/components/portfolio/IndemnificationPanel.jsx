@@ -7,7 +7,11 @@ import { BASES, annualCharge, applyIndemnification, settingsFor } from '@/data/i
 import { formatCompactCurrency, formatCurrency } from '@/utils/format';
 
 /**
- * Service level — indemnification.
+ * Liability & indemnification.
+ *
+ * Named to stay clear of Alert settings' "Service level", which is the network
+ * alert tier (Self Service / Full Service) and an unrelated setting. Two
+ * different things sharing a heading is how an operator changes the wrong one.
  *
  * The acquirer takes on liability for this merchant's chargebacks in exchange
  * for a charge, priced either as a flat fee per dispute or in basis points of
@@ -60,7 +64,7 @@ export function IndemnificationPanel({ merchant }) {
     <div className="stack stack--tight indemnity">
       <div className="row row--between row--nowrap">
         <span className="row row--xtight">
-          <span className="small strong">Service level — indemnification</span>
+          <span className="small strong">Liability &amp; indemnification</span>
           <Badge tone={saved.enabled ? 'success' : 'neutral'} dot>
             {saved.enabled ? 'Indemnified' : 'Not indemnified'}
           </Badge>

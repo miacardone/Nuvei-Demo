@@ -1109,7 +1109,7 @@
 
 .alert-row { display: flex; gap: var(--s-3); padding: var(--s-3); border: 1px solid var(--c-line); border-radius: var(--r-lg); background: var(--c-surface-sunken); align-items: flex-start; }
 
-/* --- Service level: indemnification ------------------------------------- *
+/* --- Liability & indemnification ----------------------------------------- *
  * The pricing block is a fieldset so the browser disables every control in it
  * at once when the arrangement is switched off, rather than each input
  * carrying its own disabled prop. */
