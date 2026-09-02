@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { AdvancedFiltersModal, CaseFiltersDrawer, EMPTY_FILTERS, applyFilters, countActive } from '@/components/cases/CaseFilters';
 import { buildCaseColumns } from '@/components/cases/caseColumns';
 import brand from '@/brand/brand.config';
-import { CASES } from '@/data/cases';
+import useScopedCases from '@/hooks/useScopedCases';
 
 /** Vocabulary comes from the tenant, so column labels are capitalised here
  *  rather than stored pre-capitalised in two places. */
@@ -116,6 +116,9 @@ function CaseHistoryModal({ row, onClose }) {
 /* ---------- Page ---------- */
 
 export function CaseManagement() {
+  // Scoped to the merchant picker in the rail. Every figure on this page
+  // therefore describes the selected merchant or group, not the whole book.
+  const CASES = useScopedCases();
   const navigate = useNavigate();
   const { notify } = useToast();
   const { routes } = usePerspective();
@@ -137,7 +140,7 @@ export function CaseManagement() {
   const [pageSize, setPageSize] = useState(10);
   const [historyRow, setHistoryRow] = useState(null);
 
-  const linkedIds = useMemo(() => new Set(buildConsolidationGroups(CASES).flatMap((g) => g.caseIds)), []);
+  const linkedIds = useMemo(() => new Set(buildConsolidationGroups(CASES).flatMap((g) => g.caseIds)), [CASES]);
 
   const scoped = useMemo(() => {
     if (tab === 'open') return CASES.filter((c) => !isClosed(c.status));
@@ -153,14 +156,14 @@ export function CaseManagement() {
   const kpis = useMemo(() => caseKpis(scoped), [scoped]);
   // Win rate always reads off the full book — the "Open" tab has no closed
   // cases by definition, so scoping it to the tab would always show 0%.
-  const winRate = useMemo(() => caseKpis(CASES).winRate, []);
+  const winRate = useMemo(() => caseKpis(CASES).winRate, [CASES]);
   const trend = useMemo(() => volumeTrend(scoped), [scoped]);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const overdueTrend = useMemo(() => countTrend(scoped, (c) => !isClosed(c.status) && c.dueDate < today), [scoped, today]);
   const unassignedTrend = useMemo(() => countTrend(scoped, (c) => !isClosed(c.status) && c.worker === '—'), [scoped]);
   const exposureTrend = useMemo(() => sumTrend(scoped.filter((c) => !isClosed(c.status)), (c) => c.disputeAmount), [scoped]);
-  const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), []);
+  const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
   const representedTrend = useMemo(() => countTrend(scoped, (c) => c.status === 'represented'), [scoped]);
   const docsMissingTrend = useMemo(() => countTrend(scoped, (c) => !isClosed(c.status) && c.docStatus === 'missing'), [scoped]);
 
@@ -168,7 +171,7 @@ export function CaseManagement() {
   const overdueSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => !isClosed(c.status) && c.dueDate < today), [scoped, today]);
   const unassignedSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => !isClosed(c.status) && c.worker === '—'), [scoped]);
   const exposureSpark = useMemo(() => weeklySeries(scoped.filter((c) => !isClosed(c.status)), 6, (c) => c.disputeAmount), [scoped]);
-  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), []);
+  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
   const representedSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => c.status === 'represented'), [scoped]);
   const docsMissingSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => !isClosed(c.status) && c.docStatus === 'missing'), [scoped]);
 

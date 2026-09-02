@@ -20,6 +20,7 @@
  */
 
 import brand from '@/brand/brand.config';
+import { MERCHANT_WEIGHTS } from '@/data/merchants';
 import createDraw from '@/data/rng';
 import {
   CARRIERS, CONDITIONS, FIRST_NAMES, FRAUD_MARKERS, ITEMS, LAST_NAMES, LAST_NOTES,
@@ -142,6 +143,10 @@ function generate() {
     const closed = isClosed(status);
 
     const entityId = draw.weighted(ENTITY_WEIGHTS);
+    // Which merchant in the acquirer's book this dispute belongs to. Drawn
+    // against disputeWeight so the distribution matches each merchant's risk
+    // profile, and so Portfolio can count real cases instead of simulating.
+    const merchantId = draw.weighted(MERCHANT_WEIGHTS);
     const entity = brand.entities.find((e) => e.id === entityId);
 
     const itemSpec = draw.pick(ITEMS);
@@ -261,6 +266,7 @@ function generate() {
       currency: brand.currency,
 
       entityId,
+      merchantId,
       entityLabel: entity.label,
       entityDescriptor: entity.descriptor,
       mid: entity.mid,

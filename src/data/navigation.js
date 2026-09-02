@@ -31,149 +31,78 @@ export const LOGIN_ROUTE = '/login';
  * Merchant
  * ------------------------------------------------------------------ */
 
-const merchantRoutes = {
-  dashboard: '/merchant/dashboard',
-
-  /* Two distinct products that both use the word "alert".
-   *   · alerts        — the operational digest derived from our own case book
-   *                     (domain/alerts.js): "what should I look at first".
-   *   · alertCaseWork — the network early-warning product (Verifi CDRN /
-   *                     Visa RDR / Ethoca, data/alerts.js): refund before a
-   *                     chargeback is ever filed.
-   * They are not two views of one thing and must not be merged. */
-  alerts: '/merchant/alerts',
-  alertCaseWork: '/merchant/alerts/case-work',
-  alertSettings: '/merchant/alerts/settings',
-  alertPermissions: '/merchant/alerts/permissions',
-  alertReporting: '/merchant/alerts/reporting',
-  alertAssignments: '/merchant/alerts/assignments',
-  alertValidations: '/merchant/alerts/validations',
-
-  ruleGroups: '/merchant/rules/groups',
-  addRule: '/merchant/rules/groups/add',
-  bulkActions: '/merchant/rules/bulk',
-  ruleCheck: '/merchant/rules/check',
-
-  assignmentReasons: '/merchant/case-admin/assignment-reasons',
-  queueManagement: '/merchant/case-admin/queues',
-  caseManagement: '/merchant/case-admin/cases',
-  uploadCases: '/merchant/case-admin/upload',
-
-  workCase: '/merchant/work-case',
-  workCaseDetail: (id = ':caseId') => `/merchant/work-case/${id}`,
-
-  reportsCenter: '/merchant/reports/center',
-  monitoring: '/merchant/reports/monitoring',
-  customReports: '/merchant/reports/custom',
-
-  users: '/merchant/users',
-  apiDocumentation: '/merchant/api-docs',
-
-  accountSettings: '/merchant/settings/account',
-  webhooks: '/merchant/settings/webhooks',
-  systemPreferences: '/merchant/settings/system',
-
-  templatesLibrary: '/merchant/templates',
-
-  help: '/merchant/help',
-};
-
-const merchantNav = [
-  { label: 'Dashboard', path: merchantRoutes.dashboard, icon: 'dashboard', permission: 'Dashboard', area: 'Cases' },
-  {
-    label: 'Alerts',
-    path: '/merchant/alerts-group',
-    icon: 'bell',
-    children: [
-      // end: true — '/merchant/alerts' is a string-prefix of every sibling
-      // below it, so without an exact match this link would stay highlighted
-      // no matter which sibling was active.
-      { label: 'Priority alerts', path: merchantRoutes.alerts, icon: 'shield', permission: 'Priority Alerts', area: 'Cases', end: true },
-      { label: 'Alert case work', path: merchantRoutes.alertCaseWork, icon: 'inbox', permission: 'Alert Case Work', area: 'Cases' },
-      { label: 'Alert settings', path: merchantRoutes.alertSettings, icon: 'sliders', permission: 'Alert Settings', area: 'Cases' },
-      { label: 'Alert permissions', path: merchantRoutes.alertPermissions, icon: 'lock', permission: 'Alert Permissions', area: 'Administration' },
-      { label: 'Alert reporting', path: merchantRoutes.alertReporting, icon: 'file', permission: 'Alert Reporting', area: 'Reports' },
-      { label: 'Alert assignments', path: merchantRoutes.alertAssignments, icon: 'user', permission: 'Alert Assignments', area: 'Administration' },
-      { label: 'Alert validations', path: merchantRoutes.alertValidations, icon: 'checklist', permission: 'Alert Validations', area: 'Cases' },
-    ],
-  },
-  {
-    label: 'Rules',
-    path: '/merchant/rules',
-    icon: 'rules',
-    children: [
-      { label: 'Rule groups', path: merchantRoutes.ruleGroups, icon: 'layers', permission: 'Rule Groups', area: 'Rules' },
-      { label: 'Bulk actions', path: merchantRoutes.bulkActions, icon: 'checklist', permission: 'Bulk Actions', area: 'Rules' },
-      { label: 'Rule check', path: merchantRoutes.ruleCheck, icon: 'searchCheck', permission: 'Rule Check', area: 'Rules' },
-    ],
-  },
-  {
-    label: 'Case admin',
-    path: '/merchant/case-admin',
-    icon: 'folder',
-    children: [
-      { label: 'Assignment reasons', path: merchantRoutes.assignmentReasons, icon: 'tag', permission: 'Assignment Reasons', area: 'Administration' },
-      { label: 'Queue management', path: merchantRoutes.queueManagement, icon: 'inbox', permission: 'Queue Management', area: 'Administration' },
-      { label: 'Case management', path: merchantRoutes.caseManagement, icon: 'table', permission: 'Case Management', area: 'Cases' },
-      { label: 'Upload cases', path: merchantRoutes.uploadCases, icon: 'upload', permission: 'Upload Cases', area: 'Cases' },
-    ],
-  },
-  { label: 'Work case', path: merchantRoutes.workCase, icon: 'briefcase', permission: 'Work Case', area: 'Cases' },
-  {
-    label: 'Reports',
-    path: '/merchant/reports',
-    icon: 'chart',
-    children: [
-      { label: 'Reports center', path: merchantRoutes.reportsCenter, icon: 'pie', permission: 'Reports Center', area: 'Reports' },
-      { label: 'Monitoring', path: merchantRoutes.monitoring, icon: 'activity', permission: 'Monitoring', area: 'Reports' },
-      { label: 'Custom reports', path: merchantRoutes.customReports, icon: 'spreadsheet', permission: 'Custom Reports', area: 'Reports' },
-    ],
-  },
-  { label: 'Users', path: merchantRoutes.users, icon: 'users', permission: 'User Management', area: 'Administration' },
-  { label: 'API documentation', path: merchantRoutes.apiDocumentation, icon: 'code', permission: 'API Documentation', area: 'Administration' },
-  {
-    label: 'Settings',
-    path: '/merchant/settings',
-    icon: 'cog',
-    children: [
-      { label: 'Account settings', path: merchantRoutes.accountSettings, icon: 'userCircle', permission: 'Account Settings', area: 'Administration' },
-      { label: 'Webhooks', path: merchantRoutes.webhooks, icon: 'webhook', permission: 'Webhooks', area: 'Administration' },
-      { label: 'System preferences', path: merchantRoutes.systemPreferences, icon: 'sliders', permission: 'System Preferences', area: 'Administration' },
-    ],
-  },
-  { label: 'Templates library', path: merchantRoutes.templatesLibrary, icon: 'file', permission: 'Templates Library', area: 'Administration' },
-  { label: 'Help', path: merchantRoutes.help, icon: 'help', permission: 'Help', area: 'Administration' },
-];
-
-/* ------------------------------------------------------------------ *
- * Acquirer
- * ------------------------------------------------------------------ */
-
+/**
+ * ONE TREE. Nuvei is the acquirer, so the operator never switches persona —
+ * they choose which merchant they are looking at (see data/merchant-scope.js).
+ * Every screen this console carries therefore hangs off a single `/acquirer`
+ * nav, rather than being split across three role trees.
+ *
+ * Route SUFFIXES are still what App.jsx registers under `/:perspective`, and
+ * the suffix sets of the old merchant / acquirer / issuer trees barely
+ * overlapped, so the union below reaches every page without renaming a route.
+ */
 const acquirerRoutes = {
   overview: '/acquirer/overview',
+  dashboard: '/acquirer/dashboard',
 
   portfolioMerchants: '/acquirer/portfolio/merchants',
   onboarding: '/acquirer/portfolio/onboarding',
   underwriting: '/acquirer/portfolio/underwriting',
 
+  /* Two products that both say "alert" — see the note in the nav below. */
+  alerts: '/acquirer/alerts',
+  alertCaseWork: '/acquirer/alerts/case-work',
+  alertSettings: '/acquirer/alerts/settings',
+  alertPermissions: '/acquirer/alerts/permissions',
+  alertReporting: '/acquirer/alerts/reporting',
+  alertAssignments: '/acquirer/alerts/assignments',
+  alertValidations: '/acquirer/alerts/validations',
+
   disputesCases: '/acquirer/disputes/cases',
   representment: '/acquirer/disputes/representment',
+  chargebacks: '/acquirer/disputes/chargebacks',
+
+  caseManagement: '/acquirer/case-admin/cases',
+  assignmentReasons: '/acquirer/case-admin/assignment-reasons',
+  queueManagement: '/acquirer/case-admin/queues',
+  uploadCases: '/acquirer/case-admin/upload',
 
   workCase: '/acquirer/work-case',
   workCaseDetail: (id = ':caseId') => `/acquirer/work-case/${id}`,
 
+  ruleGroups: '/acquirer/rules/groups',
+  addRule: '/acquirer/rules/groups/add',
+  bulkActions: '/acquirer/rules/bulk',
+  ruleCheck: '/acquirer/rules/check',
+
+  cardholders: '/acquirer/cardholders',
+  approvals: '/acquirer/authorizations/approvals',
+  declines: '/acquirer/authorizations/declines',
+
   risk: '/acquirer/risk',
+  fraud: '/acquirer/fraud',
   settlement: '/acquirer/settlement',
+  statements: '/acquirer/statements',
+
   reporting: '/acquirer/reporting',
+  reportsCenter: '/acquirer/reports/center',
+  monitoring: '/acquirer/reports/monitoring',
+  customReports: '/acquirer/reports/custom',
 
   users: '/acquirer/users',
-  accountSettings: '/acquirer/settings',
+  apiDocumentation: '/acquirer/api-docs',
   templatesLibrary: '/acquirer/templates',
+
+  accountSettings: '/acquirer/settings/account',
+  webhooks: '/acquirer/settings/webhooks',
+  systemPreferences: '/acquirer/settings/system',
+
   help: '/acquirer/help',
 };
 
 const acquirerNav = [
   { label: 'Overview', path: acquirerRoutes.overview, icon: 'dashboard', permission: 'Overview', area: 'Cases' },
+  { label: 'Dispute dashboard', path: acquirerRoutes.dashboard, icon: 'activity', permission: 'Dashboard', area: 'Cases' },
   {
     label: 'Portfolio',
     path: '/acquirer/portfolio',
@@ -185,86 +114,97 @@ const acquirerNav = [
     ],
   },
   {
+    label: 'Alerts',
+    path: '/acquirer/alerts-group',
+    icon: 'bell',
+    children: [
+      // end: true — '/acquirer/alerts' is a string-prefix of every sibling
+      // below it, so without an exact match this link would stay highlighted
+      // no matter which sibling was active.
+      { label: 'Priority alerts', path: acquirerRoutes.alerts, icon: 'shield', permission: 'Priority Alerts', area: 'Cases', end: true },
+      { label: 'Alert case work', path: acquirerRoutes.alertCaseWork, icon: 'inbox', permission: 'Alert Case Work', area: 'Cases' },
+      { label: 'Alert settings', path: acquirerRoutes.alertSettings, icon: 'sliders', permission: 'Alert Settings', area: 'Cases' },
+      { label: 'Alert permissions', path: acquirerRoutes.alertPermissions, icon: 'lock', permission: 'Alert Permissions', area: 'Administration' },
+      { label: 'Alert reporting', path: acquirerRoutes.alertReporting, icon: 'file', permission: 'Alert Reporting', area: 'Reports' },
+      { label: 'Alert assignments', path: acquirerRoutes.alertAssignments, icon: 'user', permission: 'Alert Assignments', area: 'Administration' },
+      { label: 'Alert validations', path: acquirerRoutes.alertValidations, icon: 'checklist', permission: 'Alert Validations', area: 'Cases' },
+    ],
+  },
+  {
     label: 'Disputes',
     path: '/acquirer/disputes',
     icon: 'layers',
     children: [
       { label: 'Cases', path: acquirerRoutes.disputesCases, icon: 'table', permission: 'Disputes Cases', area: 'Cases' },
       { label: 'Representment', path: acquirerRoutes.representment, icon: 'checklist', permission: 'Representment', area: 'Cases' },
+      { label: 'Chargebacks', path: acquirerRoutes.chargebacks, icon: 'table', permission: 'Chargebacks', area: 'Cases' },
     ],
   },
+  { label: 'Work case', path: acquirerRoutes.workCase, icon: 'briefcase', permission: 'Work Case', area: 'Cases' },
+  {
+    label: 'Case admin',
+    path: '/acquirer/case-admin',
+    icon: 'inbox',
+    children: [
+      { label: 'Case management', path: acquirerRoutes.caseManagement, icon: 'table', permission: 'Case Management', area: 'Cases' },
+      { label: 'Assignment reasons', path: acquirerRoutes.assignmentReasons, icon: 'tag', permission: 'Assignment Reasons', area: 'Administration' },
+      { label: 'Queue management', path: acquirerRoutes.queueManagement, icon: 'inbox', permission: 'Queue Management', area: 'Administration' },
+      { label: 'Upload cases', path: acquirerRoutes.uploadCases, icon: 'upload', permission: 'Upload Cases', area: 'Cases' },
+    ],
+  },
+  {
+    label: 'Rules',
+    path: '/acquirer/rules',
+    icon: 'rules',
+    children: [
+      { label: 'Rule groups', path: acquirerRoutes.ruleGroups, icon: 'layers', permission: 'Rule Groups', area: 'Rules' },
+      { label: 'Bulk actions', path: acquirerRoutes.bulkActions, icon: 'checklist', permission: 'Bulk Actions', area: 'Rules' },
+      { label: 'Rule check', path: acquirerRoutes.ruleCheck, icon: 'searchCheck', permission: 'Rule Check', area: 'Rules' },
+    ],
+  },
+  {
+    label: 'Authorizations',
+    path: '/acquirer/authorizations',
+    icon: 'card',
+    children: [
+      { label: 'Approvals', path: acquirerRoutes.approvals, icon: 'table', permission: 'Approvals', area: 'Cases' },
+      { label: 'Declines', path: acquirerRoutes.declines, icon: 'table', permission: 'Declines', area: 'Cases' },
+    ],
+  },
+  { label: 'Cardholders', path: acquirerRoutes.cardholders, icon: 'users', permission: 'Cardholders', area: 'Cases' },
   { label: 'Risk', path: acquirerRoutes.risk, icon: 'activity', permission: 'Risk', area: 'Reports' },
+  { label: 'Fraud', path: acquirerRoutes.fraud, icon: 'shield', permission: 'Fraud', area: 'Reports' },
   { label: 'Settlement', path: acquirerRoutes.settlement, icon: 'pie', permission: 'Settlement', area: 'Reports' },
-  { label: 'Reporting', path: acquirerRoutes.reporting, icon: 'chart', permission: 'Reporting', area: 'Reports' },
+  { label: 'Statements', path: acquirerRoutes.statements, icon: 'spreadsheet', permission: 'Statements', area: 'Reports' },
+  {
+    label: 'Reports',
+    path: '/acquirer/reports',
+    icon: 'chart',
+    children: [
+      { label: 'Reporting', path: acquirerRoutes.reporting, icon: 'chart', permission: 'Reporting', area: 'Reports' },
+      { label: 'Reports center', path: acquirerRoutes.reportsCenter, icon: 'pie', permission: 'Reports Center', area: 'Reports' },
+      { label: 'Monitoring', path: acquirerRoutes.monitoring, icon: 'activity', permission: 'Monitoring', area: 'Reports' },
+      { label: 'Custom reports', path: acquirerRoutes.customReports, icon: 'spreadsheet', permission: 'Custom Reports', area: 'Reports' },
+    ],
+  },
   { label: 'Users', path: acquirerRoutes.users, icon: 'users', permission: 'User Management', area: 'Administration' },
-  { label: 'Settings', path: acquirerRoutes.accountSettings, icon: 'cog', permission: 'Account Settings', area: 'Administration' },
+  { label: 'API documentation', path: acquirerRoutes.apiDocumentation, icon: 'code', permission: 'API Documentation', area: 'Administration' },
   { label: 'Templates library', path: acquirerRoutes.templatesLibrary, icon: 'file', permission: 'Templates Library', area: 'Administration' },
+  {
+    label: 'Settings',
+    path: '/acquirer/settings',
+    icon: 'cog',
+    children: [
+      { label: 'Account settings', path: acquirerRoutes.accountSettings, icon: 'userCircle', permission: 'Account Settings', area: 'Administration' },
+      { label: 'Webhooks', path: acquirerRoutes.webhooks, icon: 'webhook', permission: 'Webhooks', area: 'Administration' },
+      { label: 'System preferences', path: acquirerRoutes.systemPreferences, icon: 'sliders', permission: 'System Preferences', area: 'Administration' },
+    ],
+  },
   { label: 'Help', path: acquirerRoutes.help, icon: 'help', permission: 'Help', area: 'Administration' },
 ];
 
-/* ------------------------------------------------------------------ *
- * Issuer
- * ------------------------------------------------------------------ */
-
-const issuerRoutes = {
-  overview: '/issuer/overview',
-  cardholders: '/issuer/cardholders',
-
-  approvals: '/issuer/authorizations/approvals',
-  declines: '/issuer/authorizations/declines',
-
-  disputesCases: '/issuer/disputes/cases',
-  chargebacks: '/issuer/disputes/chargebacks',
-
-  workCase: '/issuer/work-case',
-  workCaseDetail: (id = ':caseId') => `/issuer/work-case/${id}`,
-
-  fraud: '/issuer/fraud',
-  statements: '/issuer/statements',
-  reporting: '/issuer/reporting',
-
-  users: '/issuer/users',
-  accountSettings: '/issuer/settings',
-  templatesLibrary: '/issuer/templates',
-  help: '/issuer/help',
-};
-
-const issuerNav = [
-  { label: 'Overview', path: issuerRoutes.overview, icon: 'dashboard', permission: 'Overview', area: 'Cases' },
-  { label: 'Cardholders', path: issuerRoutes.cardholders, icon: 'users', permission: 'Cardholders', area: 'Cases' },
-  {
-    label: 'Authorizations',
-    path: '/issuer/authorizations',
-    icon: 'checklist',
-    children: [
-      { label: 'Approvals', path: issuerRoutes.approvals, icon: 'table', permission: 'Approvals', area: 'Cases' },
-      { label: 'Declines', path: issuerRoutes.declines, icon: 'table', permission: 'Declines', area: 'Cases' },
-    ],
-  },
-  {
-    label: 'Disputes',
-    path: '/issuer/disputes',
-    icon: 'layers',
-    children: [
-      { label: 'Cases', path: issuerRoutes.disputesCases, icon: 'table', permission: 'Disputes Cases', area: 'Cases' },
-      { label: 'Chargebacks', path: issuerRoutes.chargebacks, icon: 'table', permission: 'Chargebacks', area: 'Cases' },
-    ],
-  },
-  { label: 'Fraud', path: issuerRoutes.fraud, icon: 'activity', permission: 'Fraud', area: 'Reports' },
-  { label: 'Statements', path: issuerRoutes.statements, icon: 'spreadsheet', permission: 'Statements', area: 'Reports' },
-  { label: 'Reporting', path: issuerRoutes.reporting, icon: 'chart', permission: 'Reporting', area: 'Reports' },
-  { label: 'Users', path: issuerRoutes.users, icon: 'users', permission: 'User Management', area: 'Administration' },
-  { label: 'Settings', path: issuerRoutes.accountSettings, icon: 'cog', permission: 'Account Settings', area: 'Administration' },
-  { label: 'Templates library', path: issuerRoutes.templatesLibrary, icon: 'file', permission: 'Templates Library', area: 'Administration' },
-  { label: 'Help', path: issuerRoutes.help, icon: 'help', permission: 'Help', area: 'Administration' },
-];
-
-/* ------------------------------------------------------------------ *
- * Registry + lookups
- * ------------------------------------------------------------------ */
-
-const ROUTES_BY_PERSPECTIVE = { merchant: merchantRoutes, acquirer: acquirerRoutes, issuer: issuerRoutes };
-const NAV_BY_PERSPECTIVE = { merchant: merchantNav, acquirer: acquirerNav, issuer: issuerNav };
+const ROUTES_BY_PERSPECTIVE = { acquirer: acquirerRoutes };
+const NAV_BY_PERSPECTIVE = { acquirer: acquirerNav };
 
 const navLeavesOf = (nav) =>
   nav.flatMap((item) =>
@@ -275,16 +215,12 @@ const NAV_LEAVES_BY_PERSPECTIVE = Object.fromEntries(
   Object.entries(NAV_BY_PERSPECTIVE).map(([id, nav]) => [id, navLeavesOf(nav)]),
 );
 
-/**
- * Merchant routes under their pre-perspective name. The alert screens brought
- * across from the other builds import `ROUTES` directly; they are merchant
- * screens, so this alias is exact rather than a convenience.
- */
-export const ROUTES = merchantRoutes;
+/** Screens carried over from the other builds import `ROUTES` directly. */
+export const ROUTES = acquirerRoutes;
 
-export const routesFor = (perspective) => ROUTES_BY_PERSPECTIVE[perspective] ?? merchantRoutes;
-export const navFor = (perspective) => NAV_BY_PERSPECTIVE[perspective] ?? merchantNav;
-export const navLeavesFor = (perspective) => NAV_LEAVES_BY_PERSPECTIVE[perspective] ?? NAV_LEAVES_BY_PERSPECTIVE.merchant;
+export const routesFor = () => acquirerRoutes;
+export const navFor = () => acquirerNav;
+export const navLeavesFor = () => NAV_LEAVES_BY_PERSPECTIVE.acquirer;
 
 /** The route a perspective lands on right after switching to it or signing in. */
 export const landingRouteFor = (perspective) => {

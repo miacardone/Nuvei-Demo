@@ -6,7 +6,9 @@ import Wordmark from '@/brand/Wordmark';
 import { Popover, Tooltip } from '@/components/ui/Overlay';
 import { useBrand } from '@/brand/BrandProvider';
 import { usePerspective } from '@/hooks/usePerspective';
-import { PERSPECTIVES } from '@/data/perspectives';
+import { MERCHANTS, MERCHANT_GROUPS } from '@/data/portfolio';
+import { labelFor, merchantIdsFor, setScope } from '@/data/merchant-scope';
+import useMerchantScope from '@/hooks/useMerchantScope';
 
 /**
  * Dark navigation rail with collapsible groups, plus the perspective
@@ -93,52 +95,96 @@ function NavGroup({ item, collapsed }) {
   );
 }
 
-function PerspectiveSwitcher({ collapsed }) {
-  const { id, meta, switchTo } = usePerspective();
+/**
+ * MERCHANT SCOPE PICKER
+ *
+ * Replaces the persona switcher. Nuvei operates one seat — the acquirer — so
+ * the useful choice is not "who am I" but "whose book am I looking at".
+ *
+ * Groups are offered as their own scope so an operator can look at, say, all
+ * of Travel & Hospitality without picking merchants off one at a time.
+ */
+function MerchantScopePicker({ collapsed }) {
+  const scope = useMerchantScope();
+  const label = labelFor(scope);
+  const sub =
+    scope.kind === 'all'
+      ? `${MERCHANTS.length} merchants`
+      : scope.kind === 'group'
+        ? `${merchantIdsFor(scope)?.length ?? 0} merchants`
+        : MERCHANTS.find((m) => m.id === scope.id)?.vertical ?? '';
 
   const trigger = ({ toggle }) => {
     const btn = (
-      <button type="button" className="rail__perspective-btn" onClick={toggle} aria-label="Switch perspective">
-        <Icon name={meta.icon} size={15} style={{ color: 'var(--c-nav-active)' }} />
+      <button type="button" className="rail__perspective-btn" onClick={toggle} aria-label="Change merchant scope">
+        <Icon name={scope.kind === 'merchant' ? 'briefcase' : 'layers'} size={15} style={{ color: 'var(--c-nav-active)' }} />
         {!collapsed && (
           <span style={{ minWidth: 0, textAlign: 'left' }}>
-            <span className="rail__perspective-label">{meta.label}</span>
-            <span className="rail__perspective-sub">{meta.subtitle}</span>
+            <span className="rail__perspective-label">{label}</span>
+            <span className="rail__perspective-sub">{sub}</span>
           </span>
         )}
         {!collapsed && <Icon name="chevronsUpDown" size={13} style={{ color: 'var(--c-nav-ink-muted)', marginLeft: 'auto' }} />}
       </button>
     );
-    return collapsed ? <Tooltip label={`${meta.label} — switch perspective`} side="right" className="rail__tooltip-fill">{btn}</Tooltip> : btn;
+    return collapsed ? <Tooltip label={`${label} — change scope`} side="right" className="rail__tooltip-fill">{btn}</Tooltip> : btn;
   };
 
-  const body = ({ close }) => (
-    <>
-      <div style={{ padding: '8px 10px 4px' }} className="micro subtle">Switch perspective</div>
-      {PERSPECTIVES.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          className="popover__item"
-          style={{ alignItems: 'flex-start' }}
-          onClick={() => {
-            close();
-            if (p.id !== id) switchTo(p.id);
-          }}
-        >
-          <Icon name={p.icon} size={15} className={p.id === id ? '' : 'subtle'} style={p.id === id ? { color: 'var(--c-primary)' } : undefined} />
-          <span style={{ minWidth: 0 }}>
-            <span className="small strong" style={{ display: 'block' }}>{p.label}</span>
-            <span className="micro subtle" style={{ display: 'block' }}>{p.tagline}</span>
-          </span>
-          {p.id === id && <Icon name="check" size={14} style={{ color: 'var(--c-primary)', marginLeft: 'auto' }} />}
-        </button>
-      ))}
-    </>
+  const Row = ({ active, onClick, icon, title, meta }) => (
+    <button type="button" className="popover__item" style={{ alignItems: 'flex-start' }} onClick={onClick}>
+      <Icon name={icon} size={15} className={active ? '' : 'subtle'} style={active ? { color: 'var(--c-primary)' } : undefined} />
+      <span style={{ minWidth: 0 }}>
+        <span className="small strong" style={{ display: 'block' }}>{title}</span>
+        {meta && <span className="micro subtle" style={{ display: 'block' }}>{meta}</span>}
+      </span>
+      {active && <Icon name="check" size={14} style={{ color: 'var(--c-primary)', marginLeft: 'auto' }} />}
+    </button>
   );
 
+  const body = ({ close }) => {
+    const pick = (next) => { close(); setScope(next); };
+    return (
+      <>
+        <div style={{ padding: '8px 10px 4px' }} className="micro subtle">Scope</div>
+        <Row
+          active={scope.kind === 'all'}
+          onClick={() => pick({ kind: 'all' })}
+          icon="layers"
+          title="All merchants"
+          meta={`Whole portfolio · ${MERCHANTS.length} merchants`}
+        />
+        {MERCHANT_GROUPS.map((g) => {
+          const members = MERCHANTS.filter((m) => m.groupId === g.id);
+          if (!members.length) return null;
+          return (
+            <div key={g.id}>
+              <div style={{ padding: '8px 10px 2px' }} className="micro subtle">{g.label}</div>
+              <Row
+                active={scope.kind === 'group' && scope.id === g.id}
+                onClick={() => pick({ kind: 'group', id: g.id })}
+                icon="folder"
+                title={`All ${g.label}`}
+                meta={`${members.length} merchants`}
+              />
+              {members.map((m) => (
+                <Row
+                  key={m.id}
+                  active={scope.kind === 'merchant' && scope.id === m.id}
+                  onClick={() => pick({ kind: 'merchant', id: m.id })}
+                  icon="briefcase"
+                  title={m.name}
+                  meta={`${m.vertical} · ${m.disputeVolume} ${m.disputeVolume === 1 ? 'dispute' : 'disputes'}`}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </>
+    );
+  };
+
   return (
-    <Popover align="left" width={280} trigger={trigger}>
+    <Popover align="left" width={300} trigger={trigger}>
       {body}
     </Popover>
   );
@@ -163,7 +209,7 @@ export function Sidebar({ collapsed, onToggle }) {
       </div>
 
       <div className="rail__perspective">
-        <PerspectiveSwitcher collapsed={collapsed} />
+        <MerchantScopePicker collapsed={collapsed} />
       </div>
 
       <nav className="rail__nav">

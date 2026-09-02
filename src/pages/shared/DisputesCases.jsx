@@ -6,7 +6,7 @@ import { SearchBar } from '@/components/ui/Form';
 import { AdvancedFiltersModal, CaseFiltersDrawer, EMPTY_FILTERS, applyFilters, countActive } from '@/components/cases/CaseFilters';
 import { buildCaseColumns } from '@/components/cases/caseColumns';
 import brand from '@/brand/brand.config';
-import { CASES } from '@/data/cases';
+import useScopedCases from '@/hooks/useScopedCases';
 import { buildConsolidationGroups } from '@/domain/consolidation';
 import { isClosed } from '@/domain/statuses';
 import { caseKpis, countTrend, rateTrend, sumTrend, volumeTrend, weeklyRate, weeklySeries } from '@/domain/metrics';
@@ -31,6 +31,9 @@ const COPY = {
 };
 
 export function DisputesCases() {
+  // Scoped to the merchant picker in the rail. Every figure on this page
+  // therefore describes the selected merchant or group, not the whole book.
+  const CASES = useScopedCases();
   const navigate = useNavigate();
   const { notify } = useToast();
   const { id, routes } = usePerspective();
@@ -45,26 +48,26 @@ export function DisputesCases() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const linkedIds = useMemo(() => new Set(buildConsolidationGroups(CASES).flatMap((g) => g.caseIds)), []);
+  const linkedIds = useMemo(() => new Set(buildConsolidationGroups(CASES).flatMap((g) => g.caseIds)), [CASES]);
   const filtered = useMemo(() => applyFilters(CASES, filters, search), [filters, search]);
-  const kpis = useMemo(() => caseKpis(CASES), []);
-  const trend = useMemo(() => volumeTrend(CASES), []);
+  const kpis = useMemo(() => caseKpis(CASES), [CASES]);
+  const trend = useMemo(() => volumeTrend(CASES), [CASES]);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const overdueTrend = useMemo(() => countTrend(CASES, (c) => !isClosed(c.status) && c.dueDate < today), [today]);
-  const unassignedTrend = useMemo(() => countTrend(CASES, (c) => !isClosed(c.status) && c.worker === '—'), []);
-  const exposureTrend = useMemo(() => sumTrend(CASES.filter((c) => !isClosed(c.status)), (c) => c.disputeAmount), []);
-  const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), []);
-  const representedTrend = useMemo(() => countTrend(CASES, (c) => c.status === 'represented'), []);
-  const docsMissingTrend = useMemo(() => countTrend(CASES, (c) => !isClosed(c.status) && c.docStatus === 'missing'), []);
+  const unassignedTrend = useMemo(() => countTrend(CASES, (c) => !isClosed(c.status) && c.worker === '—'), [CASES]);
+  const exposureTrend = useMemo(() => sumTrend(CASES.filter((c) => !isClosed(c.status)), (c) => c.disputeAmount), [CASES]);
+  const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
+  const representedTrend = useMemo(() => countTrend(CASES, (c) => c.status === 'represented'), [CASES]);
+  const docsMissingTrend = useMemo(() => countTrend(CASES, (c) => !isClosed(c.status) && c.docStatus === 'missing'), [CASES]);
 
-  const openSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status)), []);
+  const openSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status)), [CASES]);
   const overdueSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status) && c.dueDate < today), [today]);
-  const unassignedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status) && c.worker === '—'), []);
-  const exposureSpark = useMemo(() => weeklySeries(CASES.filter((c) => !isClosed(c.status)), 6, (c) => c.disputeAmount), []);
-  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), []);
-  const representedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.status === 'represented'), []);
-  const docsMissingSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status) && c.docStatus === 'missing'), []);
+  const unassignedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status) && c.worker === '—'), [CASES]);
+  const exposureSpark = useMemo(() => weeklySeries(CASES.filter((c) => !isClosed(c.status)), 6, (c) => c.disputeAmount), [CASES]);
+  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
+  const representedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.status === 'represented'), [CASES]);
+  const docsMissingSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status) && c.docStatus === 'missing'), [CASES]);
 
   const sorted = useMemo(() => {
     const rows = [...filtered];

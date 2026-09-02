@@ -3,7 +3,7 @@ import { PageHeader, Card, Badge, Kpi, StatusIcon } from '@/components/ui/Surfac
 import { AreaChart, BarRows } from '@/components/charts/Charts';
 import { DataTable } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
-import { CASES } from '@/data/cases';
+import useScopedCases from '@/hooks/useScopedCases';
 import { MERCHANTS } from '@/data/portfolio';
 import { caseKpis, rateTrend, weeklyRate } from '@/domain/metrics';
 import { isClosed } from '@/domain/statuses';
@@ -50,10 +50,13 @@ function weeklyDisputeValue(cases, weeks = 8) {
 }
 
 export function Risk() {
+  // Scoped to the merchant picker in the rail. Every figure on this page
+  // therefore describes the selected merchant or group, not the whole book.
+  const CASES = useScopedCases();
   const { terms } = usePerspective();
 
-  const flagshipKpis = useMemo(() => caseKpis(CASES), []);
-  const trend = useMemo(() => weeklyDisputeValue(CASES, 8), []);
+  const flagshipKpis = useMemo(() => caseKpis(CASES), [CASES]);
+  const trend = useMemo(() => weeklyDisputeValue(CASES, 8), [CASES]);
 
   const ratioRows = useMemo(
     () => MERCHANTS.filter((m) => m.disputeVolume > 0)
@@ -70,8 +73,8 @@ export function Risk() {
 
   const portfolioExposure = useMemo(() => MERCHANTS.reduce((s, m) => s + m.exposure, 0), []);
   const exposureSpark = useMemo(() => trend.map((t) => t.value), [trend]);
-  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), []);
-  const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), []);
+  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
+  const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
 
   const columns = [
     { key: 'name', header: 'Merchant', fw: 12, cell: (r) => <TruncatedText value={r.name} className="small strong" /> },

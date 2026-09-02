@@ -4,7 +4,7 @@ import { PageHeader, Card, Toolbar, Button, IconButton, EmptyState, Kpi } from '
 import { DataTable, ColumnToggle, ExportButtons, Pagination } from '@/components/ui/DataTable';
 import { SearchInput } from '@/components/ui/Form';
 import { buildCaseColumns } from '@/components/cases/caseColumns';
-import { CASES } from '@/data/cases';
+import useScopedCases from '@/hooks/useScopedCases';
 import { isClosed } from '@/domain/statuses';
 import { countTrend, sumTrend, weeklySeries } from '@/domain/metrics';
 import { useToast } from '@/context/ToastContext';
@@ -21,6 +21,9 @@ import { formatCompactCurrency, formatNumber } from '@/utils/format';
 const QUEUE_STATUSES = ['open', 'ready', 'assigned', 'working', 'pended'];
 
 export function Representment() {
+  // Scoped to the merchant picker in the rail. Every figure on this page
+  // therefore describes the selected merchant or group, not the whole book.
+  const CASES = useScopedCases();
   const navigate = useNavigate();
   const { notify } = useToast();
   const { terms, routes } = usePerspective();
@@ -67,12 +70,12 @@ export function Representment() {
 
   const inQueue = (c) => c.caseType === 'chargeback' && !isClosed(c.status) && QUEUE_STATUSES.includes(c.status);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const queuedTrend = useMemo(() => countTrend(CASES, inQueue), []);
+  const queuedTrend = useMemo(() => countTrend(CASES, inQueue), [CASES]);
   const overdueTrend = useMemo(() => countTrend(CASES, (c) => inQueue(c) && c.dueDate < today), [today]);
-  const exposureTrend = useMemo(() => sumTrend(CASES.filter(inQueue), (c) => c.disputeAmount), []);
-  const queuedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, inQueue), []);
+  const exposureTrend = useMemo(() => sumTrend(CASES.filter(inQueue), (c) => c.disputeAmount), [CASES]);
+  const queuedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, inQueue), [CASES]);
   const overdueSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => inQueue(c) && c.dueDate < today), [today]);
-  const exposureSpark = useMemo(() => weeklySeries(CASES.filter(inQueue), 6, (c) => c.disputeAmount), []);
+  const exposureSpark = useMemo(() => weeklySeries(CASES.filter(inQueue), 6, (c) => c.disputeAmount), [CASES]);
 
   const allColumns = useMemo(() => buildCaseColumns('chargeback'), []);
   const columns = useMemo(() => {

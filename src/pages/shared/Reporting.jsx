@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { PageHeader, Card, Kpi } from '@/components/ui/Surface';
 import { BarChart, AreaChart, BarRows, WorldBubbleMap } from '@/components/charts/Charts';
 import { DataTable } from '@/components/ui/DataTable';
-import { CASES } from '@/data/cases';
+import useScopedCases from '@/hooks/useScopedCases';
 import { MERCHANTS } from '@/data/portfolio';
 import { SETTLEMENT_BATCHES, settlementKpis } from '@/data/settlement';
 import { CARDHOLDERS } from '@/data/cardholders';
@@ -14,13 +14,16 @@ import { formatCompactCurrency, formatNumber, formatPercent } from '@/utils/form
 
 /** The acquirer's and issuer's single Reporting leaf — the same base analytics as the merchant Reports center, plus one section specific to each perspective's own data. */
 export function Reporting() {
+  // Scoped to the merchant picker in the rail. Every figure on this page
+  // therefore describes the selected merchant or group, not the whole book.
+  const CASES = useScopedCases();
   const brand = useBrand();
   const { id } = usePerspective();
 
-  const byWeek = useMemo(() => casesByDueDatePerWeek(CASES), []);
-  const daily = useMemo(() => newCasesPerDay(CASES, 28), []);
-  const byEntity = useMemo(() => entityTotalsByDueDate(CASES), []);
-  const byCategory = useMemo(() => reasonCategoryByDueDate(CASES), []);
+  const byWeek = useMemo(() => casesByDueDatePerWeek(CASES), [CASES]);
+  const daily = useMemo(() => newCasesPerDay(CASES, 28), [CASES]);
+  const byEntity = useMemo(() => entityTotalsByDueDate(CASES), [CASES]);
+  const byCategory = useMemo(() => reasonCategoryByDueDate(CASES), [CASES]);
 
   const topMerchants = useMemo(
     () => [...MERCHANTS].sort((a, b) => b.disputeVolume - a.disputeVolume).slice(0, 8)
@@ -28,11 +31,11 @@ export function Reporting() {
     [],
   );
   const settlement = useMemo(() => settlementKpis(SETTLEMENT_BATCHES), []);
-  const heldTrend = useMemo(() => countTrend(CASES, (c) => c.status === 'represented'), []);
-  const heldSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.status === 'represented'), []);
-  const settledSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.outcome === 'won'), []);
-  const settledTrend = useMemo(() => countTrend(CASES, (c) => c.outcome === 'won'), []);
-  const byMarket = useMemo(() => totalsByMarket(CASES), []);
+  const heldTrend = useMemo(() => countTrend(CASES, (c) => c.status === 'represented'), [CASES]);
+  const heldSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.status === 'represented'), [CASES]);
+  const settledSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.outcome === 'won'), [CASES]);
+  const settledTrend = useMemo(() => countTrend(CASES, (c) => c.outcome === 'won'), [CASES]);
+  const byMarket = useMemo(() => totalsByMarket(CASES), [CASES]);
 
   const topCardholders = useMemo(
     () => [...CARDHOLDERS].sort((a, b) => b.disputeCount - a.disputeCount).slice(0, 8)
@@ -43,8 +46,8 @@ export function Reporting() {
     const approved = AUTHORIZATIONS.filter((a) => a.result === 'Approved').length;
     return AUTHORIZATIONS.length ? (approved / AUTHORIZATIONS.length) * 100 : 0;
   }, []);
-  const disputedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, () => true), []);
-  const disputedTrend = useMemo(() => countTrend(CASES, () => true), []);
+  const disputedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, () => true), [CASES]);
+  const disputedTrend = useMemo(() => countTrend(CASES, () => true), [CASES]);
 
   const columns = [
     { key: 'description', header: 'Description', fw: 14, cell: (r) => <span className="small strong">{r.description}</span> },

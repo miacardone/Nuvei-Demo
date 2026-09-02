@@ -1,5 +1,12 @@
 /**
- * PERSPECTIVES — the three parties to a dispute.
+ * PERSPECTIVE — the seat this console is operated from.
+ *
+ * Nuvei is the acquirer, so there is exactly one seat and no persona switch.
+ * What the operator chooses instead is SCOPE — which merchant, or group of
+ * merchants, they are looking at. See data/merchant-scope.js.
+ *
+ * The `/:perspective/` URL segment is kept so every route keeps its shape and
+ * a bookmarked link still resolves; it simply only ever holds one value.
  *
  * Vinted's build of this console only ever modeled the merchant side (a
  * marketplace defending chargebacks against its own sales). This build adds
@@ -20,15 +27,6 @@ import brand from '@/brand/brand.config';
 
 export const PERSPECTIVES = [
   {
-    id: 'merchant',
-    label: 'Merchant',
-    subtitle: brand.flagshipMerchant.name,
-    tagline: `Defend chargebacks and ${brand.terms.claimProgramme} claims against your own ${brand.terms.order}s.`,
-    icon: 'briefcase',
-    /** Vocabulary layered on top of brand.terms while this perspective is active. */
-    terms: {},
-  },
-  {
     id: 'acquirer',
     label: 'Acquirer',
     subtitle: brand.name,
@@ -37,24 +35,11 @@ export const PERSPECTIVES = [
     terms: {
       analyst: 'Risk Analyst',
       analysts: 'Risk Analysts',
-      seller: brand.terms.seller,
-    },
-  },
-  {
-    id: 'issuer',
-    label: 'Issuer',
-    subtitle: 'Card issuer',
-    tagline: 'Review cardholder authorizations, fraud and chargebacks.',
-    icon: 'card',
-    terms: {
-      analyst: 'Fraud Analyst',
-      analysts: 'Fraud Analysts',
-      buyer: 'cardholder',
     },
   },
 ];
 
-export const DEFAULT_PERSPECTIVE = 'merchant';
+export const DEFAULT_PERSPECTIVE = 'acquirer';
 
 const BY_ID = Object.fromEntries(PERSPECTIVES.map((p) => [p.id, p]));
 

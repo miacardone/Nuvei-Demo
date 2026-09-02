@@ -14,6 +14,7 @@
 import brand from '@/brand/brand.config';
 import createDraw from '@/data/rng';
 import { CASES } from '@/data/cases';
+import { MERCHANT_ROSTER, MERCHANT_GROUPS } from '@/data/merchants';
 import { REVIEWER_OPTIONS } from '@/data/people';
 import { caseKpis } from '@/domain/metrics';
 
@@ -24,7 +25,6 @@ const NOW = Date.now();
 const DAY = 86_400_000;
 const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
 
-const MCC_BY_CODE = Object.fromEntries(brand.mccs.map((m) => [m.code, m]));
 
 /**
  * The acquirer whose seat this perspective sits in.
@@ -41,102 +41,60 @@ export const ACQUIRER_NAME = brand.name;
  * the real case book, the same way Overview.jsx and metrics.js do.
  * ------------------------------------------------------------------ */
 
-const kpis = caseKpis(CASES);
-const chargebackCount = CASES.filter((c) => c.caseType === 'chargeback').length;
-const avgBookingValue = Math.round((CASES.reduce((s, c) => s + c.caseAmount, 0) / CASES.length) * 100) / 100;
-
-/** Illustrative annual card volume this acquirer processes for Expedia. */
-const FLAGSHIP_PROJECTED_VOLUME = 4_820_000_000;
+const AVG_CASE_VALUE = Math.round((CASES.reduce((s, c) => s + c.caseAmount, 0) / CASES.length) * 100) / 100;
 
 /**
- * The live book reads as roughly one quarter of activity (due-date offsets
- * run from ~60 days past to ~30 days out — see cases.js), so it is scaled
- * ×4 into an annualised estimate before it is divided by an estimated
- * transaction count. This keeps the ratio at a realistic industry scale
- * (a fraction of a percent for a well-run merchant) instead of reading as a
- * single quarter's raw count against a full year of volume.
+ * Every merchant's numbers are COUNTED from the case book, not invented — the
+ * same rule the flagship always followed, now applied to the whole roster.
+ * Cases carry a merchantId (see data/cases.js), so if the book says a merchant
+ * has 84 disputes, Portfolio says 84 and the scope picker filters to 84.
+ *
+ * The live book reads as roughly one quarter of activity (due-date offsets run
+ * from ~60 days past to ~30 days out), so counts are scaled x4 into an
+ * annualised estimate before being divided by an estimated transaction count.
+ * That keeps the chargeback ratio at a realistic scale — a fraction of a
+ * percent for a well-run merchant — instead of reading a single quarter's raw
+ * count against a full year of volume.
  */
-const estimatedAnnualTransactions = Math.round(FLAGSHIP_PROJECTED_VOLUME / avgBookingValue);
-const FLAGSHIP_CHARGEBACK_RATIO = Math.round(((chargebackCount * 4) / estimatedAnnualTransactions) * 10000) / 100;
-
-const FLAGSHIP = {
-  id: 'flagship',
-  name: brand.flagshipMerchant.name,
-  vertical: brand.flagshipMerchant.vertical,
-  mccCode: brand.flagshipMerchant.mccCode,
-  mccLabel: MCC_BY_CODE[brand.flagshipMerchant.mccCode]?.label ?? brand.mccs[0].label,
-  status: 'Active',
-  riskTier: 'Low',
-  onboardedDate: brand.flagshipMerchant.onboardedDate,
-  projectedVolume: FLAGSHIP_PROJECTED_VOLUME,
-  disputeVolume: kpis.total,
-  chargebackCount,
-  claimCount: kpis.claims,
-  exposure: kpis.openValue,
-  chargebackRatio: FLAGSHIP_CHARGEBACK_RATIO,
-  winRate: Math.round(kpis.winRate * 10) / 10,
-  flagship: true,
-};
-
-/* ------------------------------------------------------------------ *
- * Peer merchants — fictional travel-vertical brands, simulated stats.
- * ------------------------------------------------------------------ *
- * Status is deliberately varied so Onboarding and Underwriting have real
- * content: 3 Active, 2 Onboarding, 2 Under review, 1 Suspended.
- */
-
-const PEER_STUBS = [
-  { id: 'brightwave', name: 'Brightwave Electronics', vertical: 'Consumer electronics retail', mccCode: '5999', status: 'Active', riskTier: 'Low', onboardedDate: '2018-06-11', volume: [180_000_000, 260_000_000], disputes: [90, 160] },
-  { id: 'pixelforge', name: 'PixelForge Studios', vertical: 'Games and in-app purchases', mccCode: '5816', status: 'Active', riskTier: 'Medium', onboardedDate: '2020-09-14', volume: [95_000_000, 140_000_000], disputes: [40, 80] },
-  { id: 'lattice', name: 'Lattice Software', vertical: 'B2B SaaS subscriptions', mccCode: '7372', status: 'Active', riskTier: 'Low', onboardedDate: '2019-03-19', volume: [120_000_000, 175_000_000], disputes: [55, 100] },
-  { id: 'flightpath', name: 'FlightPath Travel', vertical: 'Discount airline OTA', mccCode: '4722', status: 'Suspended', riskTier: 'High', onboardedDate: '2017-08-30', volume: [70_000_000, 110_000_000], disputes: [220, 340] },
-  { id: 'harborside', name: 'Harborside Dining Group', vertical: 'Restaurant group', mccCode: '5812', status: 'Active', riskTier: 'Low', onboardedDate: '2021-05-08', volume: [30_000_000, 55_000_000], disputes: [30, 60] },
-  { id: 'freshline', name: 'Freshline Markets', vertical: 'Online grocery', mccCode: '5411', status: 'Onboarding', riskTier: 'Medium', onboardedDate: null, volume: [40_000_000, 70_000_000], disputes: [0, 0] },
-  { id: 'goldenspin', name: 'GoldenSpin Gaming', vertical: 'Licensed online gaming', mccCode: '7995', status: 'Under review', riskTier: 'High', onboardedDate: '2019-11-20', volume: [60_000_000, 90_000_000], disputes: [110, 190] },
-  { id: 'meridian', name: 'Meridian Digital Bank', vertical: 'Neobank top-ups', mccCode: '6012', status: 'Onboarding', riskTier: 'High', onboardedDate: null, volume: [50_000_000, 80_000_000], disputes: [0, 0] },
-];
-
-function simulateStats(riskTier, disputeMin, disputeMax) {
-  if (disputeMax <= 0) return { disputeVolume: 0, chargebackRatio: 0, exposure: 0 };
-
-  const disputeVolume = draw.int(disputeMin, disputeMax);
-  const [ratioMin, ratioMax] =
-    riskTier === 'Low' ? [0.12, 0.34] : riskTier === 'Medium' ? [0.35, 0.64] : [0.68, 1.45];
-  const chargebackRatio = Math.round(draw.float(ratioMin, ratioMax) * 100) / 100;
-
-  const avgExposurePerCase = draw.money(220, 640);
-  const openFraction = draw.float(0.28, 0.45);
-  const exposure = Math.round(disputeVolume * openFraction * avgExposurePerCase * 100) / 100;
-
-  return { disputeVolume, chargebackRatio, exposure };
-}
-
 function buildMerchant(stub) {
-  const projectedVolume = Math.round(draw.float(stub.volume[0], stub.volume[1]) / 100_000) * 100_000;
-  const stats = simulateStats(stub.riskTier, stub.disputes[0], stub.disputes[1]);
-  const mcc = MCC_BY_CODE[stub.mccCode];
+  const mine = CASES.filter((c) => c.merchantId === stub.id);
+  const kpis = caseKpis(mine);
+  const chargebackCount = mine.filter((c) => c.caseType === 'chargeback').length;
+
+  const estimatedAnnualTransactions = Math.max(
+    1,
+    Math.round(stub.projectedVolume / (AVG_CASE_VALUE || 1)),
+  );
+  const chargebackRatio =
+    Math.round(((chargebackCount * 4) / estimatedAnnualTransactions) * 10000) / 100;
 
   return {
     id: stub.id,
     name: stub.name,
     vertical: stub.vertical,
     mccCode: stub.mccCode,
-    mccLabel: mcc.label,
+    mccLabel: stub.mccLabel,
+    groupId: stub.groupId,
+    groupLabel: stub.groupLabel,
     status: stub.status,
     riskTier: stub.riskTier,
     onboardedDate: stub.onboardedDate,
-    projectedVolume,
-    disputeVolume: stats.disputeVolume,
-    chargebackCount: stats.disputeVolume,
-    claimCount: 0,
-    exposure: stats.exposure,
-    chargebackRatio: stats.chargebackRatio,
-    winRate: null,
-    flagship: false,
+    projectedVolume: stub.projectedVolume,
+    disputeVolume: mine.length,
+    chargebackCount,
+    claimCount: kpis.claims,
+    exposure: kpis.openValue,
+    chargebackRatio,
+    // A merchant with no closed cases has no win rate to report; null renders
+    // as an em dash rather than a misleading 0%.
+    winRate: mine.length ? Math.round(kpis.winRate * 10) / 10 : null,
+    flagship: stub.flagship,
   };
 }
 
-export const MERCHANTS = [FLAGSHIP, ...PEER_STUBS.map(buildMerchant)];
+export const MERCHANTS = MERCHANT_ROSTER.map(buildMerchant);
+
+export { MERCHANT_GROUPS };
 
 export const merchantById = (id) => MERCHANTS.find((m) => m.id === id) ?? null;
 

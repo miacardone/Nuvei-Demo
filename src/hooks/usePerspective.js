@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getPerspective, isValidPerspective } from '@/data/perspectives';
+import { DEFAULT_PERSPECTIVE, getPerspective, isValidPerspective } from '@/data/perspectives';
 import { navFor, navLeavesFor, routesFor, landingRouteFor, titleForPath } from '@/data/navigation';
 import brand from '@/brand/brand.config';
 
@@ -12,7 +12,7 @@ import brand from '@/brand/brand.config';
 export function usePerspective() {
   const { perspective: param } = useParams();
   const navigate = useNavigate();
-  const id = isValidPerspective(param) ? param : 'merchant';
+  const id = isValidPerspective(param) ? param : DEFAULT_PERSPECTIVE;
   const meta = getPerspective(id);
 
   const terms = useMemo(() => ({ ...brand.terms, ...meta.terms }), [meta]);
