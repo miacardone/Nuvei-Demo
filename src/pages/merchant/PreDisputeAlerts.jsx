@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Kpi, Badge, Button, Toolbar, EmptyState, IconButton } from '@/components/ui/Surface';
-import { DataTable, Pagination } from '@/components/ui/DataTable';
+import { Card, Kpi, Badge, Button, EmptyState, IconButton } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
-import { SearchInput, SelectField, TextField, ToggleField } from '@/components/ui/Form';
+import { SelectField, TextField, ToggleField } from '@/components/ui/Form';
 import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
-import {
-  ALERT_OUTCOMES, ALERT_SOURCES, ALERT_STATUSES, AUTO_RULES, PRE_DISPUTE_ALERTS, RULE_ACTIONS,
+import { ALERT_OUTCOMES, ALERT_SOURCES, ALERT_STATUSES, AUTO_RULES, PRE_DISPUTE_ALERTS, RULE_ACTIONS,
   bySource, getAlertStatus, getOutcome, getSource, preDisputeKpis,
 } from '@/data/pre-dispute';
 import { sortRows } from '@/utils/sortRows';
@@ -43,6 +42,9 @@ function RulesModal({ open, onClose, rules, onToggle, onAdd }) {
   const [action, setAction] = useState(RULE_ACTIONS[0]);
 
   const valid = name.trim() && value.trim();
+
+
+
 
   return (
     <Modal
@@ -103,6 +105,12 @@ export function PreDisputeAlerts() {
   const { notify } = useToast();
 
   const [search, setSearch] = useState('');
+
+  // Table chrome, matching every other table.
+
+  const [density, setDensity] = useState('comfortable');
+
+  const [hidden, setHidden] = useState([]);
   const [source, setSource] = useState('all');
   const [outcome, setOutcome] = useState('all');
   const [status, setStatus] = useState('all');
@@ -169,6 +177,9 @@ export function PreDisputeAlerts() {
 
   const reset = () => { setSearch(''); setSource('all'); setOutcome('all'); setStatus('all'); setWindow('all'); setPage(1); };
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <div className="stack">
       <div className="grid grid--4">
@@ -220,21 +231,33 @@ export function PreDisputeAlerts() {
       </Card>
 
       <Card bodyClassName="card__body--flush">
-        <Toolbar>
-          <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Alert ID, order, card…" />
-          <div className="row row--tight">
-            <SelectField value={window} onChange={(e) => { setWindow(e.target.value); setPage(1); }} options={TIME_WINDOWS} />
-            <SelectField value={source} onChange={(e) => { setSource(e.target.value); setPage(1); }} options={[{ value: 'all', label: 'All sources' }, ...ALERT_SOURCES.map((s) => ({ value: s.id, label: s.label }))]} />
-            <SelectField value={outcome} onChange={(e) => { setOutcome(e.target.value); setPage(1); }} options={[{ value: 'all', label: 'All outcomes' }, ...ALERT_OUTCOMES.map((o) => ({ value: o.id, label: o.label }))]} />
-            <SelectField value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} options={[{ value: 'all', label: 'All statuses' }, ...ALERT_STATUSES.map((s) => ({ value: s.id, label: s.label }))]} />
-            {(search || source !== 'all' || outcome !== 'all' || status !== 'all' || window !== 'all') && (
-              <Button variant="ghost" size="sm" icon="close" onClick={reset}>Clear</Button>
-            )}
-          </div>
-        </Toolbar>
+        <TableToolbar
+          search={search}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
+          searchPlaceholder="Alert ID, order, card…"
+          afterSearch={<>
+              <SelectField value={window} onChange={(e) => { setWindow(e.target.value); setPage(1); }} options={TIME_WINDOWS} />
+              <SelectField value={source} onChange={(e) => { setSource(e.target.value); setPage(1); }} options={[{ value: 'all', label: 'All sources' }, ...ALERT_SOURCES.map((s) => ({ value: s.id, label: s.label }))]} />
+              <SelectField value={outcome} onChange={(e) => { setOutcome(e.target.value); setPage(1); }} options={[{ value: 'all', label: 'All outcomes' }, ...ALERT_OUTCOMES.map((o) => ({ value: o.id, label: o.label }))]} />
+              <SelectField value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} options={[{ value: 'all', label: 'All statuses' }, ...ALERT_STATUSES.map((s) => ({ value: s.id, label: s.label }))]} />
+              {(search || source !== 'all' || outcome !== 'all' || status !== 'all' || window !== 'all') && (
+                <Button variant="ghost" size="sm" icon="close" onClick={reset}>Clear</Button>
+              )}
+            </>}
+          density={density}
+          onDensityChange={setDensity}
+          columns={columns}
+          hidden={hidden}
+          onHiddenChange={setHidden}
+          exportColumns={visibleColumns}
+          exportRows={filtered}
+          exportName="pre-dispute-alerts"
+          onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+        />
 
         <DataTable
-          columns={columns}
+          columns={visibleColumns}
+          density={density}
           rows={pageRows}
           rowKey={(r) => r.id}
           density="fit"

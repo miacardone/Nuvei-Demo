@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { PageHeader, Card, Toolbar, Button, IconButton } from '@/components/ui/Surface';
-import { DataTable, ColumnToggle, ExportButtons } from '@/components/ui/DataTable';
-import { SearchBar } from '@/components/ui/Form';
+import { PageHeader, Card, Button, IconButton } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
@@ -23,6 +22,7 @@ export function TemplatesLibrary() {
 
   const [templates, setTemplates] = useState(TEMPLATE_LIBRARY);
   const [search, setSearch] = useState('');
+  const [density, setDensity] = useState('comfortable');
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(new Set());
@@ -105,20 +105,22 @@ export function TemplatesLibrary() {
         </Card>
 
         <Card title="Templates" bodyClassName="card__body--flush">
-          <Toolbar>
-            <SearchBar value={search} onChange={setSearch} placeholder="Search templates…" />
-            <div className="row row--tight">
-              <ColumnToggle columns={allColumns} hidden={hidden} onChange={setHidden} />
-              <ExportButtons
-                columns={columns.filter((c) => c.key !== 'actions')}
-                rows={rows}
-                name="templates"
-                onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-              />
-            </div>
-          </Toolbar>
+            <TableToolbar
+              search={search}
+              onSearch={setSearch}
+              searchPlaceholder="Search templates…"
+              density={density}
+              onDensityChange={setDensity}
+              columns={allColumns}
+              hidden={hidden}
+              onHiddenChange={setHidden}
+              exportColumns={columns.filter((c) => c.key !== 'actions')}
+              exportRows={rows}
+              exportName="templates"
+              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+            />
 
-          <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} density="comfortable" />
+          <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} density={density} />
         </Card>
       </div>
 

@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Tabs, Button, IconButton, EmptyState, Badge, Kpi } from '@/components/ui/Surface';
-import { DataTable, ColumnToggle, DensityToggle, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchBar } from '@/components/ui/Form';
+import { PageHeader, Card, Tabs, Button, IconButton, EmptyState, Badge, Kpi } from '@/components/ui/Surface';
+import { DataTable, ExportButtons, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
 import { AdvancedFiltersModal, CaseFiltersDrawer, EMPTY_FILTERS, applyFilters, countActive } from '@/components/cases/CaseFilters';
 import { buildCaseColumns } from '@/components/cases/caseColumns';
@@ -256,36 +255,22 @@ export function CaseManagement() {
             onChange={changeTab}
           />
         </div>
-
-        <Toolbar>
-          <div className="row row--tight">
-            <SearchBar
-              value={search}
-              onChange={(v) => { setSearch(v); setPage(1); }}
-              placeholder={`Case #, ARN, ${brand.terms.order}, ${brand.terms.item}, ${brand.terms.buyer} or ${brand.terms.seller}…`}
-              onAdvanced={() => setAdvancedOpen(true)}
-              advancedCount={countActive(filters)}
-            />
-            <CaseFiltersDrawer
-              rows={scoped}
-              statusSelected={filters.statuses}
-              onStatusChange={(v) => changeFilters({ ...filters, statuses: v })}
-              queueSelected={filters.queues}
-              onQueueChange={(v) => changeFilters({ ...filters, queues: v })}
-            />
-          </div>
-
-          <div className="row row--tight">
-            <DensityToggle value={density} onChange={setDensityPref} />
-            <ColumnToggle columns={allColumns} hidden={hidden} onChange={setHidden} />
-            <ExportButtons
-              columns={columns.filter((c) => c.key !== 'actions')}
-              rows={sorted}
-              name="cases"
-              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-            />
-          </div>
-        </Toolbar>
+        <TableToolbar
+          search={search}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
+          searchPlaceholder={`Case #, ARN, ${brand.terms.order}, ${brand.terms.item}, ${brand.terms.buyer} or ${brand.terms.seller}…`}
+          onAdvanced={() => setAdvancedOpen(true)}
+          advancedCount={countActive(filters)}
+          density={density}
+          onDensityChange={setDensityPref}
+          columns={allColumns}
+          hidden={hidden}
+          onHiddenChange={setHidden}
+          exportColumns={columns.filter((c) => c.key !== 'actions')}
+          exportRows={sorted}
+          exportName="cases"
+          onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+        />
 
         {selected.size > 0 && (
           <div className="row row--between" style={{ padding: 'var(--s-2) var(--s-4)', background: 'var(--c-primary-tint)' }}>

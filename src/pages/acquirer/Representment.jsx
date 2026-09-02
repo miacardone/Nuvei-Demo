@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Button, IconButton, EmptyState, Kpi } from '@/components/ui/Surface';
-import { DataTable, ColumnToggle, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchInput } from '@/components/ui/Form';
+import { PageHeader, Card, Button, IconButton, EmptyState, Kpi } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { buildCaseColumns } from '@/components/cases/caseColumns';
 import useScopedCases from '@/hooks/useScopedCases';
 import { isClosed } from '@/domain/statuses';
@@ -29,6 +28,10 @@ export function Representment() {
   const { terms, routes } = usePerspective();
 
   const [search, setSearch] = useState('');
+
+  // Table chrome. Density is new here; this page already tracked hidden
+  // columns as a Set, which ColumnToggle handles, so that stays as it was.
+  const [density, setDensity] = useState('comfortable');
   const [hidden, setHidden] = useState(new Set());
   const [sort, setSort] = useState({ key: 'dueDate', dir: 'asc' });
   const [page, setPage] = useState(1);
@@ -78,10 +81,15 @@ export function Representment() {
   const exposureSpark = useMemo(() => weeklySeries(CASES.filter(inQueue), 6, (c) => c.disputeAmount), [CASES]);
 
   const allColumns = useMemo(() => buildCaseColumns('chargeback'), []);
+  // Hoisted out of the columns memo below: the toolbar exports exactly the
+  // columns the table is showing, so it needs the same list.
+  const visibleColumns = useMemo(
+    () => allColumns.filter((c) => !hidden.has(c.key)),
+    [allColumns, hidden],
+  );
   const columns = useMemo(() => {
-    const visible = allColumns.filter((c) => !hidden.has(c.key));
     return [
-      ...visible,
+      ...visibleColumns,
       {
         key: 'actions',
         header: 'Actions', pinned: true,
@@ -120,21 +128,24 @@ export function Representment() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Case #, ARN, cardholder, reason…" />
-            <div className="row row--tight">
-              <ColumnToggle columns={allColumns} hidden={hidden} onChange={setHidden} />
-              <ExportButtons
-                columns={columns.filter((c) => c.key !== 'actions')}
-                rows={sorted}
-                name="representment-queue"
-                onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-              />
-            </div>
-          </Toolbar>
+            <TableToolbar
+              search={search}
+              onSearch={(v) => { setSearch(v); setPage(1); }}
+              searchPlaceholder="Case #, ARN, cardholder, reason…"
+              density={density}
+              onDensityChange={setDensity}
+              columns={allColumns}
+              hidden={hidden}
+              onHiddenChange={setHidden}
+              exportColumns={visibleColumns}
+              exportRows={sorted}
+              exportName="representment-queue"
+              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+            />
 
           <DataTable
             columns={columns}
+            density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
             density="fit"

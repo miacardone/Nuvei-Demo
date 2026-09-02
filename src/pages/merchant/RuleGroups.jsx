@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Button, IconButton, Badge, EmptyState } from '@/components/ui/Surface';
-import { DataTable, ColumnToggle, ExportButtons } from '@/components/ui/DataTable';
+import { PageHeader, Card, Button, IconButton, Badge, EmptyState } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { SelectField, TextAreaField, TextField } from '@/components/ui/Form';
 import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
@@ -112,6 +112,8 @@ export function RuleGroups() {
   const [groupModal, setGroupModal] = useState(false);
   const [historyRule, setHistoryRule] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  // Density is new; hidden columns were already tracked as a Set here.
+  const [density, setDensity] = useState('comfortable');
   const [hidden, setHidden] = useState(new Set());
   const [draggingId, setDraggingId] = useState(null);
 
@@ -249,16 +251,22 @@ export function RuleGroups() {
           </Card>
 
           <Card bodyClassName="card__body--flush">
-            <Toolbar>
-              <span className="t-section-label">Rules &amp; execution order</span>
-              <div className="row row--tight">
-                <ColumnToggle columns={columns} hidden={hidden} onChange={setHidden} />
-                <ExportButtons columns={visible} rows={ordered} name={`rules-${group.id}`} onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')} />
-                <Button variant="primary" size="sm" icon="plus" onClick={() => navigate(`${routes.addRule}?groupId=${group.id}`)}>Add Rule</Button>
-              </div>
-            </Toolbar>
+            <TableToolbar
+              afterSearch={<span className="t-section-label">Rules &amp; execution order</span>}
+              density={density}
+              onDensityChange={setDensity}
+              columns={columns}
+              hidden={hidden}
+              onHiddenChange={setHidden}
+              exportColumns={visible}
+              exportRows={ordered}
+              exportName={`rules-${group.id}`}
+              onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+              extras={<Button variant="primary" size="sm" icon="plus" onClick={() => navigate(`${routes.addRule}?groupId=${group.id}`)}>Add Rule</Button>}
+            />
 
             <DataTable
+              density={density}
               columns={visible}
               rows={ordered}
               rowKey={(r) => r.id}

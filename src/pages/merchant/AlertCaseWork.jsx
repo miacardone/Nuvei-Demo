@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Tabs, Button, IconButton, Badge, Kpi, EmptyState } from '@/components/ui/Surface';
-import { DataTable, ExportButtons } from '@/components/ui/DataTable';
+import { PageHeader, Card, Tabs, Button, IconButton, Badge, Kpi, EmptyState } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { ConfirmDialog } from '@/components/ui/Modal';
-import { SearchBar, SelectField } from '@/components/ui/Form';
+import { SelectField } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { DueCell } from '@/components/cases/caseColumns';
 import Icon from '@/components/ui/Icon';
@@ -58,6 +58,9 @@ export function AlertCaseWork() {
   const [tab, setTab] = useState('overview');
   const [alerts, setAlerts] = useState(ALERTS);
   const [search, setSearch] = useState('');
+  // Table chrome, matching every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [entityFilter, setEntityFilter] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
   const [outcomeFilter, setOutcomeFilter] = useState('');
@@ -132,6 +135,10 @@ export function AlertCaseWork() {
     },
   ];
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
+
   return (
     <>
       <PageHeader
@@ -161,25 +168,35 @@ export function AlertCaseWork() {
           </div>
         ) : (
           <Card bodyClassName="card__body--flush">
-            <Toolbar>
-              <SearchBar value={search} onChange={setSearch} placeholder="Search alert ID, case ID, identifier…" />
-              <div className="row row--tight">
+            <TableToolbar
+              search={search}
+              onSearch={setSearch}
+              searchPlaceholder="Search alert ID, case ID, identifier…"
+              afterSearch={<>
                 <SelectField value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)} placeholder="All entities" options={brand.entities.map((e) => ({ value: e.id, label: e.label }))} />
                 <SelectField value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} placeholder="All sources" options={ALERT_SOURCES.map((s) => ({ value: s.id, label: s.label }))} />
                 <SelectField value={outcomeFilter} onChange={(e) => setOutcomeFilter(e.target.value)} placeholder="All outcomes" options={ALERT_OUTCOMES.map((o) => ({ value: o.id, label: o.label }))} />
-              </div>
-              <span className="spacer" />
-              {selected.size > 0 && (
+              </>}
+              density={density}
+              onDensityChange={setDensity}
+              columns={columns}
+              hidden={hidden}
+              onHiddenChange={setHidden}
+              exportColumns={visibleColumns}
+              exportRows={filtered}
+              exportName="alerts"
+              onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+              extras={selected.size > 0 && (
                 <Button variant="primary" icon="check" onClick={() => setBulkConfirm(true)}>Bulk complete ({selected.size})</Button>
               )}
-              <ExportButtons columns={columns.filter((c) => c.key !== 'actions')} rows={filtered} name="alerts" onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')} />
-            </Toolbar>
+            />
 
             {filtered.length === 0 ? (
               <EmptyState icon="bell" title="No alerts match" hint="Try clearing a filter or the search box." />
             ) : (
               <DataTable
-                columns={columns}
+                columns={visibleColumns}
+                density={density}
                 rows={filtered}
                 rowKey={(r) => r.id}
                 selection={{

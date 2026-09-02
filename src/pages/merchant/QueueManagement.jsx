@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Button, IconButton } from '@/components/ui/Surface';
-import { DataTable, ExportButtons } from '@/components/ui/DataTable';
+import { PageHeader, Card, Button, IconButton } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { SearchInput, TextAreaField, TextField } from '@/components/ui/Form';
+import { TextAreaField, TextField } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { QUEUE_META } from '@/data/admin';
 import { CASES } from '@/data/cases';
@@ -20,6 +20,9 @@ export function QueueManagement() {
   const depths = useMemo(() => totalsByQueue(CASES), []);
   const [rows, setRows] = useState(QUEUE_META);
   const [search, setSearch] = useState('');
+  // Table chrome. Same controls in the same order as every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
@@ -59,6 +62,9 @@ export function QueueManagement() {
     },
   ];
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
       <PageHeader
@@ -68,11 +74,21 @@ export function QueueManagement() {
       />
 
       <Card bodyClassName="card__body--flush">
-        <Toolbar>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search queues…" />
-          <ExportButtons columns={columns.filter((c) => c.key !== 'actions')} rows={filtered} name="queues" onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')} />
-        </Toolbar>
-        <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+        <TableToolbar
+          search={search}
+          onSearch={setSearch}
+          searchPlaceholder="Search queues…"
+          density={density}
+          onDensityChange={setDensity}
+          columns={columns}
+          hidden={hidden}
+          onHiddenChange={setHidden}
+          exportColumns={visibleColumns}
+          exportRows={filtered}
+          exportName="queues"
+          onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+        />
+        <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
       </Card>
 
       <Modal

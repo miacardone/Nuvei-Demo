@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { PageHeader, Card, Toolbar, Tabs, Button, IconButton, Badge, Kpi, EmptyState } from '@/components/ui/Surface';
-import { DataTable, ExportButtons } from '@/components/ui/DataTable';
+import { PageHeader, Card, Tabs, Button, IconButton, Badge, Kpi, EmptyState } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
-import { SearchBar, SelectField, TextField } from '@/components/ui/Form';
+import { SelectField, TextField } from '@/components/ui/Form';
 import { BarChart, Donut, BarRows } from '@/components/charts/Charts';
 import { Popover, TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
@@ -469,6 +469,9 @@ export function CustomReports() {
   const [tab, setTab] = useState('reports');
   const [reports, setReports] = useState(SAVED_REPORTS);
   const [search, setSearch] = useState('');
+  // Table chrome. Same controls in the same order as every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [advanced, setAdvanced] = useState(false);
   const [criteria, setCriteria] = useState({ name: '', type: '', createdBy: '', format: '', minRows: '', maxRows: '' });
 
@@ -509,6 +512,9 @@ export function CustomReports() {
     },
   ];
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
       <PageHeader
@@ -539,11 +545,24 @@ export function CustomReports() {
           }} />
         ) : (
           <Card bodyClassName="card__body--flush">
-            <Toolbar>
-              <SearchBar value={search} onChange={setSearch} placeholder="Search reports…" onAdvanced={() => setAdvanced(true)} advancedCount={Object.values(criteria).filter(Boolean).length} />
-              <ExportButtons columns={columns.filter((c) => c.key !== 'actions')} rows={filtered} name="reports" onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')} />
-            </Toolbar>
+              <TableToolbar
+                search={search}
+                onSearch={setSearch}
+                searchPlaceholder="Search reports…"
+                onAdvanced={() => setAdvanced(true)}
+                advancedCount={Object.values(criteria).filter(Boolean).length}
+                density={density}
+                onDensityChange={setDensity}
+                columns={columns}
+                hidden={hidden}
+                onHiddenChange={setHidden}
+                exportColumns={visibleColumns.filter((c) => c.key !== 'actions')}
+                exportRows={filtered}
+                exportName="reports"
+                onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+              />
             <DataTable
+              density={density}
               columns={columns}
               rows={filtered}
               rowKey={(r) => r.id}

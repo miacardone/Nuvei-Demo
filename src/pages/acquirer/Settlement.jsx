@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { PageHeader, Card, Toolbar, Kpi, StatusIcon } from '@/components/ui/Surface';
-import { DataTable, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchInput, SelectField } from '@/components/ui/Form';
+import { PageHeader, Card, Kpi, StatusIcon } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
+import { SelectField } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { MERCHANTS } from '@/data/portfolio';
 import { SETTLEMENT_BATCHES, settlementKpis } from '@/data/settlement';
@@ -24,6 +24,10 @@ export function Settlement() {
   const { notify } = useToast();
 
   const [search, setSearch] = useState('');
+
+  // Table chrome. Same controls in the same order as every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [merchant, setMerchant] = useState('');
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
   const [page, setPage] = useState(1);
@@ -75,6 +79,9 @@ export function Settlement() {
     { key: 'status', header: 'Status', fw: 6, sortable: true, align: 'center', cell: (r) => <StatusIcon icon={STATUS_ICON[r.status] ?? 'clock'} tone={STATUS_TONE[r.status] ?? 'neutral'} label={r.status} /> },
   ];
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
       <PageHeader title="Settlement" description="Settlement batches across the portfolio — gross, fees and what's held back for open disputes." />
@@ -88,24 +95,21 @@ export function Settlement() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <div className="row row--tight">
-              <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Batch, merchant, status…" />
-              <SelectField
-                value={merchant}
-                onChange={(e) => { setMerchant(e.target.value); setPage(1); }}
-                placeholder="All merchants"
-                options={merchantOptions}
-                style={{ width: 220 }}
-              />
-            </div>
-            <ExportButtons
+            <TableToolbar
+              search={search}
+              onSearch={(v) => { setSearch(v); setPage(1); }}
+              searchPlaceholder="Batch, merchant, status…"
+              afterSearch={<SelectField value={merchant} onChange={(e) => { setMerchant(e.target.value); setPage(1); }} placeholder="All merchants" options={merchantOptions} style={{ width: 220 }} />}
+              density={density}
+              onDensityChange={setDensity}
               columns={columns}
-              rows={sorted}
-              name="settlement-batches"
+              hidden={hidden}
+              onHiddenChange={setHidden}
+              exportColumns={visibleColumns}
+              exportRows={sorted}
+              exportName="settlement-batches"
               onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
             />
-          </Toolbar>
 
           {merchant && (
             <div className="row row--between" style={{ padding: 'var(--s-2) var(--s-4)', background: 'var(--c-primary-tint)' }}>
@@ -114,7 +118,8 @@ export function Settlement() {
           )}
 
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
+            density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
             sort={sort}

@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, IconButton, EmptyState, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
-import { DataTable, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchInput } from '@/components/ui/Form';
+import { PageHeader, Card, IconButton, EmptyState, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { CaseFiltersDrawer } from '@/components/cases/CaseFilters';
 import { DueCell } from '@/components/cases/caseColumns';
@@ -43,6 +42,10 @@ export function Chargebacks() {
   const chargebackCases = useMemo(() => CASES.filter((c) => c.caseType === 'chargeback'), []);
 
   const [search, setSearch] = useState('');
+
+  // Table chrome. Same controls in the same order as every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [sort, setSort] = useState({ key: 'dueDate', dir: 'asc' });
   const [page, setPage] = useState(1);
@@ -102,6 +105,9 @@ export function Chargebacks() {
     },
   ];
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
       <PageHeader
@@ -124,21 +130,25 @@ export function Chargebacks() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <div className="row row--tight">
-              <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Cardholder, case #, ARN, reason…" />
-              <CaseFiltersDrawer rows={chargebackCases} statusSelected={statuses} onStatusChange={(v) => { setStatuses(v); setPage(1); }} />
-            </div>
-            <ExportButtons
-              columns={columns.filter((c) => c.key !== 'actions')}
-              rows={sorted}
-              name="chargebacks"
+            <TableToolbar
+              search={search}
+              onSearch={(v) => { setSearch(v); setPage(1); }}
+              searchPlaceholder="Cardholder, case #, ARN, reason…"
+              afterSearch={<CaseFiltersDrawer rows={chargebackCases} statusSelected={statuses} onStatusChange={(v) => { setStatuses(v); setPage(1); }} />}
+              density={density}
+              onDensityChange={setDensity}
+              columns={columns}
+              hidden={hidden}
+              onHiddenChange={setHidden}
+              exportColumns={visibleColumns}
+              exportRows={sorted}
+              exportName="chargebacks"
               onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
             />
-          </Toolbar>
 
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
+            density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
             sort={sort}

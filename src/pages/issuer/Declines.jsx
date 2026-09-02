@@ -35,9 +35,7 @@ export function Declines() {
   const [search, setSearch] = useState('');
 
   // Table chrome. Same controls in the same order as every other table.
-
   const [density, setDensity] = useState('comfortable');
-
   const [hidden, setHidden] = useState([]);
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
   const [page, setPage] = useState(1);

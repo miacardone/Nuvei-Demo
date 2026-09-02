@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, IconButton, EmptyState, Button, Kpi } from '@/components/ui/Surface';
-import { DataTable, ColumnToggle, DensityToggle, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchBar } from '@/components/ui/Form';
+import { PageHeader, Card, IconButton, EmptyState, Button, Kpi } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { AdvancedFiltersModal, CaseFiltersDrawer, EMPTY_FILTERS, applyFilters, countActive } from '@/components/cases/CaseFilters';
 import { buildCaseColumns } from '@/components/cases/caseColumns';
 import brand from '@/brand/brand.config';
@@ -129,35 +128,23 @@ export function DisputesCases() {
       </div>
 
       <Card bodyClassName="card__body--flush">
-        <Toolbar>
-          <div className="row row--tight">
-            <SearchBar
-              value={search}
-              onChange={(v) => { setSearch(v); setPage(1); }}
-              placeholder={copy.search}
-              onAdvanced={() => setAdvancedOpen(true)}
-              advancedCount={countActive(filters)}
-            />
-            <CaseFiltersDrawer
-              rows={CASES}
-              statusSelected={filters.statuses}
-              onStatusChange={(v) => changeFilters({ ...filters, statuses: v })}
-              queueSelected={filters.queues}
-              onQueueChange={(v) => changeFilters({ ...filters, queues: v })}
-            />
-          </div>
-
-          <div className="row row--tight">
-            <DensityToggle value={density} onChange={setDensityPref} />
-            <ColumnToggle columns={allColumns} hidden={hidden} onChange={setHidden} />
-            <ExportButtons
-              columns={columns.filter((c) => c.key !== 'actions')}
-              rows={sorted}
-              name="disputes"
-              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-            />
-          </div>
-        </Toolbar>
+        <TableToolbar
+          search={search}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
+          searchPlaceholder={copy.search}
+          onAdvanced={() => setAdvancedOpen(true)}
+          advancedCount={countActive(filters)}
+          afterSearch={<CaseFiltersDrawer rows={CASES} statusSelected={filters.statuses} onStatusChange={(v) => changeFilters({ ...filters, statuses: v })} queueSelected={filters.queues} onQueueChange={(v) => changeFilters({ ...filters, queues: v })} />}
+          density={density}
+          onDensityChange={setDensityPref}
+          columns={allColumns}
+          hidden={hidden}
+          onHiddenChange={setHidden}
+          exportColumns={columns.filter((c) => c.key !== 'actions')}
+          exportRows={sorted}
+          exportName="disputes"
+          onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+        />
 
         <DataTable
           columns={columns}

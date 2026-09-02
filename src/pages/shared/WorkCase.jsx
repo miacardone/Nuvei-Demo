@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Tabs, Button, IconButton, Badge, EmptyState } from '@/components/ui/Surface';
-import { DataTable, ColumnToggle, DensityToggle, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchBar } from '@/components/ui/Form';
+import { PageHeader, Card, Tabs, Button, IconButton, Badge, EmptyState } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
 import { buildCaseColumns, DueCell } from '@/components/cases/caseColumns';
@@ -109,20 +108,20 @@ function RecordsView() {
       />
 
       <Card bodyClassName="card__body--flush">
-        <Toolbar>
-          <SearchBar
-            value={search}
-            onChange={(v) => { setSearch(v); setPage(1); }}
-            placeholder="Case #, ARN, order, item…"
-            onAdvanced={() => setAdvanced(true)}
-            advancedCount={countActive(filters)}
-          />
-          <div className="row row--tight">
-            <DensityToggle value={density} onChange={setDensityPref} />
-            <ColumnToggle columns={allColumns} hidden={hidden} onChange={setHidden} />
-            <ExportButtons columns={columns.filter((c) => c.key !== 'actions')} rows={sorted} name="workable-cases" onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Clipboard blocked.', ok ? 'success' : 'danger')} />
-          </div>
-        </Toolbar>
+        <TableToolbar
+          search={search}
+          onSearch={setSearch}
+          searchPlaceholder="Case #, ARN, order, item…"
+          density={density}
+          onDensityChange={setDensityPref}
+          columns={allColumns}
+          hidden={hidden}
+          onHiddenChange={setHidden}
+          exportColumns={columns.filter((c) => c.key !== 'actions')}
+          exportRows={sorted}
+          exportName="workable-cases"
+          onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+        />
 
         <DataTable
           columns={columns}

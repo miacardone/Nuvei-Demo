@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { PageHeader, Card, Toolbar, Tabs, Button, IconButton, Badge } from '@/components/ui/Surface';
-import { DataTable } from '@/components/ui/DataTable';
+import { PageHeader, Card, Tabs, Button, IconButton, Badge } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { SearchInput, SelectField, TextField, ToggleField } from '@/components/ui/Form';
+import { SelectField, TextField, ToggleField } from '@/components/ui/Form';
 import { Tooltip } from '@/components/ui/Overlay';
 import { ALERTS, ALERT_SOURCES, CONTACT_EMAILS, IDENTIFIERS, SELF_SERVICE } from '@/data/alerts';
 import brand from '@/brand/brand.config';
@@ -29,6 +29,9 @@ function RecipientsTab() {
   const { notify } = useToast();
   const [rows, setRows] = useState(CONTACT_EMAILS);
   const [search, setSearch] = useState('');
+  // Table chrome, matching every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
@@ -49,14 +52,26 @@ function RecipientsTab() {
     },
   ];
 
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
-      <Toolbar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search recipients…" />
-        <span className="spacer" />
-        <Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, name: '', email: '' })}>Add recipient</Button>
-      </Toolbar>
-      <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+      <TableToolbar
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search recipients…"
+        density={density}
+        onDensityChange={setDensity}
+        columns={columns}
+        hidden={hidden}
+        onHiddenChange={setHidden}
+        exportColumns={visibleColumns}
+        exportRows={filtered}
+        exportName="alert-recipients"
+        onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+        extras={<Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, name: '', email: '' })}>Add recipient</Button>}
+      />
+      <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
 
       <Modal
         open={Boolean(editing)}
@@ -103,6 +118,9 @@ function IdentifiersTab() {
   const { notify } = useToast();
   const [rows, setRows] = useState(IDENTIFIERS);
   const [search, setSearch] = useState('');
+  // Table chrome, matching every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [editing, setEditing] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
@@ -126,15 +144,29 @@ function IdentifiersTab() {
     },
   ];
 
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
-      <Toolbar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search identifiers…" />
-        <span className="spacer" />
-        <Button variant="secondary" icon="link" onClick={() => notify('Checked unmatched alerts against active identifiers — no new matches right now.', 'success')}>Match unmatched alerts</Button>
-        <Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, mid: brand.entities[0].mid, identifier: '', active: true })}>Add identifier</Button>
-      </Toolbar>
-      <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+      <TableToolbar
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search identifiers…"
+        density={density}
+        onDensityChange={setDensity}
+        columns={columns}
+        hidden={hidden}
+        onHiddenChange={setHidden}
+        exportColumns={visibleColumns}
+        exportRows={filtered}
+        exportName="alert-identifiers"
+        onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+        extras={<>
+          <Button variant="secondary" icon="link" onClick={() => notify('Checked unmatched alerts against active identifiers — no new matches right now.', 'success')}>Match unmatched alerts</Button>
+          <Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, mid: brand.entities[0].mid, identifier: '', active: true })}>Add identifier</Button>
+        </>}
+      />
+      <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
 
       <Modal
         open={Boolean(editing)}
@@ -195,6 +227,7 @@ function SelfServiceTab() {
     setRows((p) => p.map((r) => (r.entityId === entityId ? { ...r, autoComplete: { ...r.autoComplete, [sourceId]: !r.autoComplete[sourceId] } } : r)));
   };
 
+
   return (
     <div className="stack stack--tight" style={{ padding: 'var(--s-1) 0' }}>
       <p className="small muted">
@@ -232,6 +265,7 @@ function SelfServiceTab() {
 
 export function AlertSettings() {
   const [tab, setTab] = useState('recipients');
+
 
   return (
     <>

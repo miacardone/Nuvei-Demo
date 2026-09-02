@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { PageHeader, Card, Toolbar, Badge } from '@/components/ui/Surface';
-import { DataTable, ExportButtons } from '@/components/ui/DataTable';
-import { SearchBar, SelectField } from '@/components/ui/Form';
+import { PageHeader, Card, Badge } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
+import { SelectField } from '@/components/ui/Form';
 import { VALIDATIONS } from '@/data/alerts';
 import brand from '@/brand/brand.config';
 import { useToast } from '@/context/ToastContext';
@@ -20,6 +20,9 @@ import { formatCurrency, formatDateTime } from '@/utils/format';
 export function AlertValidations() {
   const { notify } = useToast();
   const [search, setSearch] = useState('');
+  // Table chrome. Same controls in the same order as every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [entityFilter, setEntityFilter] = useState('');
 
   const filtered = useMemo(() => VALIDATIONS.filter((v) => {
@@ -45,18 +48,30 @@ export function AlertValidations() {
     { key: 'outcome', header: 'Outcome', fw: 6, cell: (r) => <Badge tone="success" dot>{r.outcome}</Badge> },
   ];
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
       <PageHeader title="Alert validations" description="Transaction checks run before an alert or dispute exists — a reference feed, not a queue." />
 
       <Card bodyClassName="card__body--flush">
-        <Toolbar>
-          <SearchBar value={search} onChange={setSearch} placeholder="Search validation ID, descriptor, ARN, MID…" />
-          <SelectField value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)} placeholder="All entities" options={brand.entities.map((e) => ({ value: e.id, label: e.label }))} />
-          <span className="spacer" />
-          <ExportButtons columns={columns} rows={filtered} name="validations" onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')} />
-        </Toolbar>
-        <DataTable columns={columns} rows={filtered} rowKey={(r) => r.id} />
+        <TableToolbar
+          search={search}
+          onSearch={setSearch}
+          searchPlaceholder="Search validation ID, descriptor, ARN, MID…"
+          afterSearch={<SelectField value={entityFilter} onChange={(e) => setEntityFilter(e.target.value)} placeholder="All entities" options={brand.entities.map((e) => ({ value: e.id, label: e.label }))} />}
+          density={density}
+          onDensityChange={setDensity}
+          columns={columns}
+          hidden={hidden}
+          onHiddenChange={setHidden}
+          exportColumns={visibleColumns}
+          exportRows={filtered}
+          exportName="validations"
+          onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+        />
+        <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
       </Card>
     </>
   );

@@ -6,8 +6,7 @@ import { TruncatedText } from '@/components/ui/Overlay';
 import useScopedCases from '@/hooks/useScopedCases';
 import { useBrand } from '@/brand/BrandProvider';
 import { isClosed } from '@/domain/statuses';
-import {
-  analystActivity, caseActivityPerWeek, caseKpis, caseTypeTrend, countTrend, disputeOutcomes,
+import { analystActivity, caseActivityPerWeek, caseKpis, caseTypeTrend, countTrend, disputeOutcomes,
   documentProcessing, newCasesPerDay, rateTrend, reasonCodeDonut, sumTrend, totalsByQueue, volumeTrend, weeklyRate, weeklySeries,
 } from '@/domain/metrics';
 import { formatCompactCurrency, formatNumber, formatPercent } from '@/utils/format';

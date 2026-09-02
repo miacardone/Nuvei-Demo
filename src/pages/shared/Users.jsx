@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { PageHeader, Card, Toolbar, Tabs, SubTabs, Button, IconButton, Badge, Stepper, StatusIcon } from '@/components/ui/Surface';
-import { DataTable, ExportButtons } from '@/components/ui/DataTable';
+import { PageHeader, Card, Tabs, SubTabs, Button, IconButton, Badge, Stepper, StatusIcon } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
 import { CheckboxRow, SearchInput, SelectField, TextAreaField, TextField } from '@/components/ui/Form';
 import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
@@ -260,6 +260,9 @@ export function Users() {
   const [users, setUsers] = useState(USERS);
   const [skills, setSkills] = useState(SKILLS);
   const [search, setSearch] = useState('');
+  // Table chrome. Same controls in the same order as every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [userModal, setUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [skillModal, setSkillModal] = useState(false);
@@ -288,6 +291,9 @@ export function Users() {
     { key: 'startDate', header: 'Start date', fw: 7, cell: (u) => <span className="small">{formatDate(u.startDate)}</span> },
     { key: 'actions', header: 'Actions', pinned: true, fw: 5, width: '52px', align: 'center', cell: (u) => <IconButton icon="edit" label="Edit user" size={13} onClick={() => setEditingUser(u)} /> },
   ];
+
+
+  const visibleColumns = userColumns.filter((c) => !hidden.includes(c.key));
 
   const roleColumns = [
     { key: 'name', header: 'Role', fw: 10, cell: (r) => <span className="small strong">{r.name}</span> },
@@ -352,11 +358,21 @@ export function Users() {
           <Card bodyClassName="card__body--flush">
             {subTab === 'users' && (
               <>
-                <Toolbar>
-                  <SearchInput value={search} onChange={setSearch} placeholder="Search people…" />
-                  <ExportButtons columns={userColumns.filter((c) => c.key !== 'actions')} rows={filteredUsers} name="users" onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')} />
-                </Toolbar>
-                <DataTable columns={userColumns} rows={filteredUsers} rowKey={(u) => u.id} />
+                  <TableToolbar
+                    search={search}
+                    onSearch={setSearch}
+                    searchPlaceholder="Search people…"
+                    density={density}
+                    onDensityChange={setDensity}
+                    columns={userColumns}
+                    hidden={hidden}
+                    onHiddenChange={setHidden}
+                    exportColumns={visibleColumns.filter((c) => c.key !== 'actions')}
+                    exportRows={filteredUsers}
+                    exportName="users"
+                    onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
+                  />
+                <DataTable columns={visibleColumns} density={density} rows={filteredUsers} rowKey={(u) => u.id} />
               </>
             )}
             {subTab === 'roles' && <DataTable columns={roleColumns} rows={ROLES} rowKey={(r) => r.id} />}

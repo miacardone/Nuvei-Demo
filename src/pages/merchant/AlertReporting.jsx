@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { PageHeader, Card, Toolbar, Button, Kpi, Badge } from '@/components/ui/Surface';
-import { DataTable } from '@/components/ui/DataTable';
-import { SearchInput, SelectField } from '@/components/ui/Form';
+import { PageHeader, Card, Button, Kpi, Badge } from '@/components/ui/Surface';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
+import { SelectField } from '@/components/ui/Form';
 import { ALERTS, findOutcome, findSource } from '@/data/alerts';
 import { useToast } from '@/context/ToastContext';
 import { downloadCsv, downloadExcel } from '@/utils/export';
@@ -29,6 +29,9 @@ export function AlertReporting() {
   const { notify } = useToast();
   const [range, setRange] = useState('30');
   const [search, setSearch] = useState('');
+  // Table chrome. Same controls in the same order as every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
   const [audits, setAudits] = useState({});
 
   const rows = useMemo(() => {
@@ -68,6 +71,9 @@ export function AlertReporting() {
     },
   ];
 
+
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   const auditedCount = Object.values(audits).filter(Boolean).length;
 
   return (
@@ -99,12 +105,18 @@ export function AlertReporting() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <SearchInput value={search} onChange={setSearch} placeholder="Search alert ID, case ID, entity…" />
-            <span className="spacer" />
-            <SelectField value={range} onChange={(e) => setRange(e.target.value)} options={RANGES} />
-          </Toolbar>
-          <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} />
+            <TableToolbar
+              search={search}
+              onSearch={setSearch}
+              searchPlaceholder="Search alert ID, case ID, entity…"
+              afterSearch={<SelectField value={range} onChange={(e) => setRange(e.target.value)} options={RANGES} />}
+              density={density}
+              onDensityChange={setDensity}
+              columns={columns}
+              hidden={hidden}
+              onHiddenChange={setHidden}
+            />
+          <DataTable columns={visibleColumns} density={density} rows={rows} rowKey={(r) => r.id} />
         </Card>
       </div>
     </>
