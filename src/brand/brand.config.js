@@ -101,27 +101,31 @@ export const nuveiBrand = {
 
     navRail: '#160850',
     navRailDeep: '#0F0538',
-    navActive: '#FFB81C',
-    navInk: '#D9E3F5',
-    navInkMuted: '#7A8FB5',
+    /* Signal blue, not Expedia's gold — this drives the active nav item, the
+       KPI accent rule and the sparkline stroke, so a stale value here shows up
+       on every screen at once. */
+    navActive: '#0C98D4',
+    navInk: '#E7E4F2',
+    navInkMuted: '#9A93B5',
 
-    ink: '#0B1B33',
-    inkMuted: '#51637F',
-    inkSubtle: '#8394AC',
-    canvas: '#F2F5FA',
+    ink: '#160850',
+    inkMuted: '#6B6577',
+    inkSubtle: '#918B9E',
+    /* Warm white / sand grey / support grey, per the 2026 swatches. */
+    canvas: '#FAF9F8',
     surface: '#FFFFFF',
-    surfaceSunken: '#F7F9FC',
-    line: '#DEE5F0',
-    lineStrong: '#C2CEE0',
+    surfaceSunken: '#F1EFED',
+    line: '#E4E0DC',
+    lineStrong: '#CFC9C2',
 
-    success: '#0F7B4F',
-    successTint: '#E4F4EC',
+    success: '#4D8A04',
+    successTint: '#EEF8DA',
     warning: '#9A5B00',
     warningTint: '#FBF0DD',
-    danger: '#B3261E',
-    dangerTint: '#FBE9E7',
-    info: '#3F51B5',
-    infoTint: '#ECEEFB',
+    danger: '#D81F21',
+    dangerTint: '#FFDAD6',
+    info: '#0C98D4',
+    infoTint: '#EDF6FD',
 
     schemeVisa: '#1A1F71',
     schemeMastercard: '#C8102E',

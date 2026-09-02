@@ -181,9 +181,18 @@
      `--font-display` and `--font-mono` are kept as names, pointed at the same
      stack, so no stylesheet still asking for one can reintroduce a second
      typeface. */
-  --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* font tokens intentionally NOT restated here — the base :root above is
+     the single source. Restating them silently overrode the one-typeface
+     decision with Plus Jakarta Sans + JetBrains Mono, neither of which is
+     even loaded, so they fell back to a third and fourth system face. */
+  /* font tokens intentionally NOT restated here — the base :root above is
+     the single source. Restating them silently overrode the one-typeface
+     decision with Plus Jakarta Sans + JetBrains Mono, neither of which is
+     even loaded, so they fell back to a third and fourth system face. */
+  /* font tokens intentionally NOT restated here — the base :root above is
+     the single source. Restating them silently overrode the one-typeface
+     decision with Plus Jakarta Sans + JetBrains Mono, neither of which is
+     even loaded, so they fell back to a third and fourth system face. */
 
   --fs-display: 1.75rem;
   --fs-h1: 1.25rem;
@@ -283,9 +292,18 @@
   --c-series-neutral: #7c8b84;
 
   /* Type */
-  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* font tokens intentionally NOT restated here — the base :root above is
+     the single source. Restating them silently overrode the one-typeface
+     decision with Plus Jakarta Sans + JetBrains Mono, neither of which is
+     even loaded, so they fell back to a third and fourth system face. */
+  /* font tokens intentionally NOT restated here — the base :root above is
+     the single source. Restating them silently overrode the one-typeface
+     decision with Plus Jakarta Sans + JetBrains Mono, neither of which is
+     even loaded, so they fell back to a third and fourth system face. */
+  /* font tokens intentionally NOT restated here — the base :root above is
+     the single source. Restating them silently overrode the one-typeface
+     decision with Plus Jakarta Sans + JetBrains Mono, neither of which is
+     even loaded, so they fell back to a third and fourth system face. */
 
   --fs-display: 1.75rem;
   --fs-h1: 1.25rem;

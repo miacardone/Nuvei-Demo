@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { PageHeader, Card, Toolbar, Kpi, EmptyState, StatusIcon } from '@/components/ui/Surface';
-import { DataTable, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchInput } from '@/components/ui/Form';
+import { PageHeader, Card, Kpi, EmptyState, StatusIcon } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
 import brand from '@/brand/brand.config';
 import { AUTHORIZATIONS } from '@/data/authorizations';
@@ -25,6 +24,12 @@ export function Approvals() {
   const { notify } = useToast();
 
   const [search, setSearch] = useState('');
+
+  // Table chrome. Same controls in the same order as every other table.
+
+  const [density, setDensity] = useState('comfortable');
+
+  const [hidden, setHidden] = useState([]);
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -78,6 +83,8 @@ export function Approvals() {
     { key: 'result', header: 'Result', fw: 6, align: 'center', cell: () => <StatusIcon icon="check" tone="success" label="Approved" /> },
   ];
 
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
       <PageHeader title="Approvals" description={`Authorization attempts approved for your ${brand.terms.buyer}s across every ${brand.terms.seller}, not only ${flagshipName}.`} />
@@ -91,18 +98,24 @@ export function Approvals() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search cardholder, merchant, scheme…" />
-            <ExportButtons
-              columns={columns}
-              rows={sorted}
-              name="approvals"
-              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-            />
-          </Toolbar>
+          <TableToolbar
+            search={search}
+            onSearch={(v) => { setSearch(v); setPage(1); }}
+            searchPlaceholder="Search cardholder, merchant, scheme…"
+            density={density}
+            onDensityChange={setDensity}
+            columns={columns}
+            hidden={hidden}
+            onHiddenChange={setHidden}
+            exportColumns={visibleColumns}
+            exportRows={sorted}
+            exportName="approvals"
+            onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+          />
 
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
+            density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
             sort={sort}

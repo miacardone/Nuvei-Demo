@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Badge, Kpi, StatusIcon } from '@/components/ui/Surface';
-import { DataTable, ExportButtons, Pagination } from '@/components/ui/DataTable';
-import { SearchInput } from '@/components/ui/Form';
+import { PageHeader, Card, Badge, Kpi, StatusIcon } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { MERCHANTS, UNDERWRITING_REVIEWS } from '@/data/portfolio';
 import { describe as describeIndemnity, settingsFor } from '@/data/indemnification';
@@ -67,6 +66,12 @@ export function Underwriting() {
   const merchantFilter = searchParams.get('merchant');
 
   const [search, setSearch] = useState('');
+
+  // Table chrome. Same controls in the same order as every other table.
+
+  const [density, setDensity] = useState('comfortable');
+
+  const [hidden, setHidden] = useState([]);
   const [sort, setSort] = useState({ key: 'reviewDate', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -139,6 +144,8 @@ export function Underwriting() {
     { key: 'reviewDate', header: 'Review date', fw: 7, sortable: true, cell: (r) => <span className="small">{formatDate(r.reviewDate)}</span> },
   ];
 
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   const scopedMerchant = merchantFilter ? MERCHANTS.find((m) => m.id === merchantFilter) : null;
 
   return (
@@ -157,15 +164,20 @@ export function Underwriting() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search reviews…" />
-            <ExportButtons
-              columns={columns}
-              rows={sorted}
-              name="underwriting-reviews"
-              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-            />
-          </Toolbar>
+          <TableToolbar
+            search={search}
+            onSearch={(v) => { setSearch(v); setPage(1); }}
+            searchPlaceholder="Search reviews…"
+            density={density}
+            onDensityChange={setDensity}
+            columns={columns}
+            hidden={hidden}
+            onHiddenChange={setHidden}
+            exportColumns={visibleColumns}
+            exportRows={sorted}
+            exportName="underwriting-reviews"
+            onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+          />
 
           {scopedMerchant && (
             <div className="row row--between" style={{ padding: 'var(--s-2) var(--s-4)', background: 'var(--c-primary-tint)' }}>
@@ -174,7 +186,8 @@ export function Underwriting() {
           )}
 
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
+            density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
             sort={sort}

@@ -1134,3 +1134,17 @@
 @media (max-width: 720px) {
   .indemnity__pricing { grid-template-columns: minmax(0, 1fr); }
 }
+
+
+/* --- KPI sparkline: full-width band ------------------------------------- *
+ * The trend line reads as a chart rather than an afterthought when it spans
+ * the card. It sits flush to the card's bottom and side edges, so the card's
+ * own padding is cancelled with negative margins rather than removed (the
+ * text above still needs it). */
+.kpi--sparked { padding-bottom: 0; }
+.kpi__spark {
+  display: block;
+  width: calc(100% + var(--s-5) * 2);
+  height: 34px;
+  margin: var(--s-3) calc(var(--s-5) * -1) 0;
+}

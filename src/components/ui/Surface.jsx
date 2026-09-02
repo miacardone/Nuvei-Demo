@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Icon from '@/components/ui/Icon';
 import { Tooltip } from '@/components/ui/Overlay';
 
@@ -203,25 +204,46 @@ export function Stepper({ steps = [], current = 0 }) {
 /** A compact blue line with a gold dot on the latest point — "now" against
  *  the last few weeks. Auto-scales to its own min/max, so it reads as shape
  *  (trending up/down/flat) rather than an axis to be read literally. */
-function KpiSpark({ data }) {
+function KpiSpark({ data, id }) {
   if (!data || data.length < 2) return null;
-  const W = 64;
-  const H = 28;
-  const PAD = 3;
+  /* Drawn in a fixed coordinate space and stretched to the card's full width
+     by CSS. preserveAspectRatio="none" is what lets it fill edge to edge;
+     vector-effect keeps the stroke an even 2px once it has been stretched,
+     which a plain scaled path would not do. */
+  const W = 100;
+  const H = 34;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
-  const stepX = (W - PAD * 2) / (data.length - 1);
-  const points = data.map((v, i) => [PAD + i * stepX, H - PAD - ((v - min) / range) * (H - PAD * 2)]);
-  const path = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  const areaPath = `${path} L${points[points.length - 1][0].toFixed(1)},${H} L${points[0][0].toFixed(1)},${H} Z`;
-  const [lx, ly] = points[points.length - 1];
+  const stepX = W / (data.length - 1);
+  const points = data.map((v, i) => [i * stepX, H - 2 - ((v - min) / range) * (H - 8)]);
+  const path = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
+  const areaPath = `${path} L${W},${H} L0,${H} Z`;
+  const gid = `kpi-spark-${id}`;
 
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="kpi__spark" aria-hidden>
-      <path d={areaPath} fill="var(--c-primary)" opacity="0.08" />
-      <path d={path} fill="none" stroke="var(--c-primary)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lx} cy={ly} r="2.6" fill="var(--c-nav-active)" stroke="var(--c-surface)" strokeWidth="1.2" />
+    <svg
+      className="kpi__spark"
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--c-primary)" stopOpacity="0.34" />
+          <stop offset="100%" stopColor="var(--c-primary)" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gid})`} />
+      <path
+        d={path}
+        fill="none"
+        stroke="var(--c-nav-active)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }
@@ -235,10 +257,15 @@ function KpiSpark({ data }) {
  * rendered as a small blue/gold trend line next to the value.
  * `tooltip` is optional: hover context for a label that isn't self-evident.
  */
+let kpiSeq = 0;
+
 export function Kpi({ label, value, meta, trend, invert = false, spark, tooltip }) {
   const good = trend && (invert ? trend.direction === 'down' : trend.direction === 'up');
+  // Gradient ids must be unique per instance or every card reuses the first
+  // card's definition.
+  const uid = useMemo(() => { kpiSeq += 1; return kpiSeq; }, []);
   const body = (
-    <div className="kpi">
+    <div className={`kpi ${spark?.length > 1 ? 'kpi--sparked' : ''}`.trim()}>
       <div className="row row--between" style={{ alignItems: 'center', gap: 'var(--s-3)' }}>
         <div className="stack stack--xtight" style={{ gap: 4, minWidth: 0 }}>
           <span className="kpi__label">{label}</span>
@@ -253,8 +280,8 @@ export function Kpi({ label, value, meta, trend, invert = false, spark, tooltip 
           </span>
           {meta && <span className="kpi__meta">{meta}</span>}
         </div>
-        <KpiSpark data={spark} />
       </div>
+      <KpiSpark data={spark} id={uid} />
     </div>
   );
   return tooltip ? <Tooltip label={tooltip} className="kpi__tooltip-fill">{body}</Tooltip> : body;

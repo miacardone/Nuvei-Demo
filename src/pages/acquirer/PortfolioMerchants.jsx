@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
-import { DataTable, ExportButtons, Pagination } from '@/components/ui/DataTable';
+import { PageHeader, Card, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
-import { SearchInput } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { ACQUIRER_NAME, MERCHANTS } from '@/data/portfolio';
 import IndemnificationPanel from '@/components/portfolio/IndemnificationPanel';
@@ -33,6 +32,12 @@ export function PortfolioMerchants() {
   const { routes } = usePerspective();
 
   const [search, setSearch] = useState('');
+
+  // Table chrome. Same controls in the same order as every other table.
+
+  const [density, setDensity] = useState('comfortable');
+
+  const [hidden, setHidden] = useState([]);
   const [sort, setSort] = useState({ key: 'exposure', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -112,6 +117,8 @@ export function PortfolioMerchants() {
     },
   ];
 
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   return (
     <>
       <PageHeader
@@ -133,18 +140,25 @@ export function PortfolioMerchants() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search merchants…" />
-            <ExportButtons
-              columns={columns}
-              rows={sorted}
-              name="portfolio-merchants"
-              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-            />
-          </Toolbar>
+
+          <TableToolbar
+            search={search}
+            onSearch={(v) => { setSearch(v); setPage(1); }}
+            searchPlaceholder="Search merchants…"
+            density={density}
+            onDensityChange={setDensity}
+            columns={columns}
+            hidden={hidden}
+            onHiddenChange={setHidden}
+            exportColumns={visibleColumns}
+            exportRows={sorted}
+            exportName="portfolio-merchants"
+            onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+          />
 
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
+            density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
             sort={sort}

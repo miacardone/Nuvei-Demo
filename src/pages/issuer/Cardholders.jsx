@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, Card, Toolbar, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
-import { DataTable, ExportButtons, Pagination } from '@/components/ui/DataTable';
+import { PageHeader, Card, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
+import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
-import { SearchInput } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { ISSUING_BANK, CARDHOLDERS, casesForCardholder } from '@/data/cardholders';
 import { authorizationsFor } from '@/data/authorizations';
@@ -28,6 +27,12 @@ export function Cardholders() {
   const { routes } = usePerspective();
 
   const [search, setSearch] = useState('');
+
+  // Table chrome. Same controls in the same order as every other table.
+
+  const [density, setDensity] = useState('comfortable');
+
+  const [hidden, setHidden] = useState([]);
   const [sort, setSort] = useState({ key: 'lifetimeSpend', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -84,6 +89,8 @@ export function Cardholders() {
     { key: 'lifetimeSpend', header: 'Lifetime spend', fw: 8, align: 'right', sortable: true, cell: (r) => <span className="mono small">{formatCurrency(r.lifetimeSpend)}</span> },
   ];
 
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   const detailCases = detail ? casesForCardholder(detail.name) : [];
   const detailAuths = detail ? authorizationsFor(detail.id).slice(0, 8) : [];
 
@@ -103,18 +110,24 @@ export function Cardholders() {
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <Toolbar>
-            <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search cardholders, card, market…" />
-            <ExportButtons
-              columns={columns}
-              rows={sorted}
-              name="cardholders"
-              onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
-            />
-          </Toolbar>
+          <TableToolbar
+            search={search}
+            onSearch={(v) => { setSearch(v); setPage(1); }}
+            searchPlaceholder="Search cardholders, card, market…"
+            density={density}
+            onDensityChange={setDensity}
+            columns={columns}
+            hidden={hidden}
+            onHiddenChange={setHidden}
+            exportColumns={visibleColumns}
+            exportRows={sorted}
+            exportName="cardholders"
+            onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
+          />
 
           <DataTable
-            columns={columns}
+            columns={visibleColumns}
+            density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
             sort={sort}

@@ -57,7 +57,10 @@ export function BarChart({
   const niceMax = Math.ceil(max / step) * step || 10;
 
   const slot = plotW / Math.max(data.length, 1);
-  const barW = Math.min(46, slot * 0.62);
+  /* Bars fill most of their slot. The old 0.62 of a capped 46px left a
+     six-bucket chart looking like a handful of pins on an empty canvas —
+     the gap carried no information, it was just unused width. */
+  const barW = Math.min(96, slot * 0.82);
   const y = (v) => PAD.top + plotH - (v / niceMax) * plotH;
 
   const labelEvery = Math.max(1, Math.ceil(data.length / maxTicks(plotW)));
@@ -171,8 +174,9 @@ export function AreaChart({
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label={`${yLabel ?? 'Value'} over time`} onMouseLeave={() => setHover(null)}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+            <stop offset="0%" stopColor={color} stopOpacity="0.55" />
+            <stop offset="55%" stopColor={color} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.04" />
           </linearGradient>
         </defs>
 
@@ -385,7 +389,7 @@ export function LineChart({
               {data.map((d, i) => (
                 <circle
                   key={i} cx={x(i)} cy={y(d[s.key] ?? 0)}
-                  r={hover === i ? 4 : 2.5} fill={color}
+                  r={hover === i ? 5.5 : 4} fill={color}
                   style={{ transition: 'r 120ms var(--ease)' }}
                 />
               ))}
@@ -475,8 +479,8 @@ export function DotPlot({ data, xKey = 'label', valueKey = 'value', height = 220
 
         {data.map((d, i) => (
           <g key={d[xKey]} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
-            <line x1={x(i)} x2={x(i)} y1={y(0)} y2={y(d[valueKey] ?? 0)} stroke="var(--c-line-strong)" strokeWidth={1} />
-            <circle cx={x(i)} cy={y(d[valueKey] ?? 0)} r={hover === i ? 7 : 5} fill={color} style={{ transition: 'r 120ms var(--ease)', cursor: 'pointer' }}>
+            <line x1={x(i)} x2={x(i)} y1={y(0)} y2={y(d[valueKey] ?? 0)} stroke="var(--c-line-strong)" strokeWidth={2} />
+            <circle cx={x(i)} cy={y(d[valueKey] ?? 0)} r={hover === i ? 9 : 7} fill={color} style={{ transition: 'r 120ms var(--ease)', cursor: 'pointer' }}>
               <title>{`${d[xKey]}: ${formatValue(d[valueKey] ?? 0)}`}</title>
             </circle>
             <text x={x(i)} y={H - 12} className="chart__axis" textAnchor="middle">{String(d[xKey]).length > 10 ? `${String(d[xKey]).slice(0, 9)}…` : d[xKey]}</text>
@@ -545,7 +549,7 @@ export function WorldBubbleMap({ data, height = 260, formatValue = formatNumber 
           const r = hover === i ? radius(d.count) + 2 : radius(d.count);
           return (
             <g key={d.market} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={{ cursor: 'pointer' }}>
-              <circle cx={x} cy={y} r={r} fill="var(--c-primary)" fillOpacity={0.72} stroke="var(--c-primary-deep)" strokeWidth={1} style={{ transition: 'r 120ms var(--ease)' }}>
+              <circle cx={x} cy={y} r={r} fill="var(--c-primary)" fillOpacity={0.9} stroke="var(--c-primary-deep)" strokeWidth={1.5} style={{ transition: 'r 120ms var(--ease)' }}>
                 <title>{`${d.market}: ${formatNumber(d.count)} cases · ${formatValue(d.value)}`}</title>
               </circle>
               <text x={x} y={y + 3.5} textAnchor="middle" className="micro" style={{ fill: '#fff', fontWeight: 700, pointerEvents: 'none' }}>{d.market}</text>

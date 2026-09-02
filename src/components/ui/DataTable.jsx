@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import Icon from '@/components/ui/Icon';
-import { Button, IconButton } from '@/components/ui/Surface';
+import { Button, IconButton, Toolbar } from '@/components/ui/Surface';
+import { SearchBar } from '@/components/ui/Form';
 import { Popover, Tooltip, TruncatedText } from '@/components/ui/Overlay';
 import { copyToClipboard, downloadCsv, downloadExcel } from '@/utils/export';
 import { formatNumber } from '@/utils/format';
@@ -89,6 +90,72 @@ export function ExportButtons({ columns, rows, name = 'export', onCopied }) {
       <IconButton icon="excel" label="Download as Excel" onClick={() => downloadExcel(columns, rows, name)} />
       <IconButton icon="csv" label="Download as CSV" onClick={() => downloadCsv(columns, rows, name)} />
     </div>
+  );
+}
+
+/* ---------- Table toolbar ---------- */
+
+/**
+ * ONE toolbar for every table, so the controls sit in the same order on every
+ * screen. Left to right:
+ *
+ *   search · advanced search · density · column filter · copy · downloads · extras
+ *
+ * Before this, each page assembled its own row and most carried only search
+ * and export — density and column controls existed but appeared on two screens
+ * out of fourteen. Controls that move between screens are controls people stop
+ * looking for.
+ *
+ * Every section is optional: omit `onAdvanced` and the advanced button does not
+ * render, omit `columns` and the column filter does not, and so on.
+ */
+export function TableToolbar({
+  // search
+  search, onSearch, searchPlaceholder = 'Search…',
+  onAdvanced, advancedCount = 0, advancedLabel,
+  // density
+  density, onDensityChange,
+  // column visibility
+  columns, hidden, onHiddenChange,
+  // export
+  exportColumns, exportRows, exportName, onCopied,
+  // anything page-specific, pinned to the right of the standard set
+  extras,
+  // rendered immediately after the search field (filter drawers, tabs)
+  afterSearch,
+}) {
+  return (
+    <Toolbar>
+      <div className="row row--tight">
+        {onSearch && (
+          <SearchBar
+            value={search}
+            onChange={onSearch}
+            placeholder={searchPlaceholder}
+            onAdvanced={onAdvanced}
+            advancedCount={advancedCount}
+            advancedLabel={advancedLabel}
+          />
+        )}
+        {afterSearch}
+      </div>
+
+      <div className="row row--tight">
+        {onDensityChange && <DensityToggle value={density} onChange={onDensityChange} />}
+        {columns && onHiddenChange && (
+          <ColumnToggle columns={columns} hidden={hidden} onChange={onHiddenChange} />
+        )}
+        {exportColumns && exportRows && (
+          <ExportButtons
+            columns={exportColumns}
+            rows={exportRows}
+            name={exportName}
+            onCopied={onCopied}
+          />
+        )}
+        {extras}
+      </div>
+    </Toolbar>
   );
 }
 
