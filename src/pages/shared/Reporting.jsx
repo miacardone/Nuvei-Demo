@@ -32,8 +32,8 @@ export function Reporting() {
   );
   const settlement = useMemo(() => settlementKpis(SETTLEMENT_BATCHES), []);
   const heldTrend = useMemo(() => countTrend(CASES, (c) => c.status === 'represented'), [CASES]);
-  const heldSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.status === 'represented'), [CASES]);
-  const settledSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.outcome === 'won'), [CASES]);
+  const heldSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => c.status === 'represented'), [CASES]);
+  const settledSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => c.outcome === 'won'), [CASES]);
   const settledTrend = useMemo(() => countTrend(CASES, (c) => c.outcome === 'won'), [CASES]);
   const byMarket = useMemo(() => totalsByMarket(CASES), [CASES]);
 
@@ -46,7 +46,7 @@ export function Reporting() {
     const approved = AUTHORIZATIONS.filter((a) => a.result === 'Approved').length;
     return AUTHORIZATIONS.length ? (approved / AUTHORIZATIONS.length) * 100 : 0;
   }, []);
-  const disputedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, () => true), [CASES]);
+  const disputedSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, () => true), [CASES]);
   const disputedTrend = useMemo(() => countTrend(CASES, () => true), [CASES]);
 
   const columns = [
@@ -75,7 +75,7 @@ export function Reporting() {
       />
 
       <div className="stack">
-        <div className="grid grid--3" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Total cases" value={formatNumber(CASES.length)} trend={disputedTrend} spark={disputedSpark} tooltip="New cases opened in the last 30 days vs. the 30 days before that." />
           {id === 'acquirer' ? (
             <>

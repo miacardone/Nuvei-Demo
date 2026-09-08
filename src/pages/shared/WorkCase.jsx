@@ -31,6 +31,7 @@ const TONE_LEGEND = [
 ];
 
 function ColorLegend() {
+
   return (
     <Tooltip
       wide
@@ -99,6 +100,7 @@ function RecordsView() {
     writePref(DENSITY_KEY, d);
   };
 
+
   return (
     <>
       <PageHeader
@@ -109,6 +111,8 @@ function RecordsView() {
 
       <Card bodyClassName="card__body--flush">
         <TableToolbar
+          onAdvanced={() => setAdvanced(true)}
+          advancedCount={countActive(filters)}
           search={search}
           onSearch={setSearch}
           searchPlaceholder="Case #, ARN, order, item…"

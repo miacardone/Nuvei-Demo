@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Button, IconButton } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
@@ -47,6 +49,20 @@ export function AssignmentReasons() {
     setEditing(null);
   };
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filtered);
+
+
+
+  // Per-column advanced search, same control on every table.
+
+
+  const advanced = useAdvancedFilters(columns);
+
+
+
   return (
     <>
       <PageHeader
@@ -57,6 +73,8 @@ export function AssignmentReasons() {
 
       <Card bodyClassName="card__body--flush">
         <TableToolbar
+          onAdvanced={advanced.onAdvanced}
+          advancedCount={advanced.count}
           search={search}
           onSearch={setSearch}
           searchPlaceholder="Search reasons…"
@@ -70,7 +88,7 @@ export function AssignmentReasons() {
           exportName="assignment-reasons"
           onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         />
-        <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
+        <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
       </Card>
 
       <Modal
@@ -94,6 +112,7 @@ export function AssignmentReasons() {
         onCancel={() => setConfirm(null)}
         onConfirm={() => { setRows((p) => p.filter((x) => x.id !== confirm.id)); notify('Assignment reason deleted.', 'success'); setConfirm(null); }}
       />
+      {advanced.modal}
     </>
   );
 }

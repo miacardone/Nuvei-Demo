@@ -24,6 +24,7 @@ function WorkableModal({ entity, agents, workable, onSave, onClose }) {
   const [selected, setSelected] = useState(new Set(workable));
   if (!entity) return null;
 
+
   return (
     <Modal
       open={Boolean(entity)}
@@ -101,8 +102,7 @@ export function AlertPermissions() {
         );
       },
     },
-    {
-      key: 'actions', header: 'Actions', fw: 5, width: '76px',
+    { key: 'actions', pinned: true, header: 'Actions', fw: 5, width: '76px',
       cell: (e) => <Button variant="secondary" size="sm" icon="edit" onClick={() => setEditingEntity(e)}>Edit</Button>,
     },
   ];

@@ -73,7 +73,7 @@ export function Risk() {
 
   const portfolioExposure = useMemo(() => MERCHANTS.reduce((s, m) => s + m.exposure, 0), []);
   const exposureSpark = useMemo(() => trend.map((t) => t.value), [trend]);
-  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
+  const winRateSpark = useMemo(() => weeklyRate(CASES, 12, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
   const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
 
   const columns = [
@@ -89,7 +89,7 @@ export function Risk() {
       <PageHeader title="Risk" description="Portfolio-wide dispute ratios and exposure, across every merchant this acquirer processes for." />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Portfolio exposure" value={formatCompactCurrency(portfolioExposure)} spark={exposureSpark} />
           <Kpi label={`${flagshipName} chargeback ratio`} value={formatPercent(MERCHANTS.find((m) => m.flagship)?.chargebackRatio ?? 0, 2)} meta="Flagship, derived from the live book" />
           <Kpi label="Merchants flagged" value={formatNumber(flagged.length)} meta={`At or above ${formatPercent(RISK_THRESHOLD, 2)}`} />

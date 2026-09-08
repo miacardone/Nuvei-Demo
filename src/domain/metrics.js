@@ -28,7 +28,7 @@ const weekLabel = (ms) => {
  * ------------------------------------------------------------------ */
 
 /** Case Activity Per Week — stacked by outcome-ish status, last 6 weeks. */
-export function caseActivityPerWeek(cases, weeks = 6) {
+export function caseActivityPerWeek(cases, weeks = 12) {
   const now = Date.now();
   const buckets = Array.from({ length: weeks }, (_, i) => {
     const end = now - (weeks - 1 - i) * 7 * DAY;
@@ -52,7 +52,7 @@ export function caseActivityPerWeek(cases, weeks = 6) {
 }
 
 /** Chargeback vs. claim volume, same weekly buckets as caseActivityPerWeek — a line reads the intake-mix trend better than another stacked bar. */
-export function caseTypeTrend(cases, weeks = 6) {
+export function caseTypeTrend(cases, weeks = 12) {
   const now = Date.now();
   const buckets = Array.from({ length: weeks }, (_, i) => {
     const end = now - (weeks - 1 - i) * 7 * DAY;
@@ -262,7 +262,7 @@ export function dueBucketOf(dueDate) {
 }
 
 /** Cases by due date per week — bar chart on Reports center. */
-export function casesByDueDatePerWeek(cases, weeks = 6) {
+export function casesByDueDatePerWeek(cases, weeks = 12) {
   const now = Date.now();
   const buckets = Array.from({ length: weeks }, (_, i) => {
     const start = now + i * 7 * DAY;
@@ -324,7 +324,7 @@ export function totalsByQueue(cases) {
  * Monitoring — derived from the book, not a separate fixture
  * ------------------------------------------------------------------ */
 
-export function documentProcessing(cases, weeks = 8) {
+export function documentProcessing(cases, weeks = 12) {
   const now = Date.now();
   return Array.from({ length: weeks }, (_, i) => {
     const end = now - (weeks - 1 - i) * 7 * DAY;
@@ -341,7 +341,7 @@ export function documentProcessing(cases, weeks = 8) {
   });
 }
 
-export function disputeOutcomes(cases, weeks = 8) {
+export function disputeOutcomes(cases, weeks = 12) {
   const now = Date.now();
   return Array.from({ length: weeks }, (_, i) => {
     const end = now - (weeks - 1 - i) * 7 * DAY;
@@ -366,7 +366,7 @@ export const ERROR_TYPES = [
   { id: 'auth', label: 'Authentication failed', http: '401', remedy: 'Credential rotation required.' },
 ];
 
-export function errorHandling(cases, weeks = 8) {
+export function errorHandling(cases, weeks = 12) {
   const now = Date.now();
   return Array.from({ length: weeks }, (_, i) => {
     const end = now - (weeks - 1 - i) * 7 * DAY;
@@ -399,7 +399,7 @@ export function topSellersByVolume(cases, topN = 8) {
 }
 
 /** Disputed value per week — a line, not a bar, since the point is the trend. */
-export function disputedValueTrend(cases, weeks = 8) {
+export function disputedValueTrend(cases, weeks = 12) {
   const now = Date.now();
   return Array.from({ length: weeks }, (_, i) => {
     const end = now - (weeks - 1 - i) * 7 * DAY;

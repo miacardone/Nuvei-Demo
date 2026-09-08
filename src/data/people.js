@@ -93,11 +93,14 @@ const SEED = [
   // `leadership: true` also keeps them out of the random note/history/
   // reviewer draws elsewhere (see STAFF below) — real names shouldn't get
   // auto-attached to fictional per-case narrative content.
-  { id: 'u13', name: 'Ariane Gorin', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2024-04-01', market: 'US', leadership: true },
-  { id: 'u14', name: 'Barry Diller', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2003-01-01', market: 'US', leadership: true },
-  { id: 'u15', name: 'Eric Hart', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2019-01-01', market: 'US', leadership: true },
-  { id: 'u16', name: 'Derek Andersen', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2023-01-01', market: 'US', leadership: true },
-  { id: 'u17', name: 'Robert Dzielak', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2015-01-01', market: 'US', leadership: true },
+  // Nuvei's actual executive team, per nuvei.com/who-we-are: Phil Fayer
+  // (Chair & CEO), and the three appointments announced 1 July 2026 — Samir
+  // Zabaneh (COO), David McLaughlin (CFO) and Eli Rosner (CPTO). Montreal is
+  // the head office, hence CA.
+  { id: 'u13', name: 'Phil Fayer', title: 'Chair and Chief Executive Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2003-01-01', market: 'CA', leadership: true },
+  { id: 'u14', name: 'Samir Zabaneh', title: 'Chief Operating Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
+  { id: 'u15', name: 'David McLaughlin', title: 'Chief Financial Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
+  { id: 'u16', name: 'Eli Rosner', title: 'Chief Product and Technology Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
 ];
 
 export const USERS = SEED.map((u, i) => ({

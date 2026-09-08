@@ -71,12 +71,12 @@ export function Overview() {
   const exposureTrend = useMemo(() => sumTrend(CASES.filter((c) => !isClosed(c.status)), (c) => c.disputeAmount), [CASES]);
   const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
   const mixTrend = useMemo(() => countTrend(CASES, (c) => c.caseType === 'claim'), [CASES]);
-  const openSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status)), [CASES]);
-  const overdueSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status) && c.dueDate < new Date().toISOString().slice(0, 10)), [CASES]);
-  const unassignedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => !isClosed(c.status) && c.worker === '—'), [CASES]);
-  const exposureSpark = useMemo(() => weeklySeries(CASES.filter((c) => !isClosed(c.status)), 6, (c) => c.disputeAmount), [CASES]);
-  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
-  const mixSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => c.caseType === 'claim'), [CASES]);
+  const openSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => !isClosed(c.status)), [CASES]);
+  const overdueSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => !isClosed(c.status) && c.dueDate < new Date().toISOString().slice(0, 10)), [CASES]);
+  const unassignedSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => !isClosed(c.status) && c.worker === '—'), [CASES]);
+  const exposureSpark = useMemo(() => weeklySeries(CASES.filter((c) => !isClosed(c.status)), 12, (c) => c.disputeAmount), [CASES]);
+  const winRateSpark = useMemo(() => weeklyRate(CASES, 12, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
+  const mixSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => c.caseType === 'claim'), [CASES]);
 
   const activity = useMemo(() => caseActivityPerWeek(CASES, weeks), [weeks]);
   const daily = useMemo(() => newCasesPerDay(CASES, days), [days]);
@@ -112,7 +112,7 @@ export function Overview() {
       <PageHeader title={copy.title} description={copy.description} />
 
       <div className="stack">
-        <div className="grid grid--auto" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row">
           <Kpi label="Open disputes" value={formatNumber(kpis.openCases)} meta={`${formatNumber(kpis.overdueCases)} overdue`} trend={openTrend} spark={openSpark} tooltip="New cases opened in the last 30 days vs. the 30 days before that." />
           <Kpi label="Overdue" value={formatNumber(kpis.overdueCases)} meta="Past internal due date" trend={overdueTrend} invert spark={overdueSpark} tooltip="Overdue cases opened in the last 30 days vs. the 30 days before that." />
           <Kpi label="Unassigned" value={formatNumber(kpis.unassigned)} meta="No analyst assigned" trend={unassignedTrend} invert spark={unassignedSpark} tooltip="Unassigned cases opened in the last 30 days vs. the 30 days before that." />

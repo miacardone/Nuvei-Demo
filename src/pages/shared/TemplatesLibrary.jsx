@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Button, IconButton } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { ConfirmDialog } from '@/components/ui/Modal';
@@ -78,6 +80,20 @@ export function TemplatesLibrary() {
   ];
   const columns = allColumns.filter((c) => !hidden.has(c.key));
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(rows);
+
+
+
+  // Per-column advanced search, same control on every table.
+
+
+  const advanced = useAdvancedFilters(allColumns);
+
+
+
   return (
     <>
       <PageHeader
@@ -106,6 +122,8 @@ export function TemplatesLibrary() {
 
         <Card title="Templates" bodyClassName="card__body--flush">
             <TableToolbar
+              onAdvanced={advanced.onAdvanced}
+              advancedCount={advanced.count}
               search={search}
               onSearch={setSearch}
               searchPlaceholder="Search templates…"
@@ -120,7 +138,7 @@ export function TemplatesLibrary() {
               onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
             />
 
-          <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} density={density} />
+          <DataTable columns={columns} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} density={density} />
         </Card>
       </div>
 
@@ -131,6 +149,7 @@ export function TemplatesLibrary() {
         onCancel={() => setConfirm(null)}
         onConfirm={() => { setTemplates((p) => p.filter((t) => t.id !== confirm.id)); notify('Template deleted.', 'success'); setConfirm(null); }}
       />
+      {advanced.modal}
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Tabs, Button, IconButton, Badge, Kpi, EmptyState } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
@@ -43,8 +44,7 @@ function OverviewTable({ rows, onViewAlerts }) {
     { key: 'valueAtRisk', header: 'Value at risk', fw: 8, align: 'right', cell: (r) => <span className="mono small">{formatCurrency(r.valueAtRisk)}</span> },
     { key: 'lastAlertAt', header: 'Last alert received', fw: 9, cell: (r) => <span className="small">{r.lastAlertAt ? formatDateTime(r.lastAlertAt) : '—'}</span> },
     { key: 'serviceLevel', header: 'Service level', fw: 7, cell: (r) => <Badge tone={r.serviceLevel === 'Full Service' ? 'primary' : 'muted'}>{r.serviceLevel}</Badge> },
-    {
-      key: 'actions', header: 'Actions', fw: 6, width: '110px',
+    { key: 'actions', pinned: true, header: 'Actions', fw: 6, width: '110px',
       cell: (r) => <Button variant="secondary" size="sm" onClick={() => onViewAlerts(r.entityId)}>View alerts</Button>,
     },
   ];
@@ -122,8 +122,7 @@ export function AlertCaseWork() {
     },
     { key: 'outcome', header: 'Outcome', fw: 6, cell: (r) => <Badge tone={findOutcome(r.outcome)?.tone} dot>{findOutcome(r.outcome)?.label}</Badge> },
     { key: 'serviceLevel', header: 'Service level', fw: 7, cell: (r) => <Badge tone={r.serviceLevel === 'Full Service' ? 'primary' : 'muted'}>{r.serviceLevel}</Badge> },
-    {
-      key: 'actions', header: 'Actions', fw: 8, width: '116px',
+    { key: 'actions', pinned: true, header: 'Actions', fw: 8, width: '116px',
       cell: (r) => (
         <div className="row row--xtight row--nowrap">
           <IconButton icon="check" label="Refund now — stops the chargeback" tone="success" size={13} disabled={r.outcome !== 'open'} onClick={() => { setOutcome(r.id, 'refunded'); notify(`${r.id} refunded — chargeback stopped.`, 'success'); }} />
@@ -137,6 +136,17 @@ export function AlertCaseWork() {
 
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
+
+
+
+  // Per-column advanced search, same control on every table.
+
+
+
+  const advanced = useAdvancedFilters(columns);
+
+
 
 
   return (
@@ -156,7 +166,7 @@ export function AlertCaseWork() {
 
         {tab === 'overview' ? (
           <div className="stack stack--tight">
-            <div className="grid grid--4">
+            <div className="kpi-row">
               <Kpi label="Open alerts" value={formatNumber(totals.open)} meta="need action before they expire" />
               <Kpi label="Value protected" value={formatCompactCurrency(totals.valueProtected)} meta="chargebacks stopped" />
               <Kpi label="Value at risk" value={formatCompactCurrency(totals.valueAtRisk)} meta="still open" />
@@ -169,6 +179,8 @@ export function AlertCaseWork() {
         ) : (
           <Card bodyClassName="card__body--flush">
             <TableToolbar
+              onAdvanced={advanced.onAdvanced}
+              advancedCount={advanced.count}
               search={search}
               onSearch={setSearch}
               searchPlaceholder="Search alert ID, case ID, identifier…"
@@ -234,6 +246,7 @@ export function AlertCaseWork() {
           setBulkConfirm(false);
         }}
       />
+      {advanced.modal}
     </>
   );
 }

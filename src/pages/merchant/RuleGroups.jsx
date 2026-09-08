@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Button, IconButton, Badge, EmptyState } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
@@ -27,6 +28,7 @@ function GroupModal({ open, onClose, onSave }) {
   const [name, setName] = useState('');
   const [trigger, setTrigger] = useState(RULE_TRIGGERS[0]);
   const [description, setDescription] = useState('');
+
 
   return (
     <Modal
@@ -191,6 +193,12 @@ export function RuleGroups() {
 
   const visible = columns.filter((c) => !hidden.has(c.key));
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader
@@ -252,6 +260,8 @@ export function RuleGroups() {
 
           <Card bodyClassName="card__body--flush">
             <TableToolbar
+              onAdvanced={advanced.onAdvanced}
+              advancedCount={advanced.count}
               afterSearch={<span className="t-section-label">Rules &amp; execution order</span>}
               density={density}
               onDensityChange={setDensity}
@@ -319,6 +329,7 @@ export function RuleGroups() {
           setConfirmDelete(null);
         }}
       />
+      {advanced.modal}
     </>
   );
 }

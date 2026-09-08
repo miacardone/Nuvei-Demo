@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Badge } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { SelectField } from '@/components/ui/Form';
@@ -51,12 +53,28 @@ export function AlertValidations() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filtered);
+
+
+
+  // Per-column advanced search, same control on every table.
+
+
+  const advanced = useAdvancedFilters(columns);
+
+
+
   return (
     <>
       <PageHeader title="Alert validations" description="Transaction checks run before an alert or dispute exists — a reference feed, not a queue." />
 
       <Card bodyClassName="card__body--flush">
         <TableToolbar
+          onAdvanced={advanced.onAdvanced}
+          advancedCount={advanced.count}
           search={search}
           onSearch={setSearch}
           searchPlaceholder="Search validation ID, descriptor, ARN, MID…"
@@ -71,8 +89,9 @@ export function AlertValidations() {
           exportName="validations"
           onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         />
-        <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
+        <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
       </Card>
+      {advanced.modal}
     </>
   );
 }

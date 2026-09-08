@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { PageHeader, Card, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { SelectField } from '@/components/ui/Form';
@@ -63,10 +64,10 @@ export function Settlement() {
   const kpis = useMemo(() => settlementKpis(SETTLEMENT_BATCHES), []);
   const scopedKpis = useMemo(() => settlementKpis(filtered), [filtered]);
 
-  const batchSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 6, () => 1, () => true, batchDateOf), []);
-  const netSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 6, (b) => b.net, (b) => b.status === 'Settled', batchDateOf), []);
-  const heldValueSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 6, (b) => b.disputeDeductions, () => true, batchDateOf), []);
-  const heldBatchSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 6, () => 1, (b) => b.status === 'Held', batchDateOf), []);
+  const batchSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, () => 1, () => true, batchDateOf), []);
+  const netSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, (b) => b.net, (b) => b.status === 'Settled', batchDateOf), []);
+  const heldValueSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, (b) => b.disputeDeductions, () => true, batchDateOf), []);
+  const heldBatchSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, () => 1, (b) => b.status === 'Held', batchDateOf), []);
 
   const columns = [
     { key: 'id', header: 'Batch', fw: 8, mono: true, sortable: true, cell: (r) => <span className="mono strong small">{r.id}</span> },
@@ -82,12 +83,18 @@ export function Settlement() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader title="Settlement" description="Settlement batches across the portfolio — gross, fees and what's held back for open disputes." />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Batches on file" value={formatNumber(kpis.batchCount)} spark={batchSpark} />
           <Kpi label="Net settled" value={formatCurrency(kpis.totalNetSettled)} meta="Settled batches only" spark={netSpark} />
           <Kpi label="Held for disputes" value={formatCurrency(kpis.totalHeldForDisputes)} invert spark={heldValueSpark} />
@@ -96,6 +103,8 @@ export function Settlement() {
 
         <Card bodyClassName="card__body--flush">
             <TableToolbar
+              onAdvanced={advanced.onAdvanced}
+              advancedCount={advanced.count}
               search={search}
               onSearch={(v) => { setSearch(v); setPage(1); }}
               searchPlaceholder="Batch, merchant, status…"
@@ -129,6 +138,7 @@ export function Settlement() {
           <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
+      {advanced.modal}
     </>
   );
 }

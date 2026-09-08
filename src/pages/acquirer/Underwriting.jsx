@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader, Card, Badge, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
@@ -49,6 +50,7 @@ const RECOMMENDATION_ICON = {
 
 function ScoreBar({ score }) {
   const tone = score >= 70 ? 'var(--c-success)' : score >= 45 ? 'var(--c-warning)' : 'var(--c-danger)';
+
   return (
     <div className="row row--xtight row--nowrap" style={{ minWidth: 90 }}>
       <div className="meter" style={{ width: 52 }}>
@@ -105,10 +107,10 @@ export function Underwriting() {
     avgScore: Math.round(UNDERWRITING_REVIEWS.reduce((s, r) => s + r.riskScore, 0) / UNDERWRITING_REVIEWS.length),
   }), []);
 
-  const totalSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 6, () => 1, () => true, reviewDateOf), []);
-  const avgScoreSpark = useMemo(() => weeklyAverage(UNDERWRITING_REVIEWS, 6, (r) => r.riskScore, reviewDateOf), []);
-  const escalationsSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 6, () => 1, (r) => r.recommendation === 'Escalate', reviewDateOf), []);
-  const declinesSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 6, () => 1, (r) => r.recommendation === 'Decline', reviewDateOf), []);
+  const totalSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 12, () => 1, () => true, reviewDateOf), []);
+  const avgScoreSpark = useMemo(() => weeklyAverage(UNDERWRITING_REVIEWS, 12, (r) => r.riskScore, reviewDateOf), []);
+  const escalationsSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 12, () => 1, (r) => r.recommendation === 'Escalate', reviewDateOf), []);
+  const declinesSpark = useMemo(() => weeklySeries(UNDERWRITING_REVIEWS, 12, () => 1, (r) => r.recommendation === 'Decline', reviewDateOf), []);
 
   // Subscribing here is what keeps this column honest: change a merchant's
   // terms on their record and this table reflects it without a reload.
@@ -146,6 +148,12 @@ export function Underwriting() {
 
   const scopedMerchant = merchantFilter ? MERCHANTS.find((m) => m.id === merchantFilter) : null;
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader
@@ -154,7 +162,7 @@ export function Underwriting() {
       />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Reviews on file" value={formatNumber(kpis.total)} spark={totalSpark} />
           <Kpi label="Avg. risk score" value={kpis.avgScore} meta="0 (highest risk) – 100" spark={avgScoreSpark} />
           <Kpi label="Escalations" value={formatNumber(kpis.escalations)} invert spark={escalationsSpark} />
@@ -163,6 +171,8 @@ export function Underwriting() {
 
         <Card bodyClassName="card__body--flush">
           <TableToolbar
+            onAdvanced={advanced.onAdvanced}
+            advancedCount={advanced.count}
             search={search}
             onSearch={(v) => { setSearch(v); setPage(1); }}
             searchPlaceholder="Search reviews…"
@@ -195,6 +205,7 @@ export function Underwriting() {
           <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
+      {advanced.modal}
     </>
   );
 }

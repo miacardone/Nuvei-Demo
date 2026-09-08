@@ -87,7 +87,7 @@ export function Monitoring() {
       />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Docs received" value={formatNumber(docTotals.received)} meta={`Last ${weeks} weeks`} trend={receivedTrend} spark={receivedSpark} />
           <Kpi label="Docs pending" value={formatNumber(docTotals.pending)} trend={pendingTrend} invert spark={pendingSpark} />
           <Kpi label="Docs missing" value={formatNumber(docTotals.missing)} trend={missingTrend} invert spark={missingSpark} />

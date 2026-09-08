@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Button, IconButton, EmptyState, Kpi } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
@@ -76,9 +77,9 @@ export function Representment() {
   const queuedTrend = useMemo(() => countTrend(CASES, inQueue), [CASES]);
   const overdueTrend = useMemo(() => countTrend(CASES, (c) => inQueue(c) && c.dueDate < today), [today]);
   const exposureTrend = useMemo(() => sumTrend(CASES.filter(inQueue), (c) => c.disputeAmount), [CASES]);
-  const queuedSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, inQueue), [CASES]);
-  const overdueSpark = useMemo(() => weeklySeries(CASES, 6, () => 1, (c) => inQueue(c) && c.dueDate < today), [today]);
-  const exposureSpark = useMemo(() => weeklySeries(CASES.filter(inQueue), 6, (c) => c.disputeAmount), [CASES]);
+  const queuedSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, inQueue), [CASES]);
+  const overdueSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => inQueue(c) && c.dueDate < today), [today]);
+  const exposureSpark = useMemo(() => weeklySeries(CASES.filter(inQueue), 12, (c) => c.disputeAmount), [CASES]);
 
   const allColumns = useMemo(() => buildCaseColumns('chargeback'), []);
   // Hoisted out of the columns memo below: the toolbar exports exactly the
@@ -113,6 +114,12 @@ export function Representment() {
     ];
   }, [allColumns, hidden, navigate, notify, routes]);
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(allColumns);
+
+
   return (
     <>
       <PageHeader
@@ -121,7 +128,7 @@ export function Representment() {
       />
 
       <div className="stack">
-        <div className="grid grid--3" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Queued for representment" value={formatNumber(kpis.queued)} trend={queuedTrend} spark={queuedSpark} />
           <Kpi label="Overdue" value={formatNumber(kpis.overdue)} invert trend={overdueTrend} spark={overdueSpark} />
           <Kpi label="Exposure in queue" value={formatCompactCurrency(kpis.exposure)} invert trend={exposureTrend} spark={exposureSpark} />
@@ -129,6 +136,8 @@ export function Representment() {
 
         <Card bodyClassName="card__body--flush">
             <TableToolbar
+              onAdvanced={advanced.onAdvanced}
+              advancedCount={advanced.count}
               search={search}
               onSearch={(v) => { setSearch(v); setPage(1); }}
               searchPlaceholder="Case #, ARN, cardholder, reason…"
@@ -158,6 +167,7 @@ export function Representment() {
           <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
+      {advanced.modal}
     </>
   );
 }

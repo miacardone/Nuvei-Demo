@@ -29,6 +29,7 @@ export function Webhooks() {
     { key: 'actions', header: 'Actions', pinned: true, fw: 5, width: '52px', align: 'center', cell: (r) => <IconButton icon="trash" label="Delete webhook" tone="danger" size={13} onClick={() => setConfirm(r)} /> },
   ];
 
+
   return (
     <>
       <PageHeader

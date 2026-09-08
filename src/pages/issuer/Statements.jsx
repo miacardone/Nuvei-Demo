@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Badge, Kpi } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
 import { SelectField } from '@/components/ui/Form';
@@ -101,6 +102,12 @@ export function Statements() {
     },
   ];
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(lines);
+
+
   return (
     <>
       <PageHeader title="Statements" description="One cardholder's monthly activity — authorizations and any disputed line items, in one feed." />
@@ -117,7 +124,7 @@ export function Statements() {
 
         {cardholder && (
           <>
-            <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+            <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
               <Kpi label="Statement period" value={`${STATEMENT_WINDOW_DAYS} days`} meta={`Through ${formatDate(new Date())}`} />
               <Kpi label="Charges this period" value={formatCompactCurrency(totals.charges)} meta={`${formatNumber(totals.count)} line items`} />
               <Kpi label="Disputed this period" value={formatCompactCurrency(totals.disputed)} meta={`${formatNumber(totals.disputedCount)} items flagged`} />
@@ -139,7 +146,7 @@ export function Statements() {
 
               <DataTable
                 columns={columns}
-                rows={lines}
+                rows={sortedRows} sort={sort} onSort={onSort}
                 rowKey={(r) => r.key}
                 empty={<div className="empty"><p className="empty__title">No activity in this period</p></div>}
               />

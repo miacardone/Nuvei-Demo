@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext';
 function CopyButton({ value, label = 'Copy' }) {
   const { notify } = useToast();
   const [done, setDone] = useState(false);
+
   return (
     <Button
       variant="secondary"

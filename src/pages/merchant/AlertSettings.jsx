@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Tabs, Button, IconButton, Badge } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
@@ -41,8 +43,7 @@ function RecipientsTab() {
     { key: 'entityId', header: 'Entity', fw: 8, cell: (r) => <span className="small strong">{entityLabel(r.entityId)}</span> },
     { key: 'name', header: 'Name', fw: 10 },
     { key: 'email', header: 'Email', fw: 14, cell: (r) => <span className="mono small">{r.email}</span> },
-    {
-      key: 'actions', header: 'Actions', fw: 6, width: '76px',
+    { key: 'actions', pinned: true, header: 'Actions', fw: 6, width: '76px',
       cell: (r) => (
         <div className="row row--xtight row--nowrap">
           <IconButton icon="edit" label="Edit recipient" size={13} onClick={() => setEditing(r)} />
@@ -54,9 +55,25 @@ function RecipientsTab() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filtered);
+
+
+
+  // Per-column advanced search, same control on every table.
+
+
+  const advanced = useAdvancedFilters(columns);
+
+
+
   return (
     <>
       <TableToolbar
+        onAdvanced={advanced.onAdvanced}
+        advancedCount={advanced.count}
         search={search}
         onSearch={setSearch}
         searchPlaceholder="Search recipients…"
@@ -71,7 +88,7 @@ function RecipientsTab() {
         onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         extras={<Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, name: '', email: '' })}>Add recipient</Button>}
       />
-      <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
+      <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
 
       <Modal
         open={Boolean(editing)}
@@ -110,6 +127,7 @@ function RecipientsTab() {
         onCancel={() => setConfirm(null)}
         onConfirm={() => { setRows((p) => p.filter((x) => x.id !== confirm.id)); notify('Recipient deleted.', 'success'); setConfirm(null); }}
       />
+      {advanced.modal}
     </>
   );
 }
@@ -133,8 +151,7 @@ function IdentifiersTab() {
     { key: 'mid', header: 'MID', fw: 8, cell: (r) => <span className="mono small">{r.mid}</span> },
     { key: 'matched', header: 'Matched alerts', fw: 7, align: 'right', cell: (r) => <span className="mono small">{matchedCount(r.identifier)}</span> },
     { key: 'active', header: 'Active', fw: 5, cell: (r) => <Badge tone={r.active ? 'success' : 'muted'} dot>{r.active ? 'Active' : 'Inactive'}</Badge> },
-    {
-      key: 'actions', header: 'Actions', fw: 6, width: '76px',
+    { key: 'actions', pinned: true, header: 'Actions', fw: 6, width: '76px',
       cell: (r) => (
         <div className="row row--xtight row--nowrap">
           <IconButton icon="edit" label="Edit identifier" size={13} onClick={() => setEditing(r)} />

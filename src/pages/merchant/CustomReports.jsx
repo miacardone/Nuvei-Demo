@@ -89,9 +89,9 @@ function templatePreview(templateId, scoped, brandRef) {
 
     return {
       kpis: [
-        { label: 'Open cases', value: formatNumber(scoped.filter((c) => !closed.includes(c)).length), spark: weeklySeries(scoped, 6, () => 1, (c) => !closed.includes(c)) },
-        { label: 'Past due', value: formatNumber(scoped.filter((c) => dueBucketOf(c.dueDate) === 'pastDue').length), spark: weeklySeries(scoped, 6, () => 1, (c) => dueBucketOf(c.dueDate) === 'pastDue') },
-        { label: 'Unassigned', value: formatNumber(scoped.filter((c) => c.worker === '—').length), spark: weeklySeries(scoped, 6, () => 1, (c) => c.worker === '—') },
+        { label: 'Open cases', value: formatNumber(scoped.filter((c) => !closed.includes(c)).length), spark: weeklySeries(scoped, 12, () => 1, (c) => !closed.includes(c)) },
+        { label: 'Past due', value: formatNumber(scoped.filter((c) => dueBucketOf(c.dueDate) === 'pastDue').length), spark: weeklySeries(scoped, 12, () => 1, (c) => dueBucketOf(c.dueDate) === 'pastDue') },
+        { label: 'Unassigned', value: formatNumber(scoped.filter((c) => c.worker === '—').length), spark: weeklySeries(scoped, 12, () => 1, (c) => c.worker === '—') },
         { label: 'Queues in use', value: formatNumber(queueDepth.length) },
       ],
       primary: { title: 'Cases by queue', kind: 'rows', data: queueDepth },
@@ -106,10 +106,10 @@ function templatePreview(templateId, scoped, brandRef) {
 
     return {
       kpis: [
-        { label: 'Total cases', value: formatNumber(scoped.length), spark: weeklySeries(scoped, 6, () => 1) },
-        { label: `${scheme.label} share`, value: formatNumber(schemeDonut.total), spark: weeklySeries(scoped, 6, () => 1, (c) => c.network === scheme.id) },
+        { label: 'Total cases', value: formatNumber(scoped.length), spark: weeklySeries(scoped, 12, () => 1) },
+        { label: `${scheme.label} share`, value: formatNumber(schemeDonut.total), spark: weeklySeries(scoped, 12, () => 1, (c) => c.network === scheme.id) },
         { label: 'Reason categories', value: formatNumber(categoryBreakdown.length) },
-        { label: 'Disputed value', value: formatCompactCurrency(scoped.reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(scoped, 6, (c) => c.disputeAmount) },
+        { label: 'Disputed value', value: formatCompactCurrency(scoped.reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(scoped, 12, (c) => c.disputeAmount) },
       ],
       primary: { title: `${scheme.label} reason codes`, kind: 'donut', data: schemeDonut.slices, centerValue: formatNumber(schemeDonut.total), centerLabel: scheme.label, small: false },
       secondary: { title: 'Fraud vs. processing vs. consumer', kind: 'rows', data: categoryBreakdown },
@@ -130,10 +130,10 @@ function templatePreview(templateId, scoped, brandRef) {
 
     return {
       kpis: [
-        { label: 'Closed cases', value: formatNumber(closed.length), spark: weeklySeries(closed, 6, () => 1) },
-        { label: 'Won', value: formatNumber(closed.filter((c) => c.outcome === 'won').length), spark: weeklySeries(closed, 6, () => 1, (c) => c.outcome === 'won') },
-        { label: 'Recovered value', value: formatCompactCurrency(closed.filter((c) => c.outcome === 'won').reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(closed, 6, (c) => c.disputeAmount, (c) => c.outcome === 'won') },
-        { label: 'Written off', value: formatCompactCurrency(closed.filter((c) => c.outcome === 'written_off').reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(closed, 6, (c) => c.disputeAmount, (c) => c.outcome === 'written_off') },
+        { label: 'Closed cases', value: formatNumber(closed.length), spark: weeklySeries(closed, 12, () => 1) },
+        { label: 'Won', value: formatNumber(closed.filter((c) => c.outcome === 'won').length), spark: weeklySeries(closed, 12, () => 1, (c) => c.outcome === 'won') },
+        { label: 'Recovered value', value: formatCompactCurrency(closed.filter((c) => c.outcome === 'won').reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(closed, 12, (c) => c.disputeAmount, (c) => c.outcome === 'won') },
+        { label: 'Written off', value: formatCompactCurrency(closed.filter((c) => c.outcome === 'written_off').reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(closed, 12, (c) => c.disputeAmount, (c) => c.outcome === 'written_off') },
       ],
       primary: { title: 'Outcome mix', kind: 'donut', data: outcomeBreakdown, small: true },
       secondary: { title: 'Recovered value by entity', kind: 'rows', data: recoveredByEntity.map((r) => ({ label: r.label, value: r.value, meta: r.meta })) },
@@ -151,10 +151,10 @@ function templatePreview(templateId, scoped, brandRef) {
 
   return {
     kpis: [
-      { label: 'Total cases', value: formatNumber(scoped.length), spark: weeklySeries(scoped, 6, () => 1) },
-      { label: brandRef.terms.claims, value: formatNumber(claims), spark: weeklySeries(scoped, 6, () => 1, (c) => c.caseType === 'claim') },
+      { label: 'Total cases', value: formatNumber(scoped.length), spark: weeklySeries(scoped, 12, () => 1) },
+      { label: brandRef.terms.claims, value: formatNumber(claims), spark: weeklySeries(scoped, 12, () => 1, (c) => c.caseType === 'claim') },
       { label: 'Distinct sellers', value: formatNumber(sellerBreakdown.length) },
-      { label: 'Disputed value', value: formatCompactCurrency(scoped.reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(scoped, 6, (c) => c.disputeAmount) },
+      { label: 'Disputed value', value: formatCompactCurrency(scoped.reduce((s, c) => s + c.disputeAmount, 0)), spark: weeklySeries(scoped, 12, (c) => c.disputeAmount) },
     ],
     primary: { title: `${brandRef.terms.chargebacks} vs. ${brandRef.terms.claims}`, kind: 'donut', data: typeSplit, small: true },
     secondary: { title: 'Top sellers by volume', kind: 'rows', data: sellerBreakdown },
@@ -162,6 +162,7 @@ function templatePreview(templateId, scoped, brandRef) {
 }
 
 function PreviewPanel({ panel }) {
+
   return (
     <div>
       <span className="t-section-label">{panel.title}</span>
@@ -438,7 +439,7 @@ function ReportBuilder({ onSave }) {
               )}
             </div>
 
-            <div className="grid grid--4">
+            <div className="kpi-row">
               {preview.kpis.map((k) => <Kpi key={k.label} label={k.label} value={k.value} spark={k.spark} />)}
             </div>
 

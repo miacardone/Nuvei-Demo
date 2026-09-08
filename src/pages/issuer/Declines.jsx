@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { PageHeader, Card, Kpi, EmptyState, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
@@ -75,7 +76,7 @@ export function Declines() {
     };
   }, [declined]);
 
-  const countSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 6, () => 1, (a) => a.result === 'Declined', authDateOf), []);
+  const countSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 12, () => 1, (a) => a.result === 'Declined', authDateOf), []);
   const rateSpark = useMemo(() => {
     const now = Date.now();
     const DAY = 86_400_000;
@@ -85,7 +86,7 @@ export function Declines() {
       return rows.length ? (rows.filter((a) => a.result === 'Declined').length / rows.length) * 100 : 0;
     });
   }, []);
-  const valueSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 6, (a) => a.amount, (a) => a.result === 'Declined', authDateOf), []);
+  const valueSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 12, (a) => a.amount, (a) => a.result === 'Declined', authDateOf), []);
 
   const columns = [
     { key: 'date', header: 'Date', fw: 8, sortable: true, cell: (r) => <span className="micro subtle nowrap">{formatDateTime(r.date)}</span> },
@@ -98,12 +99,18 @@ export function Declines() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader title="Declines" description="Authorization attempts declined for your cardholders, with the reason the network or the issuer's own rules returned." />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Declines" value={formatNumber(totals.count)} meta={`${formatNumber(AUTHORIZATIONS.length)} total attempts`} invert spark={countSpark} />
           <Kpi label="Decline rate" value={formatPercent(totals.declineRate, 1)} invert spark={rateSpark} />
           <Kpi label="Declined value" value={formatCompactCurrency(totals.value)} invert spark={valueSpark} />
@@ -112,6 +119,8 @@ export function Declines() {
 
         <Card bodyClassName="card__body--flush">
           <TableToolbar
+            onAdvanced={advanced.onAdvanced}
+            advancedCount={advanced.count}
             search={search}
             onSearch={(v) => { setSearch(v); setPage(1); }}
             searchPlaceholder="Search cardholder, merchant, reason…"
@@ -139,6 +148,7 @@ export function Declines() {
           <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
+      {advanced.modal}
     </>
   );
 }

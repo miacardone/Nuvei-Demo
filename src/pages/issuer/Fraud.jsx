@@ -75,10 +75,10 @@ export function Fraud() {
   const confirmedTrend = useMemo(() => countTrend(cardCases, (c) => c.fraudMarker === 'Confirmed Fraud'), [cardCases]);
   const suspectedTrend = useMemo(() => countTrend(cardCases, (c) => c.fraudMarker === 'Suspected Fraud'), [cardCases]);
   const reportedTrend = useMemo(() => countTrend(cardCases, (c) => c.fraudMarker === 'Fraud Reported by Issuer'), [cardCases]);
-  const fraudRateSpark = useMemo(() => weeklyRate(cardCases, 6, () => true, (c) => c.fraudMarker === 'Confirmed Fraud' || c.fraudMarker === 'Suspected Fraud'), [cardCases]);
-  const confirmedSpark = useMemo(() => weeklySeries(cardCases, 6, () => 1, (c) => c.fraudMarker === 'Confirmed Fraud'), [cardCases]);
-  const suspectedSpark = useMemo(() => weeklySeries(cardCases, 6, () => 1, (c) => c.fraudMarker === 'Suspected Fraud'), [cardCases]);
-  const reportedSpark = useMemo(() => weeklySeries(cardCases, 6, () => 1, (c) => c.fraudMarker === 'Fraud Reported by Issuer'), [cardCases]);
+  const fraudRateSpark = useMemo(() => weeklyRate(cardCases, 12, () => true, (c) => c.fraudMarker === 'Confirmed Fraud' || c.fraudMarker === 'Suspected Fraud'), [cardCases]);
+  const confirmedSpark = useMemo(() => weeklySeries(cardCases, 12, () => 1, (c) => c.fraudMarker === 'Confirmed Fraud'), [cardCases]);
+  const suspectedSpark = useMemo(() => weeklySeries(cardCases, 12, () => 1, (c) => c.fraudMarker === 'Suspected Fraud'), [cardCases]);
+  const reportedSpark = useMemo(() => weeklySeries(cardCases, 12, () => 1, (c) => c.fraudMarker === 'Fraud Reported by Issuer'), [cardCases]);
 
   const flagged = useMemo(
     () => cardCases.filter((c) => c.fraudMarker === 'Confirmed Fraud' || c.fraudMarker === 'Suspected Fraud'),
@@ -121,7 +121,7 @@ export function Fraud() {
       <PageHeader title="Fraud" description="Fraud markers across your cardholder base — confirmed and suspected fraud, and cases the issuer flagged itself." />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Confirmed fraud" value={formatNumber(confirmed.count)} meta={formatCompactCurrency(confirmed.value)} invert trend={confirmedTrend} spark={confirmedSpark} />
           <Kpi label="Suspected fraud" value={formatNumber(suspected.count)} meta={formatCompactCurrency(suspected.value)} invert trend={suspectedTrend} spark={suspectedSpark} />
           <Kpi label="Fraud rate" value={formatPercent(fraudRate, 1)} meta="Confirmed + suspected" spark={fraudRateSpark} />

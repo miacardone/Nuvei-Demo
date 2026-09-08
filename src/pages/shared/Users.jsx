@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { PageHeader, Card, Tabs, SubTabs, Button, IconButton, Badge, Stepper, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
@@ -75,6 +76,8 @@ function UserModal({ open, onClose, onSave, user }) {
     onSave({ ...(isEdit ? user : {}), name: name.trim(), email: email.trim(), role, group, status, skills });
     if (!isEdit) { setName(''); setEmail(''); }
   };
+
+
 
   return (
     <Modal
@@ -326,6 +329,12 @@ export function Users() {
     { key: 'holders', header: 'Users', fw: 6, align: 'right', cell: (s) => <span className="mono small">{users.filter((u) => u.skills.includes(s.name)).length}</span> },
   ];
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(userColumns);
+
+
   return (
     <>
       <PageHeader
@@ -359,6 +368,8 @@ export function Users() {
             {subTab === 'users' && (
               <>
                   <TableToolbar
+                    onAdvanced={advanced.onAdvanced}
+                    advancedCount={advanced.count}
                     search={search}
                     onSearch={setSearch}
                     searchPlaceholder="Search people…"
@@ -415,6 +426,7 @@ export function Users() {
         onClose={() => setSkillModal(false)}
         onSave={(s) => { setSkills((p) => [...p, { ...s, id: `s${p.length + 1}` }]); setSkillModal(false); notify(`Skill “${s.name}” created.`, 'success'); }}
       />
+      {advanced.modal}
     </>
   );
 }

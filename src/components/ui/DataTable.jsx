@@ -301,7 +301,11 @@ export function DataTable({
             {columns.map((c, i) => {
               const active = sort?.key === c.key;
               const draggableCol = i >= pinnedCount;
-              const header = c.sortable && onSort ? (
+              // Sortable unless the column says otherwise. Actions and other
+              // presentational columns set `sortable: false`; everything with
+              // a value in it is sortable, which is what people expect.
+              const canSort = onSort && c.sortable !== false && c.key !== 'actions' && !c.pinned;
+              const header = canSort ? (
                 <button type="button" className="dt__sort-btn" onClick={() => onSort(c.key)}>
                   <span className="truncate">{c.header}</span>
                   <Icon

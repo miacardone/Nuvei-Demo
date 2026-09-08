@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, IconButton, EmptyState, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
@@ -79,10 +80,10 @@ export function Chargebacks() {
   const exposureTrend = useMemo(() => sumTrend(chargebackCases.filter((c) => !isClosed(c.status)), (c) => c.disputeAmount), [chargebackCases]);
   const winRateTrend = useMemo(() => rateTrend(chargebackCases, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [chargebackCases]);
   const representedTrend = useMemo(() => countTrend(chargebackCases, (c) => c.status === 'represented'), [chargebackCases]);
-  const openSpark = useMemo(() => weeklySeries(chargebackCases, 6, () => 1, (c) => !isClosed(c.status)), [chargebackCases]);
-  const exposureSpark = useMemo(() => weeklySeries(chargebackCases.filter((c) => !isClosed(c.status)), 6, (c) => c.disputeAmount), [chargebackCases]);
-  const winRateSpark = useMemo(() => weeklyRate(chargebackCases, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [chargebackCases]);
-  const representedSpark = useMemo(() => weeklySeries(chargebackCases, 6, () => 1, (c) => c.status === 'represented'), [chargebackCases]);
+  const openSpark = useMemo(() => weeklySeries(chargebackCases, 12, () => 1, (c) => !isClosed(c.status)), [chargebackCases]);
+  const exposureSpark = useMemo(() => weeklySeries(chargebackCases.filter((c) => !isClosed(c.status)), 12, (c) => c.disputeAmount), [chargebackCases]);
+  const winRateSpark = useMemo(() => weeklyRate(chargebackCases, 12, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [chargebackCases]);
+  const representedSpark = useMemo(() => weeklySeries(chargebackCases, 12, () => 1, (c) => c.status === 'represented'), [chargebackCases]);
 
   const columns = [
     { key: 'cardholder', header: 'Cardholder', fw: 11, sortable: true, cell: (r) => <TruncatedText value={r.cardholder} className="small strong" /> },
@@ -108,6 +109,12 @@ export function Chargebacks() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader
@@ -122,7 +129,7 @@ export function Chargebacks() {
       />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Open chargebacks" value={formatNumber(kpis.openCases)} meta={`${formatNumber(kpis.overdueCases)} overdue`} trend={openTrend} spark={openSpark} />
           <Kpi label="Exposure" value={formatCompactCurrency(kpis.openValue)} invert trend={exposureTrend} spark={exposureSpark} />
           <Kpi label="Win rate" value={formatPercent(kpis.winRate, 0)} meta="Issuer-side, informational" trend={winRateTrend} spark={winRateSpark} />
@@ -131,6 +138,8 @@ export function Chargebacks() {
 
         <Card bodyClassName="card__body--flush">
             <TableToolbar
+              onAdvanced={advanced.onAdvanced}
+              advancedCount={advanced.count}
               search={search}
               onSearch={(v) => { setSearch(v); setPage(1); }}
               searchPlaceholder="Cardholder, case #, ARN, reason…"
@@ -167,6 +176,7 @@ export function Chargebacks() {
           <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
+      {advanced.modal}
     </>
   );
 }

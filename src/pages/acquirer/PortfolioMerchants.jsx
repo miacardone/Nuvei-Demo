@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
@@ -117,6 +118,12 @@ export function PortfolioMerchants() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader
@@ -125,7 +132,7 @@ export function PortfolioMerchants() {
       />
 
       <div className="stack">
-        <div className="grid grid--5" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Merchants" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} />
           <Kpi label="Portfolio exposure" value={formatCompactCurrency(totals.exposure)} />
           <Kpi label="Flagged for review" value={formatNumber(totals.flagged)} meta="Under review or suspended" />
@@ -140,6 +147,8 @@ export function PortfolioMerchants() {
         <Card bodyClassName="card__body--flush">
 
           <TableToolbar
+            onAdvanced={advanced.onAdvanced}
+            advancedCount={advanced.count}
             search={search}
             onSearch={(v) => { setSearch(v); setPage(1); }}
             searchPlaceholder="Search merchants…"
@@ -203,6 +212,7 @@ export function PortfolioMerchants() {
           </div>
         )}
       </Modal>
+      {advanced.modal}
     </>
   );
 }

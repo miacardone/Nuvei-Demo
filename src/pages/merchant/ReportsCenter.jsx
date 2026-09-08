@@ -53,7 +53,7 @@ export function ReportsCenter() {
       <PageHeader title="Reports center" description="Where deadline pressure sits, and why the disputes were raised." />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Total disputed value" value={formatCompactCurrency(CASES.reduce((s, c) => s + c.disputeAmount, 0))} spark={valueTrend.map((t) => t.disputed)} />
           <Kpi label="Top market" value={topMarket?.market ?? '—'} meta={topMarket ? `${formatNumber(topMarket.count)} cases` : undefined} />
           <Kpi label={`Top ${brand.terms.seller}`} value={topSuppliers[0]?.label ?? '—'} meta={topSuppliers[0] ? `${formatNumber(topSuppliers[0].value)} cases` : undefined} />

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { PageHeader, Card, Kpi, EmptyState, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
@@ -60,8 +61,8 @@ export function Approvals() {
     cardholders: new Set(approved.map((a) => a.cardholderId)).size,
   }), [approved]);
 
-  const countSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 6, () => 1, (a) => a.result === 'Approved', authDateOf), []);
-  const valueSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 6, (a) => a.amount, (a) => a.result === 'Approved', authDateOf), []);
+  const countSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 12, () => 1, (a) => a.result === 'Approved', authDateOf), []);
+  const valueSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 12, (a) => a.amount, (a) => a.result === 'Approved', authDateOf), []);
   const cardholdersSpark = useMemo(() => {
     const now = Date.now();
     const DAY = 86_400_000;
@@ -83,12 +84,18 @@ export function Approvals() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader title="Approvals" description={`Authorization attempts approved for your ${brand.terms.buyer}s across every ${brand.terms.seller}, not only ${flagshipName}.`} />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Approvals" value={formatNumber(totals.count)} meta={`${formatNumber(AUTHORIZATIONS.length)} total attempts`} spark={countSpark} />
           <Kpi label="Approved value" value={formatCompactCurrency(totals.value)} spark={valueSpark} />
           <Kpi label="Average ticket" value={formatCurrency(totals.avgTicket)} />
@@ -97,6 +104,8 @@ export function Approvals() {
 
         <Card bodyClassName="card__body--flush">
           <TableToolbar
+            onAdvanced={advanced.onAdvanced}
+            advancedCount={advanced.count}
             search={search}
             onSearch={(v) => { setSearch(v); setPage(1); }}
             searchPlaceholder="Search cardholder, merchant, scheme…"
@@ -124,6 +133,7 @@ export function Approvals() {
           <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
+      {advanced.modal}
     </>
   );
 }

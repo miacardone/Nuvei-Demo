@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
+import useTableSort from '@/hooks/useTableSort';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Button, IconButton } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
@@ -65,6 +67,20 @@ export function QueueManagement() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filtered);
+
+
+
+  // Per-column advanced search, same control on every table.
+
+
+  const advanced = useAdvancedFilters(columns);
+
+
+
   return (
     <>
       <PageHeader
@@ -75,6 +91,8 @@ export function QueueManagement() {
 
       <Card bodyClassName="card__body--flush">
         <TableToolbar
+          onAdvanced={advanced.onAdvanced}
+          advancedCount={advanced.count}
           search={search}
           onSearch={setSearch}
           searchPlaceholder="Search queues…"
@@ -88,7 +106,7 @@ export function QueueManagement() {
           exportName="queues"
           onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         />
-        <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
+        <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
       </Card>
 
       <Modal
@@ -119,6 +137,7 @@ export function QueueManagement() {
           setRows((p) => p.filter((x) => x.id !== confirm.id)); notify('Queue deleted.', 'success'); setConfirm(null);
         }}
       />
+      {advanced.modal}
     </>
   );
 }

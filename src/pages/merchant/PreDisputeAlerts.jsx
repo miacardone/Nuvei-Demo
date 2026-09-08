@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { Card, Kpi, Badge, Button, EmptyState, IconButton } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
@@ -42,6 +43,7 @@ function RulesModal({ open, onClose, rules, onToggle, onAdd }) {
   const [action, setAction] = useState(RULE_ACTIONS[0]);
 
   const valid = name.trim() && value.trim();
+
 
 
 
@@ -139,7 +141,7 @@ export function PreDisputeAlerts() {
 
   const columns = useMemo(() => [
     {
-      key: 'actions', header: 'Actions', fw: 4, width: '56px', pinned: true,
+      key: 'actions', header: 'Actions', pinned: true, fw: 4, width: '56px', pinned: true,
       cell: (row) => (row.caseId
         ? <IconButton icon="wrench" label={`Open case ${row.caseId}`} size={13} onClick={(e) => { e.stopPropagation(); navigate(ROUTES.workCaseDetail(row.caseId)); }} />
         : <Tooltip label="Deflected — there is no case, which is the point"><span className="nano subtle">—</span></Tooltip>),
@@ -180,6 +182,12 @@ export function PreDisputeAlerts() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <div className="stack">
       <div className="grid grid--4">
@@ -190,6 +198,7 @@ export function PreDisputeAlerts() {
             meta={`${formatNumber(kpis.deflected)} of ${formatNumber(kpis.total)} stopped a ${brand.terms.chargeback}`}
           />
         </Card>
+        {advanced.modal}
         <Card bodyClassName="card__body--tight">
           <Kpi label="Refunded" value={formatCurrency(kpis.refundValue)} meta={`${formatNumber(kpis.autoResolved)} resolved by rule, no analyst`} />
         </Card>
@@ -232,6 +241,8 @@ export function PreDisputeAlerts() {
 
       <Card bodyClassName="card__body--flush">
         <TableToolbar
+          onAdvanced={advanced.onAdvanced}
+          advancedCount={advanced.count}
           search={search}
           onSearch={(v) => { setSearch(v); setPage(1); }}
           searchPlaceholder="Alert ID, order, card…"

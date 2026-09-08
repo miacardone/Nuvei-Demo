@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Button, Kpi, Badge } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { SelectField } from '@/components/ui/Form';
@@ -76,6 +78,20 @@ export function AlertReporting() {
 
   const auditedCount = Object.values(audits).filter(Boolean).length;
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(rows);
+
+
+
+  // Per-column advanced search, same control on every table.
+
+
+  const advanced = useAdvancedFilters(columns);
+
+
+
   return (
     <>
       <PageHeader
@@ -97,7 +113,7 @@ export function AlertReporting() {
       />
 
       <div className="stack stack--tight">
-        <div className="grid grid--4">
+        <div className="kpi-row">
           <Kpi label="Decided alerts" value={formatNumber(totals.total)} meta={RANGES.find((r) => r.value === range)?.label.toLowerCase()} />
           <Kpi label="Refunded" value={formatNumber(totals.refunded)} meta="chargeback stopped" />
           <Kpi label="Missed" value={formatNumber(totals.missed)} meta="ineligible or expired" />
@@ -106,6 +122,8 @@ export function AlertReporting() {
 
         <Card bodyClassName="card__body--flush">
             <TableToolbar
+              onAdvanced={advanced.onAdvanced}
+              advancedCount={advanced.count}
               search={search}
               onSearch={setSearch}
               searchPlaceholder="Search alert ID, case ID, entity…"
@@ -116,9 +134,10 @@ export function AlertReporting() {
               hidden={hidden}
               onHiddenChange={setHidden}
             />
-          <DataTable columns={visibleColumns} density={density} rows={rows} rowKey={(r) => r.id} />
+          <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
         </Card>
       </div>
+      {advanced.modal}
     </>
   );
 }

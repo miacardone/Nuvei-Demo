@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
@@ -92,6 +93,12 @@ export function Cardholders() {
   const detailCases = detail ? casesForCardholder(detail.name) : [];
   const detailAuths = detail ? authorizationsFor(detail.id).slice(0, 8) : [];
 
+
+  // Per-column advanced search, same control on every table.
+
+  const advanced = useAdvancedFilters(columns);
+
+
   return (
     <>
       <PageHeader
@@ -100,7 +107,7 @@ export function Cardholders() {
       />
 
       <div className="stack">
-        <div className="grid grid--4" style={{ gap: 'var(--s-3)' }}>
+        <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Cardholders" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} />
           <Kpi label="Repeat filers" value={formatNumber(totals.repeatFilers)} meta={`${formatPercent((totals.repeatFilers / totals.count) * 100, 0)} of the book`} />
           <Kpi label="Lifetime spend" value={formatCompactCurrency(totals.lifetimeSpend)} meta="Across this book" />
@@ -109,6 +116,8 @@ export function Cardholders() {
 
         <Card bodyClassName="card__body--flush">
           <TableToolbar
+            onAdvanced={advanced.onAdvanced}
+            advancedCount={advanced.count}
             search={search}
             onSearch={(v) => { setSearch(v); setPage(1); }}
             searchPlaceholder="Search cardholders, card, market…"
@@ -201,6 +210,7 @@ export function Cardholders() {
           </div>
         )}
       </Modal>
+      {advanced.modal}
     </>
   );
 }

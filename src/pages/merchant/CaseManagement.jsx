@@ -166,13 +166,13 @@ export function CaseManagement() {
   const representedTrend = useMemo(() => countTrend(scoped, (c) => c.status === 'represented'), [scoped]);
   const docsMissingTrend = useMemo(() => countTrend(scoped, (c) => !isClosed(c.status) && c.docStatus === 'missing'), [scoped]);
 
-  const openSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => !isClosed(c.status)), [scoped]);
-  const overdueSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => !isClosed(c.status) && c.dueDate < today), [scoped, today]);
-  const unassignedSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => !isClosed(c.status) && c.worker === '—'), [scoped]);
-  const exposureSpark = useMemo(() => weeklySeries(scoped.filter((c) => !isClosed(c.status)), 6, (c) => c.disputeAmount), [scoped]);
-  const winRateSpark = useMemo(() => weeklyRate(CASES, 6, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
-  const representedSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => c.status === 'represented'), [scoped]);
-  const docsMissingSpark = useMemo(() => weeklySeries(scoped, 6, () => 1, (c) => !isClosed(c.status) && c.docStatus === 'missing'), [scoped]);
+  const openSpark = useMemo(() => weeklySeries(scoped, 12, () => 1, (c) => !isClosed(c.status)), [scoped]);
+  const overdueSpark = useMemo(() => weeklySeries(scoped, 12, () => 1, (c) => !isClosed(c.status) && c.dueDate < today), [scoped, today]);
+  const unassignedSpark = useMemo(() => weeklySeries(scoped, 12, () => 1, (c) => !isClosed(c.status) && c.worker === '—'), [scoped]);
+  const exposureSpark = useMemo(() => weeklySeries(scoped.filter((c) => !isClosed(c.status)), 12, (c) => c.disputeAmount), [scoped]);
+  const winRateSpark = useMemo(() => weeklyRate(CASES, 12, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
+  const representedSpark = useMemo(() => weeklySeries(scoped, 12, () => 1, (c) => c.status === 'represented'), [scoped]);
+  const docsMissingSpark = useMemo(() => weeklySeries(scoped, 12, () => 1, (c) => !isClosed(c.status) && c.docStatus === 'missing'), [scoped]);
 
   const sorted = useMemo(() => {
     const rows = [...filtered];
@@ -229,7 +229,7 @@ export function CaseManagement() {
         }
       />
 
-      <div className="grid grid--auto" style={{ gap: 'var(--s-3)', marginBottom: 'var(--s-4)' }}>
+      <div className="kpi-row" style={{ marginBottom: 'var(--s-4)' }}>
         <Kpi label="Open cases" value={formatNumber(kpis.openCases)} trend={trend} spark={openSpark} tooltip="New cases opened in the last 30 days vs. the 30 days before that." />
         <Kpi label="Overdue" value={formatNumber(kpis.overdueCases)} meta="Past internal due date" trend={overdueTrend} invert spark={overdueSpark} tooltip="Overdue cases opened in the last 30 days vs. the 30 days before that." />
         <Kpi label="Unassigned" value={formatNumber(kpis.unassigned)} meta="No analyst assigned" trend={unassignedTrend} invert spark={unassignedSpark} tooltip="Unassigned cases opened in the last 30 days vs. the 30 days before that." />

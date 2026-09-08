@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Badge, Button, Kpi } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
 import { ALERTS, WORKABLE_ENTITIES, agentRollup, unassignedOpenAlerts } from '@/data/alerts';
@@ -59,6 +60,12 @@ export function AlertAssignments() {
     { key: 'openValue', header: 'Open value', fw: 8, align: 'right', cell: (r) => <span className="mono small">{formatCompactCurrency(r.openValue)}</span> },
   ];
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(rollup);
+
+
   return (
     <>
       <PageHeader
@@ -68,14 +75,14 @@ export function AlertAssignments() {
       />
 
       <div className="stack stack--tight">
-        <div className="grid grid--3">
+        <div className="kpi-row">
           <Kpi label="Agents with access" value={formatNumber(rollup.length)} />
           <Kpi label="Total assigned load" value={formatNumber(rollup.reduce((s, r) => s + r.openLoad, 0))} meta="open alerts with an owner" />
           <Kpi label="Unassigned backlog" value={formatNumber(backlog.length)} meta="open, nobody's working it yet" />
         </div>
 
         <Card bodyClassName="card__body--flush">
-          <DataTable columns={columns} rows={rollup} rowKey={(r) => r.email} />
+          <DataTable columns={columns} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.email} />
         </Card>
       </div>
     </>
