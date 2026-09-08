@@ -1142,6 +1142,13 @@
  * own padding is cancelled with negative margins rather than removed (the
  * text above still needs it). */
 .kpi--sparked { padding-bottom: 0; }
+/* The card must fill its grid track. Cards wrapped in a Tooltip were
+   shrink-wrapping to their content, so a row of equal tracks still rendered
+   unequal cards. */
+.kpi { width: 100%; box-sizing: border-box; }
+.kpi__tooltip-fill { display: block; width: 100%; }
+.kpi-row > * { min-width: 0; }
+.kpi__spark--empty { display: block; }
 .kpi__spark {
   display: block;
   width: calc(100% + var(--s-5) * 2);

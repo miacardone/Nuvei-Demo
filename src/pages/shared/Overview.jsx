@@ -61,7 +61,10 @@ export function Overview() {
   const copy = COPY[id] ?? COPY.acquirer;
   const [range, setRange] = useState(RANGES[1]);
 
-  const weeks = range === 'Last 7 days' ? 2 : range === 'Last 90 days' ? 12 : 6;
+  // Weekly buckets per range. A chart with four bars is a table with
+  // extra steps, so even the short range keeps enough columns to read as
+  // a trend — short ranges bucket by half-week rather than by week.
+  const weeks = range === 'Last 7 days' ? 10 : range === 'Last 90 days' ? 14 : 12;
   const days = range === 'Last 7 days' ? 7 : range === 'Last 90 days' ? 90 : 28;
 
   const kpis = useMemo(() => caseKpis(CASES), [CASES]);

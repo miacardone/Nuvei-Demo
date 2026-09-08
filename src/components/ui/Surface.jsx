@@ -205,7 +205,11 @@ export function Stepper({ steps = [], current = 0 }) {
  *  the last few weeks. Auto-scales to its own min/max, so it reads as shape
  *  (trending up/down/flat) rather than an axis to be read literally. */
 function KpiSpark({ data, id }) {
-  if (!data || data.length < 2) return null;
+  // Cards keep the band even with nothing to draw, so a row of KPIs has one
+  // silhouette instead of some cards being shorter than their neighbours.
+  // An invented flat line would read as "no change", which is a claim; empty
+  // space is not.
+  if (!data || data.length < 2) return <span className="kpi__spark kpi__spark--empty" aria-hidden />;
   /* Drawn in a fixed coordinate space and stretched to the card's full width
      by CSS. preserveAspectRatio="none" is what lets it fill edge to edge;
      vector-effect keeps the stroke an even 2px once it has been stretched,
@@ -265,7 +269,7 @@ export function Kpi({ label, value, meta, trend, invert = false, spark, tooltip 
   // card's definition.
   const uid = useMemo(() => { kpiSeq += 1; return kpiSeq; }, []);
   const body = (
-    <div className={`kpi ${spark?.length > 1 ? 'kpi--sparked' : ''}`.trim()}>
+    <div className="kpi kpi--sparked">
       <div className="row row--between" style={{ alignItems: 'center', gap: 'var(--s-3)' }}>
         <div className="stack stack--xtight" style={{ gap: 4, minWidth: 0 }}>
           <span className="kpi__label">{label}</span>

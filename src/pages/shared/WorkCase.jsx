@@ -7,6 +7,7 @@ import Icon from '@/components/ui/Icon';
 import { buildCaseColumns, DueCell } from '@/components/cases/caseColumns';
 import { AdvancedFiltersModal, EMPTY_FILTERS, applyFilters, countActive } from '@/components/cases/CaseFilters';
 import DocViewer from '@/components/workcase/DocViewer';
+import DisputeEditor from '@/components/workcase/DisputeEditor';
 import ActionsCard from '@/components/workcase/ActionsCard';
 import { NotesModal, PendModal, ReferralModal, ResubmitModal, RouteModal, UploadModal } from '@/components/workcase/CaseModals';
 import { CASES, getCase, getWorkableCases } from '@/data/cases';
@@ -364,12 +365,23 @@ const CENTRE_TABS = (docs) => [
   { value: 'related', label: 'Related cases' },
 ];
 
+/* The merchant tab carries two jobs: read what arrived, and answer it. They
+   are the same evidence seen two ways, so they belong behind a segmented
+   control on one tab rather than as two sibling tabs a user has to correlate.
+   The response view is where documents get annotated and redacted before
+   anything is sent. */
+const MERCHANT_VIEWS = [
+  { id: 'documents', label: 'Documents', icon: 'file' },
+  { id: 'response', label: 'Build response & redact', icon: 'checklist' },
+];
+
 function WorkView({ c }) {
   const brand = useBrand();
   const navigate = useNavigate();
   const { notify } = useToast();
   const { routes, id: perspectiveId } = usePerspective();
 
+  const [merchantView, setMerchantView] = useState('documents');
   const [tab, setTab] = useState('merchant');
   const [modal, setModal] = useState(null);
   const [status, setStatus] = useState(c.status);
@@ -430,9 +442,37 @@ function WorkView({ c }) {
           <div style={{ padding: '0 var(--s-3)' }}>
             <Tabs tabs={CENTRE_TABS(docCounts)} value={tab} onChange={setTab} />
           </div>
-          {tab === 'related'
-            ? <div className="card__body"><RelatedCases c={c} groups={groups} /></div>
-            : <DocViewer c={c} side={tab} />}
+          {tab === 'related' ? (
+            <div className="card__body"><RelatedCases c={c} groups={groups} /></div>
+          ) : tab === 'merchant' ? (
+            <>
+              <div className="doc-toolbar" style={{ justifyContent: 'flex-start' }}>
+                <div className="seg" role="group" aria-label="Merchant evidence view">
+                  {MERCHANT_VIEWS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className={`seg__btn ${merchantView === v.id ? 'is-active' : ''}`.trim()}
+                      onClick={() => setMerchantView(v.id)}
+                    >
+                      <Icon name={v.icon} size={12} /> {v.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="micro subtle">
+                  {merchantView === 'documents'
+                    ? 'Evidence received from the merchant side of the case.'
+                    : 'Draft the response against that evidence, and redact anything that must not be sent.'}
+                </span>
+              </div>
+
+              {merchantView === 'documents'
+                ? <DocViewer c={c} side="merchant" />
+                : <div className="card__body"><DisputeEditor c={c} onSubmitted={(msg) => notify(msg, 'success')} /></div>}
+            </>
+          ) : (
+            <DocViewer c={c} side={tab} />
+          )}
         </Card>
 
         <div className="stack stack--tight workcase__right">

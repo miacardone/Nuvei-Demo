@@ -49,6 +49,38 @@ function diffLabels(originalLabels, currentLabels) {
   ];
 }
 
+/** Says what the colours mean, so the diff does not rely on the reader
+ *  already knowing that red-struck means removed. */
+function DiffLegend() {
+  return (
+    <div className="row row--tight" style={{ gap: 'var(--s-2)', marginBottom: 4 }}>
+      <span className="chip chip--removed"><Icon name="close" size={10} />Removed</span>
+      <span className="chip chip--added"><Icon name="plus" size={10} />Added</span>
+      <span className="chip chip--unchanged">Unchanged</span>
+    </div>
+  );
+}
+
+/** A single before/after field — name and description are not lists, so they
+ *  diff as a pair rather than as chips. */
+function DiffField({ title, before, after }) {
+  const changed = (before ?? '') !== (after ?? '');
+  return (
+    <div>
+      <span className="t-section-label">{title}</span>
+      <div className="row row--tight" style={{ marginTop: 4, flexWrap: 'wrap' }}>
+        {!changed && <span className="chip chip--unchanged">{after || '—'}</span>}
+        {changed && (
+          <>
+            <span className="chip chip--removed"><Icon name="close" size={10} />{before || '—'}</span>
+            <span className="chip chip--added"><Icon name="plus" size={10} />{after || '—'}</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DiffChips({ title, diff }) {
   return (
     <div>
@@ -370,6 +402,9 @@ export function AddRule() {
                 <div className="card__body stack stack--tight">
                   {editingRule ? (
                     <>
+                      <DiffLegend />
+                      <DiffField title="Name" before={editingRule.name} after={name.trim()} />
+                      <DiffField title="Description" before={editingRule.description} after={description.trim()} />
                       <DiffChips title="Criteria" diff={criteriaDiff} />
                       <DiffChips title="Actions" diff={actionsDiff} />
                       <DiffChips title="Statuses" diff={statusesDiff} />

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { weeklySeries } from '@/domain/metrics';
 import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Tabs, Button, IconButton, Badge, Kpi, EmptyState } from '@/components/ui/Surface';
@@ -90,6 +91,14 @@ export function AlertCaseWork() {
     setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, outcome, processedAt: new Date().toISOString() } : a)));
   };
 
+  // Real weekly series off the alert book, so these cards carry the same
+  // trend line every other KPI does.
+  const alertDateOf = (a) => a.alertDate;
+  const openSpark = weeklySeries(alerts, 12, () => 1, (a) => a.outcome === 'open', alertDateOf);
+  const protectedSpark = weeklySeries(alerts, 12, (a) => a.amount, (a) => a.outcome === 'refunded', alertDateOf);
+  const atRiskSpark = weeklySeries(alerts, 12, (a) => a.amount, (a) => a.outcome === 'open', alertDateOf);
+  const decidedSpark = weeklySeries(alerts, 12, () => 1, (a) => a.outcome !== 'open', alertDateOf);
+
   const totals = {
     open: alerts.filter((a) => a.outcome === 'open').length,
     valueProtected: alerts.filter((a) => a.outcome === 'refunded').reduce((s, a) => s + a.amount, 0),
@@ -167,10 +176,10 @@ export function AlertCaseWork() {
         {tab === 'overview' ? (
           <div className="stack stack--tight">
             <div className="kpi-row">
-              <Kpi label="Open alerts" value={formatNumber(totals.open)} meta="need action before they expire" />
-              <Kpi label="Value protected" value={formatCompactCurrency(totals.valueProtected)} meta="chargebacks stopped" />
-              <Kpi label="Value at risk" value={formatCompactCurrency(totals.valueAtRisk)} meta="still open" />
-              <Kpi label="Response rate" value={`${totals.responseRate.toFixed(0)}%`} meta="of decided alerts refunded" />
+              <Kpi label="Open alerts" value={formatNumber(totals.open)} meta="need action before they expire" spark={openSpark} />
+              <Kpi label="Value protected" value={formatCompactCurrency(totals.valueProtected)} meta="chargebacks stopped" spark={protectedSpark} />
+              <Kpi label="Value at risk" value={formatCompactCurrency(totals.valueAtRisk)} meta="still open" spark={atRiskSpark} />
+              <Kpi label="Response rate" value={`${totals.responseRate.toFixed(0)}%`} meta="of decided alerts refunded" spark={decidedSpark} />
             </div>
             <Card title="By entity" bodyClassName="card__body--flush">
               <OverviewTable rows={rollup} onViewAlerts={(entityId) => { setEntityFilter(entityId); setTab('alerts'); }} />
