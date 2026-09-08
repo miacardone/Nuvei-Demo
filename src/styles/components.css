@@ -1155,3 +1155,18 @@
   height: 34px;
   margin: var(--s-3) calc(var(--s-5) * -1) 0;
 }
+
+/* --- Password reveal ----------------------------------------------------- *
+ * The toggle sits inside the field rather than beside it, so the input keeps
+ * its full width and the control cannot be mistaken for a form action. It is
+ * skipped in the tab order — a keyboard user tabbing from password to Sign in
+ * should not land on a visibility switch on the way. */
+.field__reveal-wrap { position: relative; display: block; }
+.input--with-reveal { padding-right: 38px; }
+.field__reveal {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 36px;
+  display: grid; place-items: center;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--c-ink-subtle); border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+.field__reveal:hover { color: var(--c-ink); }

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import Icon from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Surface';
 
@@ -25,12 +25,45 @@ function Shell({ label, required, hint, error, htmlFor, children }) {
   );
 }
 
-export function TextField({ label, required, hint, error, id: providedId, className = '', ...rest }) {
+export function TextField({ label, required, hint, error, id: providedId, className = '', type, ...rest }) {
   const generated = useId();
   const id = providedId ?? generated;
+  const [revealed, setRevealed] = useState(false);
+
+  // A password field gets a reveal toggle. It lives here rather than at each
+  // call site so every password box in the console behaves the same way, and
+  // it swaps the input's own type — no second hidden field to fall out of sync.
+  const isPassword = type === 'password';
+  const inputType = isPassword && revealed ? 'text' : type;
+
+  const input = (
+    <input
+      id={id}
+      type={inputType}
+      className={`input ${error ? 'input--error' : ''} ${isPassword ? 'input--with-reveal' : ''} ${className}`.trim()}
+      aria-invalid={Boolean(error)}
+      {...rest}
+    />
+  );
+
   return (
     <Shell label={label} required={required} hint={hint} error={error} htmlFor={id}>
-      <input id={id} className={`input ${error ? 'input--error' : ''} ${className}`.trim()} aria-invalid={Boolean(error)} {...rest} />
+      {isPassword ? (
+        <span className="field__reveal-wrap">
+          {input}
+          <button
+            type="button"
+            className="field__reveal"
+            onClick={() => setRevealed((v) => !v)}
+            aria-label={revealed ? 'Hide password' : 'Show password'}
+            aria-pressed={revealed}
+            aria-controls={id}
+            tabIndex={-1}
+          >
+            <Icon name={revealed ? 'eyeOff' : 'eye'} size={15} />
+          </button>
+        </span>
+      ) : input}
     </Shell>
   );
 }

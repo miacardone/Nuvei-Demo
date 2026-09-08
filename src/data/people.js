@@ -75,45 +75,40 @@ export const SKILLS = [
 
 export const SKILL_OPTIONS = SKILLS.map((s) => s.name);
 
+/**
+ * The directory IS Nuvei's own people — their published leadership and
+ * regional GMs, used throughout the demo instead of invented names.
+ *
+ * They therefore appear as case owners, reviewers and note authors, which is
+ * a deliberate choice: this demo is shown to Nuvei, and generic names read as
+ * filler. Roles are assigned so the app's own logic still holds — admins for
+ * the corporate officers, managers for the GMs and regional leads, analysts
+ * for the people who work the queue — because ASSIGNABLE excludes admins and
+ * a book with no analysts would have nobody to assign to.
+ */
 const SEED = [
-  { id: 'u1', name: 'Monica Baker', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-04-11', market: 'US' },
-  { id: 'u2', name: 'Priya Shah', roleId: 'admin', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2021-10-17', market: 'US' },
-  { id: 'u3', name: 'Camille Dubois', roleId: 'manager', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2022-04-07', market: 'FR' },
-  { id: 'u4', name: 'David Chen', roleId: 'manager', group: 'Escalations', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-30', market: 'CA' },
-  { id: 'u5', name: 'Lena Fischer', roleId: 'analyst', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-22', market: 'DE' },
-  { id: 'u6', name: 'Ashley Nguyen', roleId: 'analyst', group: 'Main Group', status: 'Active', confirmation: 'Force Change Password', startDate: '2022-06-23', market: 'US' },
-  { id: 'u7', name: 'Hiroshi Tanaka', roleId: 'analyst', group: 'Authenticity', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-23', market: 'JP' },
-  { id: 'u8', name: 'Alba Garcia', roleId: 'analyst', group: 'Authenticity', status: 'Inactive', confirmation: 'Confirmed', startDate: '2022-08-26', market: 'ES' },
-  { id: 'u9', name: 'Carlos Ruiz', roleId: 'analyst', group: 'Escalations', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-23', market: 'MX' },
-  { id: 'u10', name: 'Andrea Conti', roleId: 'analyst', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-23', market: 'IT' },
-  { id: 'u11', name: 'James Thompson', roleId: 'analyst', group: 'Weekend Cover', status: 'Active', confirmation: 'Confirmed', startDate: '2023-02-15', market: 'GB' },
-  { id: 'u12', name: 'Sofia Marino', roleId: 'analyst', group: 'Weekend Cover', status: 'Active', confirmation: 'Confirmed', startDate: '2023-09-01', market: 'AU' },
-  // Expedia Group leadership — admin-tier so they carry elevated access
-  // without landing in the case-assignment pool (ASSIGNABLE excludes admins).
-  // `leadership: true` also keeps them out of the random note/history/
-  // reviewer draws elsewhere (see STAFF below) — real names shouldn't get
-  // auto-attached to fictional per-case narrative content.
-  // Nuvei's executive team and regional GMs, names and titles as published on
-  // nuvei.com. They carry admin access and appear in the directory, but
-  // `leadership: true` keeps them out of ASSIGNABLE and out of the random
-  // note/history/reviewer draws — real people should not be shown working
-  // fictional chargebacks.
-  { id: 'u13', name: 'Philip Fayer', title: 'Chair and Chief Executive Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2003-01-01', market: 'CA', leadership: true },
-  { id: 'u14', name: 'Yuval Ziv', title: 'President', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2019-03-04', market: 'IL', leadership: true },
-  { id: 'u15', name: 'Dave McLaughlin', title: 'Chief Financial Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'US', leadership: true },
-  { id: 'u16', name: 'Samir Zabaneh', title: 'Chief Operating Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
-  { id: 'u17', name: 'Eli Rosner', title: 'Chief Product & Technology Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'US', leadership: true },
-  { id: 'u18', name: 'Caitlin Shetter', title: 'Chief People Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2022-02-14', market: 'CA', leadership: true },
-  { id: 'u19', name: 'Neil Erlick', title: 'Chief Corporate Development Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2017-06-05', market: 'CA', leadership: true },
-  { id: 'u20', name: 'Scott Calliham', title: 'Chief Strategy Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-09-13', market: 'US', leadership: true },
-  { id: 'u21', name: 'Laura Miller', title: 'Chief Revenue Officer and Global Head of eCommerce', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-11-08', market: 'US', leadership: true },
-  { id: 'u22', name: 'Lindsay Matthews', title: 'General Counsel and Corporate Secretary', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2020-05-18', market: 'CA', leadership: true },
-  { id: 'u23', name: 'Guillaume Conteville', title: 'Chief Marketing Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2022-08-22', market: 'GB', leadership: true },
-  { id: 'u24', name: 'Ben Weiner', title: 'Global Head of Partner Channel', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-04-12', market: 'US', leadership: true },
-  { id: 'u25', name: 'Chris Scappa', title: 'General Manager, North America', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2020-10-05', market: 'US', leadership: true },
-  { id: 'u26', name: 'Guy Douek', title: 'General Manager, Europe', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2019-09-16', market: 'GB', leadership: true },
-  { id: 'u27', name: 'Juan Soto', title: 'General Manager, LATAM', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-02-01', market: 'MX', leadership: true },
-  { id: 'u28', name: 'Paul Kawtal', title: 'General Manager, APAC', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-06', market: 'SG', leadership: true },
+  // Corporate officers — admin tier, elevated access, not in the assignment pool.
+  { id: 'u1', name: 'Philip Fayer', title: 'Chair and Chief Executive Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2003-01-01', market: 'CA' },
+  { id: 'u2', name: 'Yuval Ziv', title: 'President', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2019-03-04', market: 'IL' },
+  { id: 'u3', name: 'Dave McLaughlin', title: 'Chief Financial Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'US' },
+  { id: 'u4', name: 'Lindsay Matthews', title: 'General Counsel and Corporate Secretary', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2020-05-18', market: 'CA' },
+
+  // Operating leadership — managers, so they review and approve.
+  { id: 'u5', name: 'Samir Zabaneh', title: 'Chief Operating Officer', roleId: 'manager', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA' },
+  { id: 'u6', name: 'Eli Rosner', title: 'Chief Product & Technology Officer', roleId: 'manager', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'US' },
+  { id: 'u7', name: 'Caitlin Shetter', title: 'Chief People Officer', roleId: 'manager', group: 'Escalations', status: 'Active', confirmation: 'Confirmed', startDate: '2022-02-14', market: 'CA' },
+  { id: 'u8', name: 'Neil Erlick', title: 'Chief Corporate Development Officer', roleId: 'manager', group: 'Escalations', status: 'Active', confirmation: 'Confirmed', startDate: '2017-06-05', market: 'CA' },
+
+  // Regional GMs and commercial leads — analysts, so they own and work cases
+  // in their own markets.
+  { id: 'u9', name: 'Chris Scappa', title: 'General Manager, North America', roleId: 'analyst', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2020-10-05', market: 'US' },
+  { id: 'u10', name: 'Guy Douek', title: 'General Manager, Europe', roleId: 'analyst', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2019-09-16', market: 'GB' },
+  { id: 'u11', name: 'Juan Soto', title: 'General Manager, LATAM', roleId: 'analyst', group: 'Escalations', status: 'Active', confirmation: 'Confirmed', startDate: '2021-02-01', market: 'MX' },
+  { id: 'u12', name: 'Paul Kawtal', title: 'General Manager, APAC', roleId: 'analyst', group: 'Weekend Cover', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-06', market: 'SG' },
+  { id: 'u13', name: 'Laura Miller', title: 'Chief Revenue Officer and Global Head of eCommerce', roleId: 'analyst', group: 'Main Group', status: 'Active', confirmation: 'Confirmed', startDate: '2021-11-08', market: 'US' },
+  { id: 'u14', name: 'Scott Calliham', title: 'Chief Strategy Officer', roleId: 'analyst', group: 'Authenticity', status: 'Active', confirmation: 'Confirmed', startDate: '2021-09-13', market: 'US' },
+  { id: 'u15', name: 'Guillaume Conteville', title: 'Chief Marketing Officer', roleId: 'analyst', group: 'Authenticity', status: 'Active', confirmation: 'Confirmed', startDate: '2022-08-22', market: 'GB' },
+  { id: 'u16', name: 'Ben Weiner', title: 'Global Head of Partner Channel', roleId: 'analyst', group: 'Weekend Cover', status: 'Active', confirmation: 'Force Change Password', startDate: '2021-04-12', market: 'US' },
 ];
 
 export const USERS = SEED.map((u, i) => ({
@@ -130,9 +125,8 @@ export const USERS = SEED.map((u, i) => ({
         : [SKILL_OPTIONS[0], SKILL_OPTIONS[1]],
 }));
 
-/** Operational staff — excludes leadership, who carry admin access but don't
- *  do casework and shouldn't be auto-attached to fictional case content. */
-export const STAFF = USERS.filter((u) => !u.leadership);
+/** The whole directory works cases; there is no separate excluded tier. */
+export const STAFF = USERS;
 
 /** Only active analysts and managers take case assignments. */
 export const ASSIGNABLE = STAFF.filter((u) => u.status === 'Active' && u.roleId !== 'admin');
