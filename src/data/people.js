@@ -93,14 +93,27 @@ const SEED = [
   // `leadership: true` also keeps them out of the random note/history/
   // reviewer draws elsewhere (see STAFF below) — real names shouldn't get
   // auto-attached to fictional per-case narrative content.
-  // Nuvei's actual executive team, per nuvei.com/who-we-are: Phil Fayer
-  // (Chair & CEO), and the three appointments announced 1 July 2026 — Samir
-  // Zabaneh (COO), David McLaughlin (CFO) and Eli Rosner (CPTO). Montreal is
-  // the head office, hence CA.
-  { id: 'u13', name: 'Phil Fayer', title: 'Chair and Chief Executive Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2003-01-01', market: 'CA', leadership: true },
-  { id: 'u14', name: 'Samir Zabaneh', title: 'Chief Operating Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
-  { id: 'u15', name: 'David McLaughlin', title: 'Chief Financial Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
-  { id: 'u16', name: 'Eli Rosner', title: 'Chief Product and Technology Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
+  // Nuvei's executive team and regional GMs, names and titles as published on
+  // nuvei.com. They carry admin access and appear in the directory, but
+  // `leadership: true` keeps them out of ASSIGNABLE and out of the random
+  // note/history/reviewer draws — real people should not be shown working
+  // fictional chargebacks.
+  { id: 'u13', name: 'Philip Fayer', title: 'Chair and Chief Executive Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2003-01-01', market: 'CA', leadership: true },
+  { id: 'u14', name: 'Yuval Ziv', title: 'President', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2019-03-04', market: 'IL', leadership: true },
+  { id: 'u15', name: 'Dave McLaughlin', title: 'Chief Financial Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'US', leadership: true },
+  { id: 'u16', name: 'Samir Zabaneh', title: 'Chief Operating Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'CA', leadership: true },
+  { id: 'u17', name: 'Eli Rosner', title: 'Chief Product & Technology Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2026-07-01', market: 'US', leadership: true },
+  { id: 'u18', name: 'Caitlin Shetter', title: 'Chief People Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2022-02-14', market: 'CA', leadership: true },
+  { id: 'u19', name: 'Neil Erlick', title: 'Chief Corporate Development Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2017-06-05', market: 'CA', leadership: true },
+  { id: 'u20', name: 'Scott Calliham', title: 'Chief Strategy Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-09-13', market: 'US', leadership: true },
+  { id: 'u21', name: 'Laura Miller', title: 'Chief Revenue Officer and Global Head of eCommerce', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-11-08', market: 'US', leadership: true },
+  { id: 'u22', name: 'Lindsay Matthews', title: 'General Counsel and Corporate Secretary', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2020-05-18', market: 'CA', leadership: true },
+  { id: 'u23', name: 'Guillaume Conteville', title: 'Chief Marketing Officer', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2022-08-22', market: 'GB', leadership: true },
+  { id: 'u24', name: 'Ben Weiner', title: 'Global Head of Partner Channel', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-04-12', market: 'US', leadership: true },
+  { id: 'u25', name: 'Chris Scappa', title: 'General Manager, North America', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2020-10-05', market: 'US', leadership: true },
+  { id: 'u26', name: 'Guy Douek', title: 'General Manager, Europe', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2019-09-16', market: 'GB', leadership: true },
+  { id: 'u27', name: 'Juan Soto', title: 'General Manager, LATAM', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2021-02-01', market: 'MX', leadership: true },
+  { id: 'u28', name: 'Paul Kawtal', title: 'General Manager, APAC', roleId: 'admin', group: '-', status: 'Active', confirmation: 'Confirmed', startDate: '2022-06-06', market: 'SG', leadership: true },
 ];
 
 export const USERS = SEED.map((u, i) => ({

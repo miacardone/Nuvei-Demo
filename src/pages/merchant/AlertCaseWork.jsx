@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useTableSort from '@/hooks/useTableSort';
 import { weeklySeries } from '@/domain/metrics';
 import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
@@ -82,6 +83,9 @@ export function AlertCaseWork() {
     return true;
   }), [alerts, entityFilter, sourceFilter, outcomeFilter, search]);
 
+  // Every column sorts, using the shared comparator.
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filtered);
+
   const openTotalSelected = [...selected]
     .map((id) => alerts.find((a) => a.id === id))
     .filter((a) => a?.outcome === 'open');
@@ -106,6 +110,7 @@ export function AlertCaseWork() {
     responseRate: (() => {
       const decided = alerts.filter((a) => a.outcome !== 'open');
       if (!decided.length) return 0;
+
       return (decided.filter((a) => a.outcome === 'refunded').length / decided.length) * 100;
     })(),
   };
@@ -217,8 +222,10 @@ export function AlertCaseWork() {
             ) : (
               <DataTable
                 columns={visibleColumns}
+                sort={sort}
+                onSort={onSort}
                 density={density}
-                rows={filtered}
+                rows={sortedRows}
                 rowKey={(r) => r.id}
                 selection={{
                   selected,

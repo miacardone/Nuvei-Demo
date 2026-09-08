@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Button, IconButton, Badge, EmptyState, StatusIcon } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
@@ -30,6 +31,14 @@ export function Webhooks() {
   ];
 
 
+
+  // Every column sorts, using the shared comparator.
+
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(hooks);
+
+
+
   return (
     <>
       <PageHeader
@@ -47,7 +56,7 @@ export function Webhooks() {
             action={<Button variant="primary" icon="plus" onClick={() => setOpen(true)}>Create webhook</Button>}
           />
         ) : (
-          <DataTable columns={columns} rows={hooks} rowKey={(r) => r.id} />
+          <DataTable columns={columns} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
         )}
       </Card>
 

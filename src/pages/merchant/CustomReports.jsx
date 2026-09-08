@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Tabs, Button, IconButton, Badge, Kpi, EmptyState } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
@@ -516,6 +517,12 @@ export function CustomReports() {
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
 
+
+  // Every column sorts, using the shared comparator.
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filtered);
+
+
   return (
     <>
       <PageHeader
@@ -565,7 +572,9 @@ export function CustomReports() {
             <DataTable
               density={density}
               columns={columns}
-              rows={filtered}
+              rows={sortedRows}
+              sort={sort}
+              onSort={onSort}
               rowKey={(r) => r.id}
               empty={<EmptyState icon="spreadsheet" title={tab === 'scheduled' ? 'No scheduled reports' : 'No reports yet'} hint="Build a report and set a recurring schedule to see it here." action={<Button variant="primary" onClick={() => setTab('builder')}>Open report builder</Button>} />}
             />

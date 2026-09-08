@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useTableSort from '@/hooks/useTableSort';
 import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { PageHeader, Card, Tabs, SubTabs, Button, IconButton, Badge, Stepper, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, TableToolbar } from '@/components/ui/DataTable';
@@ -285,6 +286,9 @@ export function Users() {
         </span>
       ),
     },
+    // Leadership carry their real job title; operational staff have a role,
+    // not a title, so the cell falls back rather than inventing one.
+    { key: 'title', header: 'Title', fw: 12, cell: (u) => <TruncatedText value={u.title ?? '—'} className="small" /> },
     { key: 'role', header: 'Role', fw: 9, cell: (u) => <span className="small">{u.role}</span> },
     { key: 'group', header: 'Group', fw: 8, cell: (u) => <span className="small">{u.group}</span> },
     { key: 'skills', header: 'Skills', fw: 12, cell: (u) => <TruncatedText value={u.skills.join(', ')} className="micro subtle" /> },
@@ -335,6 +339,14 @@ export function Users() {
   const advanced = useAdvancedFilters(userColumns);
 
 
+
+  // Every column sorts, using the shared comparator.
+
+
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filteredUsers);
+
+
+
   return (
     <>
       <PageHeader
@@ -383,7 +395,7 @@ export function Users() {
                     exportName="users"
                     onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
                   />
-                <DataTable columns={visibleColumns} density={density} rows={filteredUsers} rowKey={(u) => u.id} />
+                <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(u) => u.id} />
               </>
             )}
             {subTab === 'roles' && <DataTable columns={roleColumns} rows={ROLES} rowKey={(r) => r.id} />}

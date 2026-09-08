@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Badge, Button } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
@@ -64,6 +65,9 @@ export function AlertPermissions() {
   const eligibleAgents = agents.filter((a) => a.alertsRole !== 'No access');
   const filtered = agents.filter((a) => `${a.name} ${a.email}`.toLowerCase().includes(search.toLowerCase()));
 
+  // Every column sorts, using the shared comparator.
+  const { sort, onSort, sorted: sortedRows } = useTableSort(filtered);
+
   const setRole = (email, alertsRole) => {
     setAgents((p) => p.map((a) => (a.email === email ? { ...a, alertsRole } : a)));
     // Losing alerts access drops them from every entity's workable list too.
@@ -95,6 +99,7 @@ export function AlertPermissions() {
       cell: (e) => {
         const list = workable[e.id] ?? [];
         if (!list.length) return <span className="small subtle">Nobody assigned</span>;
+
         return (
           <div className="row row--tight" style={{ flexWrap: 'wrap' }}>
             {list.map((email) => <Badge key={email} tone="neutral">{agents.find((a) => a.email === email)?.name ?? email}</Badge>)}
@@ -116,7 +121,7 @@ export function AlertPermissions() {
           <div style={{ padding: 'var(--s-3) var(--s-4) 0' }}>
             <SearchInput value={search} onChange={setSearch} placeholder="Search agents…" />
           </div>
-          <DataTable columns={columns} rows={filtered} rowKey={(r) => r.email} />
+          <DataTable columns={columns} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.email} />
         </Card>
 
         <Card title="Workable entities" bodyClassName="card__body--flush">
