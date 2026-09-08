@@ -65,6 +65,15 @@ export function labelFor(s = scope) {
   return MERCHANT_ROSTER.find((m) => m.id === s.id)?.name ?? 'Merchant';
 }
 
+/** True when a record touching several merchants overlaps the scope — used by
+ *  cardholders, who can dispute against more than one merchant. */
+export function anyWithinScope(ids = [], s = scope) {
+  const allowed = merchantIdsFor(s);
+  if (!allowed) return true;
+  const set = new Set(allowed);
+  return ids.some((id) => set.has(id));
+}
+
 /** Filter any collection of merchant-stamped records down to the scope. */
 export function withinScope(rows, s = scope, key = 'merchantId') {
   const ids = merchantIdsFor(s);

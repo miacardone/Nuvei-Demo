@@ -54,6 +54,10 @@ export const CARDHOLDERS = [...byName.entries()].map(([name, cases], i) => {
   // whole group — no need to reconcile conflicting BINs across duplicates.
   const anchor = cases[0];
   const disputeCount = cases.length;
+  // Which merchants in the acquirer's book this cardholder has disputed
+  // against. Lets the merchant scope picker narrow the cardholder list to the
+  // people who actually appear in the selected merchant's cases.
+  const merchantIds = [...new Set(cases.map((c) => c.merchantId).filter(Boolean))];
   const disputeValue = Math.round(cases.reduce((s, c) => s + c.disputeAmount, 0) * 100) / 100;
 
   const memberYears = draw.int(1, 14);
@@ -68,6 +72,7 @@ export const CARDHOLDERS = [...byName.entries()].map(([name, cases], i) => {
   const lifetimeSpend = Math.round(avgTicket * monthlyAuths * monthsOfHistory * draw.float(0.6, 1.15) * 100) / 100;
 
   return {
+    merchantIds,
     id: `CH-${100000 + i * 7}`,
     name,
     cardLast4: anchor.ccLast4,

@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import useMerchantScope from '@/hooks/useMerchantScope';
+import { withinScope } from '@/data/merchant-scope';
 import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { PageHeader, Card, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
@@ -22,6 +24,11 @@ const STATUS_TONE = { Settled: 'success', Pending: 'warning', Held: 'danger' };
 const STATUS_ICON = { Settled: 'check', Pending: 'clock', Held: 'lock' };
 
 export function Settlement() {
+  // Batches belong to a merchant, so the scope picker narrows them the same
+  // way it narrows the case book.
+  const scope = useMerchantScope();
+  const BATCHES = withinScope(SETTLEMENT_BATCHES, scope);
+
   const { notify } = useToast();
 
   const [search, setSearch] = useState('');
@@ -35,13 +42,13 @@ export function Settlement() {
   const [pageSize, setPageSize] = useState(15);
 
   const merchantOptions = useMemo(
-    () => MERCHANTS.filter((m) => SETTLEMENT_BATCHES.some((b) => b.merchantId === m.id)).map((m) => ({ value: m.id, label: m.name })),
+    () => MERCHANTS.filter((m) => BATCHES.some((b) => b.merchantId === m.id)).map((m) => ({ value: m.id, label: m.name })),
     [],
   );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return SETTLEMENT_BATCHES.filter((b) => {
+    return BATCHES.filter((b) => {
       if (merchant && b.merchantId !== merchant) return false;
       if (!q) return true;
       return `${b.id} ${b.merchantName} ${b.status}`.toLowerCase().includes(q);
@@ -61,13 +68,13 @@ export function Settlement() {
 
   const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
-  const kpis = useMemo(() => settlementKpis(SETTLEMENT_BATCHES), []);
+  const kpis = useMemo(() => settlementKpis(BATCHES), [BATCHES]);
   const scopedKpis = useMemo(() => settlementKpis(filtered), [filtered]);
 
-  const batchSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, () => 1, () => true, batchDateOf), []);
-  const netSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, (b) => b.net, (b) => b.status === 'Settled', batchDateOf), []);
-  const heldValueSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, (b) => b.disputeDeductions, () => true, batchDateOf), []);
-  const heldBatchSpark = useMemo(() => weeklySeries(SETTLEMENT_BATCHES, 12, () => 1, (b) => b.status === 'Held', batchDateOf), []);
+  const batchSpark = useMemo(() => weeklySeries(BATCHES, 12, () => 1, () => true, batchDateOf), [BATCHES]);
+  const netSpark = useMemo(() => weeklySeries(BATCHES, 12, (b) => b.net, (b) => b.status === 'Settled', batchDateOf), [BATCHES]);
+  const heldValueSpark = useMemo(() => weeklySeries(BATCHES, 12, (b) => b.disputeDeductions, () => true, batchDateOf), [BATCHES]);
+  const heldBatchSpark = useMemo(() => weeklySeries(BATCHES, 12, () => 1, (b) => b.status === 'Held', batchDateOf), [BATCHES]);
 
   const columns = [
     { key: 'id', header: 'Batch', fw: 8, mono: true, sortable: true, cell: (r) => <span className="mono strong small">{r.id}</span> },

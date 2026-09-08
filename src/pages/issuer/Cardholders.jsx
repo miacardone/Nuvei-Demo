@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import useMerchantScope from '@/hooks/useMerchantScope';
+import { anyWithinScope } from '@/data/merchant-scope';
 import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
@@ -23,6 +25,11 @@ const STATUS_TONE = { Active: 'success', 'Under review': 'warning', Blocked: 'da
 const CH_STATUS_ICON = { Active: 'check', 'Under review': 'searchCheck', Blocked: 'close' };
 
 export function Cardholders() {
+  // A cardholder can dispute against several merchants, so they stay in
+  // view when ANY of those merchants is in scope.
+  const scope = useMerchantScope();
+  const BOOK = CARDHOLDERS.filter((c) => anyWithinScope(c.merchantIds, scope));
+
   const navigate = useNavigate();
   const { notify } = useToast();
   const { routes } = usePerspective();
@@ -39,8 +46,8 @@ export function Cardholders() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return CARDHOLDERS;
-    return CARDHOLDERS.filter((c) => `${c.name} ${c.cardLast4} ${c.schemeLabel} ${c.market}`.toLowerCase().includes(q));
+    if (!q) return BOOK;
+    return BOOK.filter((c) => `${c.name} ${c.cardLast4} ${c.schemeLabel} ${c.market}`.toLowerCase().includes(q));
   }, [search]);
 
   const sorted = useMemo(() => {
@@ -57,11 +64,11 @@ export function Cardholders() {
   const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const totals = useMemo(() => ({
-    count: CARDHOLDERS.length,
-    active: CARDHOLDERS.filter((c) => c.status === 'Active').length,
-    repeatFilers: CARDHOLDERS.filter((c) => c.disputeCount > 1).length,
-    lifetimeSpend: CARDHOLDERS.reduce((s, c) => s + c.lifetimeSpend, 0),
-  }), []);
+    count: BOOK.length,
+    active: BOOK.filter((c) => c.status === 'Active').length,
+    repeatFilers: BOOK.filter((c) => c.disputeCount > 1).length,
+    lifetimeSpend: BOOK.reduce((s, c) => s + c.lifetimeSpend, 0),
+  }), [BOOK]);
 
   const columns = [
     {

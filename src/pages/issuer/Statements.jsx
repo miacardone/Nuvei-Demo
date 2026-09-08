@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import useMerchantScope from '@/hooks/useMerchantScope';
+import { anyWithinScope } from '@/data/merchant-scope';
 import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Badge, Kpi } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
@@ -53,7 +55,12 @@ function buildStatementLines(cardholder) {
 }
 
 export function Statements() {
-  const sortedCardholders = useMemo(() => [...CARDHOLDERS].sort((a, b) => a.name.localeCompare(b.name)), []);
+  // A cardholder can dispute against several merchants, so they stay in
+  // view when ANY of those merchants is in scope.
+  const scope = useMerchantScope();
+  const BOOK = CARDHOLDERS.filter((c) => anyWithinScope(c.merchantIds, scope));
+
+  const sortedCardholders = useMemo(() => [...BOOK].sort((a, b) => a.name.localeCompare(b.name)), [BOOK]);
 
   // Default to a cardholder whose dispute actually falls inside the
   // statement window, so the "disputed" flag has something to show on
@@ -61,13 +68,13 @@ export function Statements() {
   const defaultId = useMemo(() => {
     const now = Date.now();
     const windowMs = STATEMENT_WINDOW_DAYS * DAY;
-    const withRecentDispute = CARDHOLDERS.find((c) =>
+    const withRecentDispute = BOOK.find((c) =>
       casesForCardholder(c.name).some((cs) => now - new Date(cs.transDate).getTime() <= windowMs));
-    return (withRecentDispute ?? CARDHOLDERS.find((c) => c.disputeCount > 0) ?? CARDHOLDERS[0])?.id ?? '';
-  }, []);
+    return (withRecentDispute ?? BOOK.find((c) => c.disputeCount > 0) ?? BOOK[0])?.id ?? '';
+  }, [BOOK]);
   const [cardholderId, setCardholderId] = useState(defaultId);
 
-  const cardholder = CARDHOLDERS.find((c) => c.id === cardholderId) ?? null;
+  const cardholder = BOOK.find((c) => c.id === cardholderId) ?? null;
   const lines = useMemo(() => (cardholder ? buildStatementLines(cardholder) : []), [cardholder]);
 
   const totals = useMemo(() => {
