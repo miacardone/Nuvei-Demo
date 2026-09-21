@@ -76,7 +76,10 @@ export const CARDHOLDERS = [...byName.entries()].map(([name, cases], i) => {
     id: `CH-${100000 + i * 7}`,
     name,
     cardLast4: anchor.ccLast4,
-    cardBin: anchor.ccBin,
+    // The masked PAN as it reads on the card, so Statements can be searched by
+    // the number someone is holding rather than only by name.
+    cardMasked: anchor.pan ?? null,
+    cardBin: anchor.ccBin ?? null,
     cardType: anchor.cardType,
     pan: anchor.pan,
     scheme: anchor.network,

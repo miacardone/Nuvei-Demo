@@ -6,7 +6,7 @@ import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { SelectField, TextField, ToggleField } from '@/components/ui/Form';
 import { Tooltip } from '@/components/ui/Overlay';
-import { ALERTS, ALERT_SOURCES, CONTACT_EMAILS, IDENTIFIERS, SELF_SERVICE } from '@/data/alerts';
+import { ALERTS, ALERT_SOURCES, CONTACT_EMAILS, IDENTIFIER_TYPES, IDENTIFIERS, SELF_SERVICE, SELF_SERVICE_SOURCES, findIdentifierType } from '@/data/alerts';
 import brand from '@/brand/brand.config';
 import { useToast } from '@/context/ToastContext';
 
@@ -147,6 +147,7 @@ function IdentifiersTab() {
 
   const columns = [
     { key: 'identifier', header: 'Identifier', fw: 12, cell: (r) => <span className="mono small strong">{r.identifier}</span> },
+    { key: 'type', header: 'Type', fw: 8, filter: { kind: 'select', options: IDENTIFIER_TYPES.map((t) => t.label) }, cell: (r) => <Badge tone="neutral">{findIdentifierType(r.type).label}</Badge> },
     { key: 'entityId', header: 'Entity', fw: 9, cell: (r) => <span className="small">{entityLabel(r.entityId)}</span> },
     { key: 'mid', header: 'MID', fw: 8, cell: (r) => <span className="mono small">{r.mid}</span> },
     { key: 'matched', header: 'Matched alerts', fw: 7, align: 'right', cell: (r) => <span className="mono small">{matchedCount(r.identifier)}</span> },
@@ -180,7 +181,7 @@ function IdentifiersTab() {
         onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         extras={<>
           <Button variant="secondary" icon="link" onClick={() => notify('Checked unmatched alerts against active identifiers — no new matches right now.', 'success')}>Match unmatched alerts</Button>
-          <Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, mid: brand.entities[0].mid, identifier: '', active: true })}>Add identifier</Button>
+          <Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, mid: brand.entities[0].mid, type: 'descriptor', identifier: '', active: true })}>Add identifier</Button>
         </>}
       />
       <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
@@ -213,7 +214,21 @@ function IdentifiersTab() {
               onChange={(e) => setEditing({ ...editing, entityId: e.target.value, mid: brand.entities.find((en) => en.id === e.target.value)?.mid })}
               options={brand.entities.map((en) => ({ value: en.id, label: en.label }))}
             />
-            <TextField label="Identifier" required value={editing.identifier} onChange={(e) => setEditing({ ...editing, identifier: e.target.value.toUpperCase() })} hint="The statement descriptor the network alert carries." />
+            <SelectField
+              label="Identifier type"
+              required
+              value={editing.type ?? 'descriptor'}
+              onChange={(e) => setEditing({ ...editing, type: e.target.value })}
+              options={IDENTIFIER_TYPES.map((t) => ({ value: t.id, label: t.label }))}
+            />
+            <TextField
+              label={findIdentifierType(editing.type).label}
+              required
+              value={editing.identifier}
+              placeholder={findIdentifierType(editing.type).placeholder}
+              onChange={(e) => setEditing({ ...editing, identifier: e.target.value.toUpperCase() })}
+              hint={findIdentifierType(editing.type).hint}
+            />
             <TextField label="MID" value={editing.mid} disabled />
             <ToggleField label="Active" description="Inactive identifiers stop matching new alerts." checked={editing.active} onChange={(e) => setEditing({ ...editing, active: e.target.checked })} />
           </div>
@@ -263,7 +278,7 @@ function SelfServiceTab() {
             <div className="field">
               <span className="field__label">Auto-complete by source</span>
               <div className="row row--loose" style={{ marginTop: 6 }}>
-                {ALERT_SOURCES.map((s) => (
+                {SELF_SERVICE_SOURCES.map((s) => (
                   <Tooltip key={s.id} label={`${r.autoComplete[s.id] ? 'Disable' : 'Enable'} auto-refund for ${s.label} alerts.`}>
                     <label className="row row--xtight" style={{ cursor: 'pointer' }}>
                       <input type="checkbox" className="toggle" checked={r.autoComplete[s.id]} onChange={() => toggleAuto(r.entityId, s.id)} />

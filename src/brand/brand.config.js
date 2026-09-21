@@ -207,8 +207,9 @@ export const nuveiBrand = {
     { id: 'first_cb', label: '1st Chargeback', short: '1st CB' },
     { id: 'second_cb', label: '2nd Chargeback', short: '2nd CB' },
     { id: 'pre_arb', label: 'Pre-Arbitration', short: 'Pre-Arb' },
-    { id: 'retrieval', label: 'Retrieval', short: 'Retr' },
-    { id: 'rfi', label: 'RFI', short: 'RFI' },
+    /* Retrieval and RFI are the same pre-chargeback information request under
+       two names; carried as one cycle so the book cannot show both. */
+    { id: 'retrieval', label: 'Retrieval (RFI)', short: 'Retr' },
   ],
 
   /** Traveler Protection claim reasons — the non-card intake path. */
@@ -242,7 +243,6 @@ export const nuveiBrand = {
     { id: 'all_chargebacks', label: 'All Chargebacks', description: 'Landing queue for every inbound chargeback.', sla: 24 },
     { id: 'arbitration_chargebacks', label: 'Arbitration Chargebacks', description: 'Second presentments and pre-arbitration.', sla: 16 },
     { id: 'high_value_chargebacks', label: 'High Value Chargebacks', description: 'Cases above the configured risk amount.', sla: 24 },
-    { id: 'bank_fraud_code', label: 'Bank Fraud Code', description: 'The issuer’s own reason code flags fraud.', sla: 24 },
     { id: 'bank_non_fraud_code', label: 'Bank Non-Fraud Code', description: 'The issuer’s own reason code is not fraud-related.', sla: 36 },
     { id: 'analyst_confirmed_fraud', label: 'Analyst Confirmed Fraud', description: 'An analyst has confirmed this case as fraud.', sla: 24 },
     { id: 'analyst_non_fraud', label: 'Analyst Non-Fraud', description: 'An analyst has reviewed and ruled out fraud.', sla: 36 },
@@ -266,7 +266,7 @@ export const nuveiBrand = {
    * is what analysts actually work to. Editable from System preferences. */
   dueDateOffsets: {
     schemeDays: { visa: 30, mastercard: 45, amex: 20 },
-    cycleDays: { first_cb: 0, second_cb: -8, pre_arb: -14, retrieval: -10, rfi: -18 },
+    cycleDays: { first_cb: 0, second_cb: -8, pre_arb: -14, retrieval: -10 },
     claimDays: 21,
     internalBufferDays: 4,
   },

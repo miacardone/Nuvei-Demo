@@ -3,7 +3,7 @@
  * =====================
  * Per-merchant chargeback indemnification: the acquirer absorbs the liability
  * for a merchant's chargebacks in exchange for a charge, priced either as a
- * flat fee per dispute or in basis points of processed volume.
+ * flat fee per transaction or in basis points of processed volume.
  *
  * This is a SERVICE-LEVEL setting, so it lives beside the merchant in the
  * acquirer's portfolio rather than in the merchant's own settings — the
@@ -27,11 +27,13 @@ const KEY = 'ddc.indemnification';
 /** Basis points are integers; a fee is currency. Both are stored, so toggling
  *  between them does not discard the figure you typed for the other. */
 export const BASES = [
-  { id: 'fee', label: 'Set fee', hint: 'A flat charge per dispute.' },
+  { id: 'fee', label: 'Flat fee per transaction', hint: 'A fixed amount charged on every transaction processed.' },
   { id: 'bps', label: 'Basis points', hint: 'A share of processed volume. 100 bps = 1%.' },
 ];
 
-export const DEFAULT_FEE = 25;
+/** Cents per transaction, not per dispute — an indemnification model prices
+ *  the whole flow, so the unit rate is small and the volume is large. */
+export const DEFAULT_FEE = 0.04;
 export const DEFAULT_BPS = 15;
 
 /**
@@ -124,15 +126,16 @@ export const isCustomised = () => settings !== SEED;
  * What the arrangement costs the merchant over a year, so the choice between
  * the two bases is a comparison rather than a guess.
  *
- * A flat fee is charged per dispute, so it scales with the dispute book. Basis
- * points are charged on processed volume, so they scale with turnover — which
- * is why the two can differ by an order of magnitude for the same merchant.
+ * Both bases now scale with turnover: a flat fee is charged on every
+ * transaction, basis points on the value of those transactions. That is the
+ * point of an indemnification model — the merchant pays a little on all of the
+ * flow rather than a lot on the disputed slice of it.
  */
 export function annualCharge(merchant, entry) {
   if (!merchant || !entry?.enabled) return 0;
   return entry.basis === 'bps'
     ? (merchant.projectedVolume ?? 0) * (entry.bps / 10_000)
-    : (merchant.disputeVolume ?? 0) * entry.fee;
+    : (merchant.annualTransactions ?? 0) * entry.fee;
 }
 
 /** Short human label for a table cell. */
@@ -141,6 +144,6 @@ export const describe = (entry, formatCurrencyFn) =>
     ? 'Not indemnified'
     : entry.basis === 'bps'
       ? `${entry.bps} bps`
-      : `${formatCurrencyFn(entry.fee)} / dispute`;
+      : `${formatCurrencyFn(entry.fee)} / txn`;
 
 export { getSnapshot, subscribe };

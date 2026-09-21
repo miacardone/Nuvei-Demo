@@ -51,8 +51,8 @@ const AREA_ORDER = ['Cases', 'Portfolio', 'Rules', 'Reports', 'Administration'];
 
 const ANALYST_ALLOW_BY_PERSPECTIVE = {
   merchant: new Set(['Dashboard', 'Case Management', 'Work Case', 'Export Cases', 'Reports Center', 'Account Settings', 'Help', 'Rule Check']),
-  acquirer: new Set(['Overview', 'Disputes Cases', 'Representment', 'Work Case', 'Export Cases', 'Reporting', 'Account Settings', 'Help']),
-  issuer: new Set(['Overview', 'Cardholders', 'Approvals', 'Declines', 'Disputes Cases', 'Chargebacks', 'Work Case', 'Fraud', 'Export Cases', 'Reporting', 'Account Settings', 'Help']),
+  acquirer: new Set(['Representment', 'Work Case', 'Export Cases', 'Reporting', 'Account Settings', 'Help']),
+  issuer: new Set(['Cardholders', 'Approvals', 'Declines', 'Chargebacks', 'Work Case', 'Fraud', 'Export Cases', 'Reporting', 'Account Settings', 'Help']),
 };
 
 const MANAGER_DENY_BY_PERSPECTIVE = {

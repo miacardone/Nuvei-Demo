@@ -42,6 +42,7 @@ export const LOGIN_ROUTE = '/login';
  * overlapped, so the union below reaches every page without renaming a route.
  */
 const acquirerRoutes = {
+  /* Kept only so existing links resolve; it redirects to the dashboard. */
   overview: '/acquirer/overview',
   dashboard: '/acquirer/dashboard',
 
@@ -58,11 +59,12 @@ const acquirerRoutes = {
   alertAssignments: '/acquirer/alerts/assignments',
   alertValidations: '/acquirer/alerts/validations',
 
-  disputesCases: '/acquirer/disputes/cases',
   representment: '/acquirer/disputes/representment',
   chargebacks: '/acquirer/disputes/chargebacks',
 
-  caseManagement: '/acquirer/case-admin/cases',
+  /* Case management lives under Disputes — it manages the cases, so it sits
+     with them rather than in back-office admin. */
+  caseManagement: '/acquirer/disputes/cases',
   assignmentReasons: '/acquirer/case-admin/assignment-reasons',
   queueManagement: '/acquirer/case-admin/queues',
   uploadCases: '/acquirer/case-admin/upload',
@@ -101,8 +103,7 @@ const acquirerRoutes = {
 };
 
 const acquirerNav = [
-  { label: 'Overview', path: acquirerRoutes.overview, icon: 'dashboard', permission: 'Overview', area: 'Cases' },
-  { label: 'Dispute dashboard', path: acquirerRoutes.dashboard, icon: 'activity', permission: 'Dashboard', area: 'Cases' },
+  { label: 'Dashboard', path: acquirerRoutes.dashboard, icon: 'dashboard', permission: 'Dashboard', area: 'Cases' },
   {
     label: 'Portfolio',
     path: '/acquirer/portfolio',
@@ -135,9 +136,10 @@ const acquirerNav = [
     path: '/acquirer/disputes',
     icon: 'layers',
     children: [
-      { label: 'Cases', path: acquirerRoutes.disputesCases, icon: 'table', permission: 'Disputes Cases', area: 'Cases' },
+      { label: 'Case management', path: acquirerRoutes.caseManagement, icon: 'table', permission: 'Case Management', area: 'Cases' },
       { label: 'Representment', path: acquirerRoutes.representment, icon: 'checklist', permission: 'Representment', area: 'Cases' },
-      { label: 'Chargebacks', path: acquirerRoutes.chargebacks, icon: 'table', permission: 'Chargebacks', area: 'Cases' },
+      // Kept as the card-leg view of the same book — the issuer's framing.
+      { label: 'Chargebacks', path: acquirerRoutes.chargebacks, icon: 'card', permission: 'Chargebacks', area: 'Cases' },
     ],
   },
   { label: 'Work case', path: acquirerRoutes.workCase, icon: 'briefcase', permission: 'Work Case', area: 'Cases' },
@@ -146,7 +148,6 @@ const acquirerNav = [
     path: '/acquirer/case-admin',
     icon: 'inbox',
     children: [
-      { label: 'Case management', path: acquirerRoutes.caseManagement, icon: 'table', permission: 'Case Management', area: 'Cases' },
       { label: 'Assignment reasons', path: acquirerRoutes.assignmentReasons, icon: 'tag', permission: 'Assignment Reasons', area: 'Administration' },
       { label: 'Queue management', path: acquirerRoutes.queueManagement, icon: 'inbox', permission: 'Queue Management', area: 'Administration' },
       { label: 'Upload cases', path: acquirerRoutes.uploadCases, icon: 'upload', permission: 'Upload Cases', area: 'Cases' },

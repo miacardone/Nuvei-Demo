@@ -60,7 +60,7 @@ export const RULES = [
     name: 'Counterfeit to authenticity',
     description: 'Authenticity needs a trained reviewer, not the general queue.',
     criteria: [{ key: 'reasonCodes', values: ['counterfeit'] }],
-    actions: [{ key: 'route_queue', value: 'bank_fraud_code' }, { key: 'assign_skill', value: 'Authenticity Review' }],
+    actions: [{ key: 'route_queue', value: 'analyst_confirmed_fraud' }, { key: 'assign_skill', value: 'Authenticity Review' }],
     impact: 0, runCount: 640, lastRunAt: ago(0, 6),
   },
   {

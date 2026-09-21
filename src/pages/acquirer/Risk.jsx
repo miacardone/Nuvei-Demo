@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import useMerchantScope from '@/hooks/useMerchantScope';
+import { labelFor, merchantIdsFor } from '@/data/merchant-scope';
 import { PageHeader, Card, Badge, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { AreaChart, BarRows } from '@/components/charts/Charts';
 import { DataTable } from '@/components/ui/DataTable';
@@ -53,6 +55,25 @@ export function Risk() {
   // Scoped to the merchant picker in the rail. Every figure on this page
   // therefore describes the selected merchant or group, not the whole book.
   const CASES = useScopedCases();
+
+  /* What the named tiles describe. With no scope the flagship is the sensible
+     subject — it is most of the book. Scoped to a merchant or a group, the
+     tiles describe that instead, rather than claiming to be the flagship's
+     numbers while showing someone else's. */
+  const scope = useMerchantScope();
+  const scopedIds = merchantIdsFor(scope);
+  const scopedMerchants = scopedIds ? MERCHANTS.filter((x) => scopedIds.includes(x.id)) : MERCHANTS;
+  const subjectName = scope.kind === 'all' ? flagshipName : labelFor(scope);
+  const subjectRatio = scope.kind === 'merchant'
+    ? (scopedMerchants[0]?.chargebackRatio ?? 0)
+    : scope.kind === 'group'
+      ? (scopedMerchants.reduce((t, x) => t + (x.chargebackRatio ?? 0), 0) / Math.max(scopedMerchants.length, 1))
+      : (MERCHANTS.find((x) => x.flagship)?.chargebackRatio ?? 0);
+  const subjectMeta = scope.kind === 'all'
+    ? 'Flagship, derived from the live book'
+    : scope.kind === 'group'
+      ? `Average across ${scopedMerchants.length} merchants`
+      : 'Derived from the live book';
   const { terms } = usePerspective();
 
   const flagshipKpis = useMemo(() => caseKpis(CASES), [CASES]);
@@ -91,9 +112,9 @@ export function Risk() {
       <div className="stack">
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Portfolio exposure" value={formatCompactCurrency(portfolioExposure)} spark={exposureSpark} />
-          <Kpi label={`${flagshipName} chargeback ratio`} value={formatPercent(MERCHANTS.find((m) => m.flagship)?.chargebackRatio ?? 0, 2)} meta="Flagship, derived from the live book" />
+          <Kpi label={`${subjectName} chargeback ratio`} value={formatPercent(subjectRatio, 2)} meta={subjectMeta} />
           <Kpi label="Merchants flagged" value={formatNumber(flagged.length)} meta={`At or above ${formatPercent(RISK_THRESHOLD, 2)}`} />
-          <Kpi label={`${flagshipName} win rate`} value={formatPercent(flagshipKpis.winRate, 0)} meta={`${formatNumber(flagshipKpis.overdueCases)} overdue cases`} trend={winRateTrend} spark={winRateSpark} />
+          <Kpi label={`${subjectName} win rate`} value={formatPercent(flagshipKpis.winRate, 0)} meta={`${formatNumber(flagshipKpis.overdueCases)} overdue cases`} trend={winRateTrend} spark={winRateSpark} />
         </div>
 
         <div className="grid grid--2">
@@ -101,7 +122,7 @@ export function Risk() {
             <BarRows rows={ratioRows} formatValue={(v) => formatPercent(v, 2)} />
           </Card>
 
-          <Card title={`New Dispute Value Per Week — ${flagshipName}`} bodyClassName="card__body--chart">
+          <Card title={`New Dispute Value Per Week — ${subjectName}`} bodyClassName="card__body--chart">
             <AreaChart data={trend} height={220} formatValue={(v) => formatCompactCurrency(v)} />
           </Card>
         </div>

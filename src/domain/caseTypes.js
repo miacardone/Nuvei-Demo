@@ -18,6 +18,9 @@
  * `columnsFor()` adapts the column set to the active case-type filter instead.
  */
 
+import brand from '@/brand/brand.config';
+import { STATUSES, OUTCOMES } from '@/domain/statuses';
+
 export const CASE_TYPES = [
   { id: 'chargeback', label: 'Chargeback', short: 'CB', tone: 'info' },
   { id: 'claim', label: 'Claim', short: 'TP', tone: 'primary' },
@@ -42,31 +45,31 @@ export const isClaim = (c) => c?.caseType === 'claim';
 
 export const CASE_COLUMNS = [
   { key: 'id', header: 'Case #', appliesTo: 'both', width: '116px', fw: 8, mono: true, sortable: true, description: 'Internal case identifier.' },
-  { key: 'caseType', header: 'Type', appliesTo: 'both', width: '74px', fw: 5, align: 'center', description: 'Chargeback (card scheme dispute) or Claim (Traveler Protection).' },
+  { key: 'caseType', filter: { kind: 'select', options: [{ value: 'chargeback', label: 'Chargeback' }, { value: 'claim', label: 'Claim' }] }, header: 'Type', appliesTo: 'both', width: '74px', fw: 5, align: 'center', description: 'Chargeback (card scheme dispute) or Claim (Cardholder Protection).' },
   { key: 'reference', header: 'Reference', appliesTo: 'mixed', width: '210px', fw: 13, description: 'The ARN or claim reference, whichever this case has.' },
 
   { key: 'arn', header: 'ARN', appliesTo: 'chargeback', width: '160px', fw: 11, mono: true, description: 'Acquirer Reference Number — the scheme’s unique transaction identifier.' },
-  { key: 'network', header: 'Scheme', appliesTo: 'chargeback', width: '104px', fw: 7, description: 'The card network this chargeback was raised on.' },
+  { key: 'network', filter: { kind: 'select', options: brand.schemes.map((x) => x.label) }, header: 'Scheme', appliesTo: 'chargeback', width: '104px', fw: 7, description: 'The card network this chargeback was raised on.' },
   { key: 'reasonCode', header: 'Reason code', appliesTo: 'chargeback', width: '190px', fw: 12, sortable: true, description: 'The scheme’s reason code for why this chargeback was raised.' },
-  { key: 'bankCode', header: 'Bank code', appliesTo: 'chargeback', width: '120px', fw: 8, mono: true, sortable: true, description: 'The issuing bank’s own code for this reason — same code, the bank’s term for it.' },
-  { key: 'cycle', header: 'Cycle', appliesTo: 'chargeback', width: '116px', fw: 8, description: 'Where this case sits in the dispute lifecycle — first chargeback, representment, pre-arbitration, etc.' },
-  { key: 'cardholder', header: 'Cardholder', appliesTo: 'chargeback', width: '150px', fw: 10, description: 'The cardholder who filed the dispute.' },
+  { key: 'bankCode', filter: false, header: 'Bank code', appliesTo: 'chargeback', width: '120px', fw: 8, mono: true, sortable: true, description: 'The issuing bank’s own code for this reason — same code, the bank’s term for it.' },
+  { key: 'cycle', filter: { kind: 'select', options: brand.cycles.map((x) => x.label) }, header: 'Cycle', appliesTo: 'chargeback', width: '116px', fw: 8, description: 'Where this case sits in the dispute lifecycle — first chargeback, representment, pre-arbitration, etc.' },
+  { key: 'cardholder', filter: false, header: 'Cardholder', appliesTo: 'chargeback', width: '150px', fw: 10, description: 'The cardholder who filed the dispute.' },
   { key: 'mid', header: 'MID', appliesTo: 'chargeback', width: '130px', fw: 8, mono: true, description: 'Merchant ID the transaction was processed under.' },
 
   { key: 'itemTitle', header: 'Item', appliesTo: 'claim', width: '220px', fw: 14, description: 'The transaction or item this claim is about.' },
-  { key: 'claimReason', header: 'Claim reason', appliesTo: 'claim', width: '160px', fw: 10, sortable: true, description: 'Why the traveler raised this claim.' },
-  { key: 'buyer', header: 'Buyer', appliesTo: 'claim', width: '150px', fw: 10, description: 'The traveler who filed the claim.' },
-  { key: 'seller', header: 'Seller', appliesTo: 'claim', width: '150px', fw: 10, description: 'The supplier the booking was made with.' },
-  { key: 'orderId', header: 'Order', appliesTo: 'claim', width: '130px', fw: 9, description: 'The booking or order this claim references.' },
-  { key: 'paymentMethod', header: 'Payment', appliesTo: 'claim', width: '120px', fw: 8, description: 'How the traveler paid for the booking.' },
+  { key: 'claimReason', filter: { kind: 'select', options: brand.claimReasons.map((x) => x.label) }, header: 'Claim reason', appliesTo: 'claim', width: '160px', fw: 10, sortable: true, description: 'Why the cardholder raised this claim.' },
+  { key: 'buyer', header: 'Buyer', appliesTo: 'claim', width: '150px', fw: 10, description: 'The cardholder who filed the claim.' },
+  { key: 'seller', header: 'Seller', appliesTo: 'claim', width: '150px', fw: 10, description: 'The merchant the transaction was made with.' },
+  { key: 'orderId', header: 'Order', appliesTo: 'claim', width: '130px', fw: 9, description: 'The transaction or order this claim references.' },
+  { key: 'paymentMethod', filter: { kind: 'select', options: brand.paymentMethods }, header: 'Payment', appliesTo: 'claim', width: '120px', fw: 8, description: 'How the cardholder paid for the transaction.' },
 
-  { key: 'entityLabel', header: 'Entity', appliesTo: 'both', width: '120px', fw: 8, description: 'The billing entity or brand this case was processed under.' },
-  { key: 'serviceDate', header: 'Service date', appliesTo: 'both', width: '120px', fw: 9, sortable: true, description: 'When the booked travel itself takes place — separate from the dispute timeline.' },
-  { key: 'disputeAmount', header: 'Amount', appliesTo: 'both', width: '112px', fw: 8, align: 'right', mono: true, sortable: true, description: 'The disputed amount.' },
-  { key: 'status', header: 'Status', appliesTo: 'both', width: '116px', fw: 8, sortable: true, align: 'center', description: 'Where this case is in the workflow.' },
-  { key: 'outcome', header: 'Outcome', appliesTo: 'both', width: '112px', fw: 6, align: 'center', description: 'How this case was resolved, once closed.' },
-  { key: 'docStatus', header: 'Doc status', appliesTo: 'both', width: '116px', fw: 7, align: 'center', description: 'Whether supporting evidence has been received.' },
-  { key: 'queueLabel', header: 'Queue', appliesTo: 'both', width: '160px', fw: 10, description: 'The work queue this case is routed to.' },
+  { key: 'entityLabel', filter: { kind: 'select', options: brand.entities.map((x) => x.label) }, header: 'Entity', appliesTo: 'both', width: '120px', fw: 8, description: 'The billing entity or brand this case was processed under.' },
+  { key: 'serviceDate', header: 'Service date', appliesTo: 'both', width: '120px', fw: 9, sortable: true, description: 'When the service or goods were delivered — separate from the dispute timeline.' },
+  { key: 'disputeAmount', filter: { kind: 'number' }, header: 'Amount', appliesTo: 'both', width: '112px', fw: 8, align: 'right', mono: true, sortable: true, description: 'The disputed amount.' },
+  { key: 'status', filter: { kind: 'select', options: STATUSES.map((x) => x.label) }, header: 'Status', appliesTo: 'both', width: '116px', fw: 8, sortable: true, align: 'center', description: 'Where this case is in the workflow.' },
+  { key: 'outcome', filter: { kind: 'select', options: OUTCOMES.map((x) => x.label ?? x) }, header: 'Outcome', appliesTo: 'both', width: '112px', fw: 6, align: 'center', description: 'How this case was resolved, once closed.' },
+  { key: 'docStatus', filter: { kind: 'select', options: ['Received', 'Pending', 'Missing'] }, header: 'Doc status', appliesTo: 'both', width: '116px', fw: 7, align: 'center', description: 'Whether supporting evidence has been received.' },
+  { key: 'queueLabel', filter: { kind: 'select', options: brand.queues.map((x) => x.label) }, header: 'Queue', appliesTo: 'both', width: '160px', fw: 10, description: 'The work queue this case is routed to.' },
   { key: 'worker', header: 'Assigned to', appliesTo: 'both', width: '170px', fw: 13, description: 'The analyst currently working this case.' },
   { key: 'dueDate', header: 'Due', appliesTo: 'both', width: '116px', fw: 12, sortable: true, pinned: true, description: 'Internal due date — the buffer we work to, ahead of the network deadline.' },
 ];

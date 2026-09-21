@@ -15,8 +15,6 @@ import WorkCase from '@/pages/shared/WorkCase';
 import Users from '@/pages/shared/Users';
 import Help from '@/pages/shared/Help';
 import AccountSettings from '@/pages/shared/AccountSettings';
-import Overview from '@/pages/shared/Overview';
-import DisputesCases from '@/pages/shared/DisputesCases';
 import Reporting from '@/pages/shared/Reporting';
 import TemplatesLibrary from '@/pages/shared/TemplatesLibrary';
 
@@ -106,7 +104,6 @@ export function App() {
                 <Route path="rules/check" element={<RuleCheck />} />
                 <Route path="case-admin/assignment-reasons" element={<AssignmentReasons />} />
                 <Route path="case-admin/queues" element={<QueueManagement />} />
-                <Route path="case-admin/cases" element={<CaseManagement />} />
                 <Route path="case-admin/upload" element={<UploadCases />} />
                 <Route path="reports/center" element={<ReportsCenter />} />
                 <Route path="reports/monitoring" element={<Monitoring />} />
@@ -117,11 +114,13 @@ export function App() {
                 <Route path="settings/system" element={<SystemPreferences />} />
 
                 {/* acquirer */}
-                <Route path="overview" element={<Overview />} />
+                {/* Overview and the dispute dashboard showed the same book twice;
+                    the dashboard absorbed it. Old links still resolve. */}
+                <Route path="overview" element={<Navigate to="/acquirer/dashboard" replace />} />
                 <Route path="portfolio/merchants" element={<PortfolioMerchants />} />
                 <Route path="portfolio/onboarding" element={<Onboarding />} />
                 <Route path="portfolio/underwriting" element={<Underwriting />} />
-                <Route path="disputes/cases" element={<DisputesCases />} />
+                <Route path="disputes/cases" element={<CaseManagement />} />
                 <Route path="disputes/representment" element={<Representment />} />
                 <Route path="risk" element={<Risk />} />
                 <Route path="settlement" element={<Settlement />} />

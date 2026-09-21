@@ -265,7 +265,7 @@ export function getCaseFlags(caseId, consolidationGroups = []) {
   const today = new Date().toISOString().slice(0, 10);
   const set = {
     consolidated: consolidationGroups.length > 0,
-    rfi_present: c.cycleId === 'rfi',
+    rfi_present: c.cycleId === 'retrieval',
     timeframe_breached: c.dueDate < today && !isClosed(c.status),
     pre_arbitration: c.cycleId === 'pre_arb',
     failed_enrichment: c.caseType === 'chargeback' && !c.arn,

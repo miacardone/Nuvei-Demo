@@ -80,6 +80,9 @@ function buildMerchant(stub) {
     riskTier: stub.riskTier,
     onboardedDate: stub.onboardedDate,
     projectedVolume: stub.projectedVolume,
+    // Indemnification is priced per transaction, so the count is part of the
+    // merchant record rather than being re-derived at each call site.
+    annualTransactions: estimatedAnnualTransactions,
     disputeVolume: mine.length,
     chargebackCount,
     claimCount: kpis.claims,

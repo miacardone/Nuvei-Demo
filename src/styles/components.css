@@ -1170,3 +1170,11 @@
   color: var(--c-ink-subtle); border-radius: 0 var(--r-md) var(--r-md) 0;
 }
 .field__reveal:hover { color: var(--c-ink); }
+
+/* --- Statement cardholder search hits ------------------------------------ */
+.statement-hit {
+  width: 100%; padding: var(--s-2) 0;
+  border: 0; background: transparent; cursor: pointer; text-align: left;
+}
+.statement-hit:hover { color: var(--c-primary); }
+.statement-hit.is-active { color: var(--c-primary); font-weight: 600; }

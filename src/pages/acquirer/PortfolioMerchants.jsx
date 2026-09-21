@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { SelectField } from '@/components/ui/Form';
 import useAdvancedFilters from '@/hooks/useAdvancedFilters';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
@@ -27,6 +28,14 @@ const STATUS_ICON = { Active: 'check', Onboarding: 'clock', 'Under review': 'sea
 const RISK_TONE = { Low: 'success', Medium: 'warning', High: 'danger' };
 const RISK_ICON = { Low: 'activity', Medium: 'activity', High: 'alert' };
 
+/** Volume is held annually; the selector just divides it, so the underlying
+ *  figure never changes and the periods can never disagree. */
+const VOLUME_PERIODS = {
+  monthly: { label: 'Monthly', divisor: 12, suffix: 'mo' },
+  quarterly: { label: 'Quarterly', divisor: 4, suffix: 'qtr' },
+  annual: { label: 'Annual', divisor: 1, suffix: 'yr' },
+};
+
 export function PortfolioMerchants() {
   const navigate = useNavigate();
   const { notify } = useToast();
@@ -38,6 +47,7 @@ export function PortfolioMerchants() {
   const [density, setDensity] = useState('comfortable');
   const [hidden, setHidden] = useState([]);
   const [sort, setSort] = useState({ key: 'exposure', dir: 'desc' });
+  const [period, setPeriod] = useState('annual');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [detail, setDetail] = useState(null);
@@ -92,11 +102,11 @@ export function PortfolioMerchants() {
       ),
     },
     { key: 'mccLabel', header: 'MCC', fw: 10, cell: (r) => <TruncatedText value={`${r.mccCode} · ${r.mccLabel}`} tooltip={r.mccLabel} /> },
-    { key: 'status', header: 'Status', align: 'center', fw: 7, sortable: true, cell: (r) => <StatusIcon icon={STATUS_ICON[r.status] ?? 'inbox'} tone={STATUS_TONE[r.status] ?? 'neutral'} label={r.status} /> },
-    { key: 'riskTier', header: 'Risk tier', align: 'center', fw: 6, sortable: true, cell: (r) => <StatusIcon icon={RISK_ICON[r.riskTier] ?? 'activity'} tone={RISK_TONE[r.riskTier] ?? 'neutral'} label={`${r.riskTier} risk`} /> },
-    { key: 'disputeVolume', header: 'Dispute volume', fw: 7, align: 'right', sortable: true, cell: (r) => <span className="mono small">{formatNumber(r.disputeVolume)}</span> },
-    { key: 'chargebackRatio', header: 'Chargeback ratio', fw: 7, align: 'right', sortable: true, cell: (r) => <span className="mono small">{r.disputeVolume ? formatPercent(r.chargebackRatio, 2) : '—'}</span> },
-    { key: 'exposure', header: 'Exposure', fw: 8, align: 'right', sortable: true, cell: (r) => <span className="mono small strong">{formatCurrency(r.exposure)}</span> },
+    { key: 'status', header: 'Status', align: 'center', fw: 7, sortable: true, filter: { kind: 'select', options: ['Active', 'Under review', 'Suspended', 'Onboarding'] }, cell: (r) => <StatusIcon icon={STATUS_ICON[r.status] ?? 'inbox'} tone={STATUS_TONE[r.status] ?? 'neutral'} label={r.status} /> },
+    { key: 'riskTier', header: 'Risk tier', align: 'center', fw: 6, sortable: true, filter: { kind: 'select', options: ['Low', 'Medium', 'High'] }, cell: (r) => <StatusIcon icon={RISK_ICON[r.riskTier] ?? 'activity'} tone={RISK_TONE[r.riskTier] ?? 'neutral'} label={`${r.riskTier} risk`} /> },
+    { key: 'disputeVolume', filter: { kind: 'number' }, header: 'Dispute volume', fw: 7, align: 'right', sortable: true, cell: (r) => <span className="mono small">{formatNumber(r.disputeVolume)}</span> },
+    { key: 'chargebackRatio', filter: { kind: 'number' }, header: 'Chargeback ratio', fw: 7, align: 'right', sortable: true, cell: (r) => <span className="mono small">{r.disputeVolume ? formatPercent(r.chargebackRatio, 2) : '—'}</span> },
+    { key: 'exposure', filter: { kind: 'number' }, header: 'Exposure', fw: 8, align: 'right', sortable: true, cell: (r) => <span className="mono small strong">{formatCurrency(r.exposure)}</span> },
     {
       key: 'indemnification',
       header: 'Indemnification',
@@ -194,7 +204,22 @@ export function PortfolioMerchants() {
 
             <div className="grid grid--2" style={{ gap: 'var(--s-2)' }}>
               <div className="detail-row"><span className="detail-row__k">Onboarded</span><span className="detail-row__v">{detail.onboardedDate ? formatDate(detail.onboardedDate) : 'In progress'}</span></div>
-              <div className="detail-row"><span className="detail-row__k">Projected volume</span><span className="detail-row__v mono">{formatCompactCurrency(detail.projectedVolume)} / yr</span></div>
+              <div className="detail-row">
+                <span className="detail-row__k">Projected annual volume</span>
+                <span className="detail-row__v mono">
+                  {formatCompactCurrency((detail.projectedVolume ?? 0) / VOLUME_PERIODS[period].divisor)} / {VOLUME_PERIODS[period].suffix}
+                </span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-row__k">Shown per</span>
+                <span className="detail-row__v">
+                  <SelectField
+                    value={period}
+                    onChange={(e) => setPeriod(e.target.value)}
+                    options={Object.entries(VOLUME_PERIODS).map(([id, p]) => ({ value: id, label: p.label }))}
+                  />
+                </span>
+              </div>
               <div className="detail-row"><span className="detail-row__k">Dispute volume</span><span className="detail-row__v mono">{formatNumber(detail.disputeVolume)}</span></div>
               <div className="detail-row"><span className="detail-row__k">Chargeback ratio</span><span className="detail-row__v mono">{detail.disputeVolume ? formatPercent(detail.chargebackRatio, 2) : '—'}</span></div>
               <div className="detail-row"><span className="detail-row__k">Exposure</span><span className="detail-row__v mono">{formatCurrency(detail.exposure)}</span></div>

@@ -4,7 +4,7 @@ import { CheckboxRow, RadioRow, TextField } from '@/components/ui/Form';
 import { useToast } from '@/context/ToastContext';
 import useIndemnification from '@/hooks/useIndemnification';
 import { BASES, annualCharge, applyIndemnification, settingsFor } from '@/data/indemnification';
-import { formatCompactCurrency, formatCurrency } from '@/utils/format';
+import { formatCompactCurrency, formatCurrency, formatNumber } from '@/utils/format';
 
 /**
  * Liability & indemnification.
@@ -14,7 +14,7 @@ import { formatCompactCurrency, formatCurrency } from '@/utils/format';
  * different things sharing a heading is how an operator changes the wrong one.
  *
  * The acquirer takes on liability for this merchant's chargebacks in exchange
- * for a charge, priced either as a flat fee per dispute or in basis points of
+ * for a charge, priced either as a flat fee per transaction or in basis points of
  * processed volume.
  *
  * The form edits a DRAFT and commits on Apply. Nothing here writes as you type:
@@ -54,7 +54,7 @@ export function IndemnificationPanel({ merchant }) {
     applyIndemnification(merchant.id, draft);
     notify(
       draft.enabled
-        ? `Indemnification applied to ${merchant.name} — ${draft.basis === 'bps' ? `${draft.bps} bps of volume` : `${formatCurrency(draft.fee)} per dispute`}.`
+        ? `Indemnification applied to ${merchant.name} — ${draft.basis === 'bps' ? `${draft.bps} bps of volume` : `${formatCurrency(draft.fee)} per transaction`}.`
         : `Indemnification removed from ${merchant.name}.`,
       'success',
     );
@@ -111,19 +111,20 @@ export function IndemnificationPanel({ merchant }) {
             />
           ) : (
             <TextField
-              label="Fee"
+              label="Fee per transaction"
               type="number"
               min="0"
               step="0.01"
               value={draft.fee}
               onChange={(e) => setDraft((d) => ({ ...d, fee: e.target.value }))}
-              hint="Charged per dispute."
+              hint="Charged on every transaction processed."
               error={draft.enabled && !(Number(draft.fee) > 0) ? 'Enter an amount above zero.' : undefined}
             />
           )}
 
-          {/* The two bases price completely differently for the same merchant —
-              one scales with disputes, the other with turnover — so the effect
+          {/* Both bases scale with turnover now, but at very different rates
+              for the same merchant — cents on every transaction versus a share
+              of their value — so the effect
               of the choice is shown rather than left to be worked out. */}
           <div className="detail-row">
             <span className="detail-row__k">Projected annual charge</span>
@@ -133,8 +134,8 @@ export function IndemnificationPanel({ merchant }) {
           </div>
           <p className="micro subtle">
             {draft.basis === 'bps'
-              ? `${draft.bps || 0} bps of ${formatCompactCurrency(merchant.projectedVolume ?? 0)} projected volume.`
-              : `${formatCurrency(Number(draft.fee) || 0)} across ${merchant.disputeVolume ?? 0} disputes.`}
+              ? `${draft.bps || 0} bps of ${formatCompactCurrency(merchant.projectedVolume ?? 0)} projected annual volume.`
+              : `${formatCurrency(Number(draft.fee) || 0)} across ${formatNumber(merchant.annualTransactions ?? 0)} projected annual transactions.`}
           </p>
         </div>
       </fieldset>

@@ -29,6 +29,15 @@ export const ALERT_SOURCES = [
 
 export const findSource = (id) => ALERT_SOURCES.find((s) => s.id === id) ?? null;
 
+/**
+ * Sources that can auto-resolve without a human.
+ *
+ * Visa RDR is excluded: RDR decisions are made by rules held at Visa, so the
+ * refund has already happened by the time the alert lands here. Offering an
+ * auto-complete toggle for it implies a choice this console does not have.
+ */
+export const SELF_SERVICE_SOURCES = ALERT_SOURCES.filter((s) => s.id !== 'visa_rdr');
+
 export const ALERT_OUTCOMES = [
   { id: 'open', label: 'Open', tone: 'warning' },
   { id: 'refunded', label: 'Refunded', tone: 'success' },
@@ -53,15 +62,39 @@ const DESCRIPTOR_SUFFIXES = [
 
 const descriptorStem = (label) => label.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
 
+/**
+ * A network alert can be routed to an entity by more than one kind of
+ * identifier. The statement descriptor is the common one, but issuers and
+ * networks also match on the card BIN or the acquirer's CAID, and a merchant
+ * with several descriptors may only have the CAID in common across them.
+ */
+export const IDENTIFIER_TYPES = [
+  { id: 'descriptor', label: 'Payment descriptor', hint: 'The statement descriptor the network alert carries.', placeholder: 'NUVEI ECOMMERCE*ECOM' },
+  { id: 'bin_caid', label: 'BIN / CAID', hint: 'The card BIN range or the acquirer’s CAID for this entity.', placeholder: '445883 / 8099100021' },
+];
+
+export const findIdentifierType = (id) =>
+  IDENTIFIER_TYPES.find((t) => t.id === id) ?? IDENTIFIER_TYPES[0];
+
 const IDENTIFIER_SEED = brand.entities.flatMap((entity, i) =>
   (DESCRIPTOR_SUFFIXES[i % DESCRIPTOR_SUFFIXES.length]).map((suffix) => ({
     entityId: entity.id,
     mid: entity.mid,
+    type: 'descriptor',
     identifier: `${descriptorStem(entity.label)}${suffix}`,
   })),
 );
 
-export const IDENTIFIERS = IDENTIFIER_SEED.map((row, i) => ({
+export const IDENTIFIERS = [
+  ...IDENTIFIER_SEED,
+  // A couple of BIN/CAID rows so the type column is not single-valued.
+  ...brand.entities.slice(0, 2).map((entity) => ({
+    entityId: entity.id,
+    mid: entity.mid,
+    type: 'bin_caid',
+    identifier: entity.mid,
+  })),
+].map((row, i) => ({
   id: `id${i + 1}`,
   ...row,
   active: i !== 5, // one inactive, so Identifiers has something to demonstrate re-enabling

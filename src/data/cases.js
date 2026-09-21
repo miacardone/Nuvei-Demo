@@ -56,7 +56,8 @@ const ENTITY_WEIGHT_BY_POSITION = [64, 24, 12];
 const ENTITY_WEIGHTS = brand.entities.map((e, i) => [e.id, ENTITY_WEIGHT_BY_POSITION[i] ?? 5]);
 
 const SCHEME_WEIGHTS = [['visa', 52], ['mastercard', 38], ['amex', 10]];
-const CYCLE_WEIGHTS = [['first_cb', 58], ['second_cb', 17], ['pre_arb', 9], ['retrieval', 8], ['rfi', 8]];
+// Retrieval absorbed RFI's share — they were the same cycle under two names.
+const CYCLE_WEIGHTS = [['first_cb', 58], ['second_cb', 17], ['pre_arb', 9], ['retrieval', 16]];
 const DOC_WEIGHTS = [['received', 46], ['pending', 26], ['missing', 16], ['not_required', 12]];
 
 /**
@@ -70,7 +71,7 @@ function queueFor(caseType, reasonCode, reasonCategory, amount, cycleId, fraudMa
   if (cycleId === 'second_cb' || cycleId === 'pre_arb') return 'arbitration_chargebacks';
   if (amount < brand.thresholds.minimumProcessingAmount) return 'below_minimum_value';
   if (amount >= brand.thresholds.routingHighValue) return 'high_value_chargebacks';
-  if (reasonCategory === 'fraud') return 'bank_fraud_code';
+  if (reasonCategory === 'fraud') return 'analyst_confirmed_fraud';
   if (fraudMarker === 'Confirmed Fraud') return 'analyst_confirmed_fraud';
   if (fraudMarker === 'Suspected Fraud' || fraudMarker === 'Fraud Reported by Issuer') return 'analyst_non_fraud';
   return 'bank_non_fraud_code';

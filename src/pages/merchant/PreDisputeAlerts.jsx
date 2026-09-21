@@ -207,9 +207,10 @@ export function PreDisputeAlerts() {
         </Card>
         <Card bodyClassName="card__body--tight">
           <Kpi
-            label="Arrived too late"
+            label="Missed window"
             value={formatNumber(kpis.tooLate)}
-            meta={`${formatCurrency(kpis.tooLateValue)} — paid for, already a ${brand.terms.chargeback}`}
+            meta={`${formatCurrency(kpis.tooLateValue)} — alert landed after the ${brand.terms.chargeback} was already filed`}
+            tooltip={`The alert arrived after the refund window had closed — the ${brand.terms.chargeback} had already been filed, so the alert was paid for but could not be acted on.`}
           />
         </Card>
       </div>

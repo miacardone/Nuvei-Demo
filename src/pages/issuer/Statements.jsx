@@ -4,7 +4,7 @@ import { anyWithinScope } from '@/data/merchant-scope';
 import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Badge, Kpi } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
-import { SelectField } from '@/components/ui/Form';
+import { TextField } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
 import { CARDHOLDERS, casesForCardholder } from '@/data/cardholders';
@@ -73,6 +73,21 @@ export function Statements() {
     return (withRecentDispute ?? BOOK.find((c) => c.disputeCount > 0) ?? BOOK[0])?.id ?? '';
   }, [BOOK]);
   const [cardholderId, setCardholderId] = useState(defaultId);
+  const [query, setQuery] = useState('');
+
+  /* Digits-only comparison, so "4458 8331" and "445883••••3257" both find the
+     same card — people read the number off the card with its spacing. */
+  const digits = (v) => String(v ?? '').replace(/\D/g, '');
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const qDigits = digits(q);
+    return sortedCardholders.filter((c) => {
+      const byName = c.name.toLowerCase().includes(q);
+      const card = digits(c.cardMasked ?? '') + digits(c.cardLast4 ?? '');
+      return byName || (qDigits.length >= 2 && card.includes(qDigits));
+    });
+  }, [query, sortedCardholders]);
 
   const cardholder = BOOK.find((c) => c.id === cardholderId) ?? null;
   const lines = useMemo(() => (cardholder ? buildStatementLines(cardholder) : []), [cardholder]);
@@ -121,12 +136,39 @@ export function Statements() {
 
       <div className="stack">
         <Card bodyClassName="card__body--tight">
-          <SelectField
-            label="Cardholder"
-            value={cardholderId}
-            onChange={(e) => setCardholderId(e.target.value)}
-            options={sortedCardholders.map((c) => ({ value: c.id, label: `${c.name} — •••• ${c.cardLast4}` }))}
+          {/* Free text, not a dropdown: a book of several hundred cardholders is
+              not something anyone scrolls, and the number on the card in front
+              of you is what you actually have to search by. Name still matches,
+              because sometimes the card is not in front of you. */}
+          <TextField
+            label="Find a cardholder"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Card number, last 4, or name"
+            hint={
+              query.trim()
+                ? `${matches.length} ${matches.length === 1 ? 'match' : 'matches'}`
+                : `${sortedCardholders.length} cardholders in scope`
+            }
           />
+
+          {query.trim() !== '' && (
+            <ul className="hairlines" style={{ marginTop: 'var(--s-2)' }}>
+              {matches.slice(0, 8).map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    className={`row row--between statement-hit ${c.id === cardholderId ? 'is-active' : ''}`.trim()}
+                    onClick={() => { setCardholderId(c.id); setQuery(''); }}
+                  >
+                    <span className="small strong">{c.name}</span>
+                    <span className="mono micro subtle">{c.cardMasked ?? `•••• ${c.cardLast4}`}</span>
+                  </button>
+                </li>
+              ))}
+              {!matches.length && <li className="small subtle" style={{ padding: 'var(--s-2) 0' }}>No cardholder matches that number.</li>}
+            </ul>
+          )}
         </Card>
 
         {cardholder && (
