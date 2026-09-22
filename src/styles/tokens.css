@@ -45,15 +45,14 @@
   --c-scheme-mastercard: #c8102e;
   --c-scheme-amex: #016fd0;
 
-  /* Categorical ramp — separated by hue AND lightness, not by tint.
-     See brand.config.js for why this order. */
+  /* One hue plus tints — see brand.config.js for why this order. */
   --c-series-0: #0c98d4;
-  --c-series-1: #160850;
-  --c-series-2: #e07b39;
-  --c-series-3: #0b7d63;
-  --c-series-4: #9b7bea;
-  --c-series-contrast: #d81f21;
-  --c-series-neutral: #8a8496;
+  --c-series-1: #0a5f87;
+  --c-series-2: #8bbae4;
+  --c-series-3: #c3e0f5;
+  --c-series-4: #160850;
+  --c-series-contrast: #b3261e;
+  --c-series-neutral: #66768f;
 
   /* Type — one family everywhere: headings, body copy, case numbers,
      amounts, emails, reference IDs. No separate monospace face. */

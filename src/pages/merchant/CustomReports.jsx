@@ -85,7 +85,7 @@ function templatePreview(templateId, scoped, brandRef) {
     const dueBuckets = DUE_BUCKETS.map((b) => ({
       label: b.label,
       value: scoped.filter((c) => dueBucketOf(c.dueDate) === b.id).length,
-      color: b.id === 'pastDue' ? 'var(--c-series-contrast)' : undefined,
+      color: b.id === 'pastDue' ? 'var(--c-nav-active)' : undefined,
     }));
 
     return {
@@ -121,7 +121,7 @@ function templatePreview(templateId, scoped, brandRef) {
     const outcomeBreakdown = ['won', 'lost', 'written_off'].map((id) => ({
       label: id === 'won' ? 'Won' : id === 'lost' ? 'Lost' : 'Written off',
       value: closed.filter((c) => c.outcome === id).length,
-      color: id === 'won' ? 'var(--c-success)' : id === 'lost' ? 'var(--c-series-contrast)' : 'var(--c-series-neutral)',
+      color: id === 'won' ? 'var(--c-success)' : id === 'lost' ? 'var(--c-nav-active)' : 'var(--c-series-neutral)',
     }));
     const recoveredByEntity = [...new Set(closed.map((c) => c.entityLabel))]
       .map((label) => ({ label, value: closed.filter((c) => c.entityLabel === label && c.outcome === 'won').reduce((s, c) => s + c.disputeAmount, 0) }))

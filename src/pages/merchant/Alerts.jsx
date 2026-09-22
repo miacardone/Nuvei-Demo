@@ -11,7 +11,9 @@ import { useBrand } from '@/brand/BrandProvider';
 import { useToast } from '@/context/ToastContext';
 import { ROUTES } from '@/data/navigation';
 import { readPref, writePref } from '@/utils/storage';
-import { formatCurrency, formatNumber, relativeTime } from '@/utils/format';
+import { CASES } from '@/data/cases';
+import { weeklySeries } from '@/domain/metrics';
+import { formatCompactCurrency, formatCurrency, formatNumber, relativeTime } from '@/utils/format';
 
 /**
  * ALERTS
@@ -151,6 +153,24 @@ export function Alerts() {
   const alerts = useMemo(() => buildAlerts(), []);
   const summary = useMemo(() => alertSummary(alerts), [alerts]);
 
+  /* Alerts themselves are a snapshot — there is no "alert history" to chart.
+     What does have a history is the cases underneath them, which is what
+     actually drives alert volume, so the sparklines are the weekly arrival of
+     the cases each alert is raised against. Same book as the figures above
+     them, so the line and the number cannot disagree. */
+  const alertedCases = useMemo(() => {
+    const ids = new Set(alerts.flatMap((a) => a.caseIds));
+    return CASES.filter((c) => ids.has(c.id));
+  }, [alerts]);
+  const criticalCases = useMemo(() => {
+    const ids = new Set(alerts.filter((a) => a.severity === 'critical').flatMap((a) => a.caseIds));
+    return CASES.filter((c) => ids.has(c.id));
+  }, [alerts]);
+
+  const alertSpark = useMemo(() => weeklySeries(alertedCases, 12), [alertedCases]);
+  const exposureSpark = useMemo(() => weeklySeries(alertedCases, 12, (c) => c.disputeAmount), [alertedCases]);
+  const criticalSpark = useMemo(() => weeklySeries(criticalCases, 12, (c) => c.disputeAmount), [criticalCases]);
+
   const [view, setView] = useState('operational');
   const [tab, setTab] = useState('all');
   const [acked, setAcked] = useState(readAck);
@@ -235,16 +255,16 @@ export function Alerts() {
       <div className="stack">
         <div className="grid grid--4">
           <Card bodyClassName="card__body--tight">
-            <Kpi label="Open alerts" value={formatNumber(summary.total - acked.size)} meta={`${formatNumber(acked.size)} acknowledged`} />
+            <Kpi label="Open alerts" value={formatNumber(summary.total - acked.size)} meta={`${formatNumber(acked.size)} acknowledged`} spark={alertSpark} />
           </Card>
           <Card bodyClassName="card__body--tight">
-            <Kpi label={`${brand.terms.cases} affected`} value={formatNumber(summary.casesAffected)} meta="counted once, not per rule" />
+            <Kpi label={`${brand.terms.cases} affected`} value={formatNumber(summary.casesAffected)} meta="counted once, not per rule" spark={alertSpark} />
           </Card>
           <Card bodyClassName="card__body--tight">
-            <Kpi label="Exposure" value={formatCurrency(summary.exposure)} meta="value of the affected cases" />
+            <Kpi label="Exposure" value={formatCompactCurrency(summary.exposure)} meta="value of the affected cases" spark={exposureSpark} />
           </Card>
           <Card bodyClassName="card__body--tight">
-            <Kpi label="Critical exposure" value={formatCurrency(summary.criticalExposure)} meta="deadline passed or money leaving" />
+            <Kpi label="Critical exposure" value={formatCompactCurrency(summary.criticalExposure)} meta="deadline passed or money leaving" spark={criticalSpark} />
           </Card>
         </div>
 

@@ -7,6 +7,9 @@ import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
 import { TruncatedText } from '@/components/ui/Overlay';
 import { ACQUIRER_NAME, MERCHANTS } from '@/data/portfolio';
+import { CASES } from '@/data/cases';
+import { weeklySeries } from '@/domain/metrics';
+import { isClosed } from '@/domain/statuses';
 import IndemnificationPanel from '@/components/portfolio/IndemnificationPanel';
 import useIndemnification from '@/hooks/useIndemnification';
 import { annualCharge, describe, settingsFor } from '@/data/indemnification';
@@ -74,6 +77,38 @@ export function PortfolioMerchants() {
   }, [filtered, sort]);
 
   const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
+
+  /* Sparklines for the strip above. Each one is computed from the same source
+     as the figure it sits under — merchant count from the roster's own
+     onboarding dates, the money lines from the case book — so the shape and
+     the number cannot tell different stories. */
+  const sparks = useMemo(() => {
+    const WEEKS = 12;
+    const now = Date.now();
+    const weekEnd = (i) => now - (WEEKS - 1 - i) * 7 * 86_400_000;
+
+    // Genuinely cumulative: how many merchants had been onboarded by each week.
+    const merchantCount = Array.from({ length: WEEKS }, (_, i) => {
+      const cutoff = new Date(weekEnd(i)).toISOString().slice(0, 10);
+      return MERCHANTS.filter((m) => !m.onboardedDate || m.onboardedDate <= cutoff).length;
+    });
+
+    const flaggedIds = new Set(
+      MERCHANTS.filter((m) => m.status === 'Under review' || m.status === 'Suspended').map((m) => m.id),
+    );
+    const indemnifiedIds = new Set(MERCHANTS.filter((m) => settingsFor(m.id).enabled).map((m) => m.id));
+    const open = CASES.filter((c) => !isClosed(c.status));
+
+    return {
+      merchantCount,
+      exposure: weeklySeries(open, WEEKS, (c) => c.disputeAmount),
+      flagged: weeklySeries(CASES, WEEKS, () => 1, (c) => flaggedIds.has(c.merchantId)),
+      // Ratio has no weekly denominator to divide by, so the line tracks the
+      // chargeback volume that drives it rather than the ratio itself.
+      ratio: weeklySeries(CASES, WEEKS, () => 1, (c) => c.caseType === 'chargeback'),
+      indemnified: weeklySeries(open, WEEKS, (c) => c.disputeAmount, (c) => indemnifiedIds.has(c.merchantId)),
+    };
+  }, [indemnity]);
 
   const totals = useMemo(() => {
     const withVolume = MERCHANTS.filter((m) => m.disputeVolume > 0);
@@ -143,14 +178,15 @@ export function PortfolioMerchants() {
 
       <div className="stack">
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
-          <Kpi label="Merchants" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} />
-          <Kpi label="Portfolio exposure" value={formatCompactCurrency(totals.exposure)} />
-          <Kpi label="Flagged for review" value={formatNumber(totals.flagged)} meta="Under review or suspended" />
-          <Kpi label="Avg. chargeback ratio" value={formatPercent(totals.avgRatio, 2)} meta="Across processing merchants" />
+          <Kpi label="Merchants" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} spark={sparks.merchantCount} />
+          <Kpi label="Portfolio exposure" value={formatCompactCurrency(totals.exposure)} meta="Open case value across the book" spark={sparks.exposure} />
+          <Kpi label="Flagged for review" value={formatNumber(totals.flagged)} meta="Under review or suspended" spark={sparks.flagged} />
+          <Kpi label="Avg. chargeback ratio" value={formatPercent(totals.avgRatio, 2)} meta="Across processing merchants" spark={sparks.ratio} />
           <Kpi
             label="Indemnified"
             value={`${formatNumber(totals.indemnified)} of ${formatNumber(totals.count)}`}
             meta={`${formatCompactCurrency(totals.indemnifiedExposure)} exposure we carry`}
+            spark={sparks.indemnified}
           />
         </div>
 

@@ -86,8 +86,8 @@ export function Dashboard() {
     const chargebacks = CASES.filter((c) => c.caseType === 'chargeback').length;
     const claims = CASES.length - chargebacks;
     return [
-      { label: brand.terms.chargebacks, value: chargebacks, color: 'var(--c-series-0)' },
-      { label: brand.terms.claims, value: claims, color: 'var(--c-series-2)' },
+      { label: brand.terms.chargebacks, value: chargebacks },
+      { label: brand.terms.claims, value: claims, color: 'var(--c-series-1)' },
     ];
   }, [brand.terms]);
 
@@ -169,11 +169,11 @@ export function Dashboard() {
             data={activity}
             height={200}
             series={[
-              { key: 'completed', name: 'Completed', color: 'var(--c-series-1)' },
+              { key: 'completed', name: 'Completed', color: 'var(--c-series-4)' },
               { key: 'represented', name: 'Represented', color: 'var(--c-series-0)' },
-              { key: 'open', name: 'Open', color: 'var(--c-series-4)' },
+              { key: 'open', name: 'Open', color: 'var(--c-series-1)' },
               { key: 'expired', name: 'Expired', color: 'var(--c-series-3)' },
-              { key: 'rejected', name: 'Rejected', color: 'var(--c-series-contrast)' },
+              { key: 'rejected', name: 'Rejected', color: 'var(--c-nav-active)' },
             ]}
           />
         </Card>
@@ -217,8 +217,8 @@ export function Dashboard() {
               data={outcomes}
               height={200}
               series={[
-                { key: 'won', name: 'Won', color: 'var(--c-series-0)' },
-                { key: 'lost', name: 'Lost', color: 'var(--c-series-contrast)' },
+                { key: 'won', name: 'Won', color: 'var(--c-primary)' },
+                { key: 'lost', name: 'Lost', color: 'var(--c-nav-active)' },
                 { key: 'written_off', name: 'Written off', color: 'var(--c-series-neutral)' },
               ]}
             />
@@ -228,9 +228,9 @@ export function Dashboard() {
               data={docs}
               height={200}
               series={[
-                { key: 'received', name: 'Received', color: 'var(--c-series-0)' },
+                { key: 'received', name: 'Received', color: 'var(--c-primary)' },
                 { key: 'pending', name: 'Pending', color: 'var(--c-series-2)' },
-                { key: 'missing', name: 'Missing', color: 'var(--c-series-contrast)' },
+                { key: 'missing', name: 'Missing', color: 'var(--c-nav-active)' },
               ]}
             />
           </Card>
@@ -241,10 +241,8 @@ export function Dashboard() {
             data={typeTrend}
             height={200}
             series={[
-              // The same two categories carry the same two colours wherever
-              // they appear on this page — here and in the Intake Mix donut.
-              { key: 'chargeback', name: brand.terms.chargebacks, color: 'var(--c-series-0)' },
-              { key: 'claim', name: brand.terms.claims, color: 'var(--c-series-2)' },
+              { key: 'chargeback', name: brand.terms.chargebacks },
+              { key: 'claim', name: brand.terms.claims, color: 'var(--c-series-1)' },
             ]}
           />
         </Card>

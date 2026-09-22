@@ -133,22 +133,18 @@ export const nuveiBrand = {
   },
 
   /* --- Chart ramp ------------------------------------------------------- *
-   * CATEGORICAL, not ordinal. The earlier ramp was five steps of one blue,
-   * which reads beautifully on a stacked bar and terribly on a two-line chart
-   * — adjacent steps were indistinguishable in the legend, which is the only
-   * place the reader can look up which line is which.
+   * ONE HUE PLUS TINTS: five steps of the brand blue from the deep rail
+   * color to a pale tint, plus one contrast color reserved for "other" and
+   * negative series. Separation comes from lightness, so the ramp survives
+   * color-vision deficiency and grayscale printing. Assign in fixed order,
+   * never cycle — a sixth category folds into "Other" and takes chartContrast.
    *
-   * So separation now comes from hue AND lightness together: signal blue,
-   * near-black navy, warm orange, deep teal, violet. Any two of the first
-   * three are unmistakable from across a room and stay distinct under
-   * deuteranopia and in grayscale, which is what a demo screen actually needs.
-   *
-   * Assign in fixed order and never cycle — a sixth category folds into
-   * "Other" and takes chartContrast. chartContrast is reserved for genuinely
-   * negative series (lost, missing, rejected); do not spend it on a category. */
-  chartSeries: ['#0C98D4', '#160850', '#E07B39', '#0B7D63', '#9B7BEA'],
-  chartContrast: '#D81F21',
-  chartNeutral: '#8A8496',
+   * Step 1 is a genuinely darker blue rather than a light tint of step 0.
+   * The two sat within a few percent of each other in lightness, so on a
+   * two-line chart the legend could not be matched to the lines. */
+  chartSeries: ['#0C98D4', '#0A5F87', '#8BBAE4', '#C3E0F5', '#160850'],
+  chartContrast: '#B3261E',
+  chartNeutral: '#66768F',
 
   /* --- Money, locale, markets ------------------------------------------- */
   currency: 'USD',

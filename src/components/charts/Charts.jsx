@@ -358,20 +358,11 @@ export function Donut({
 
 /* ---------- Horizontal bar rows ---------- */
 
-/**
- * Ranked horizontal bars.
- *
- * One colour, deliberately. The bar length already carries the value, so
- * cycling the series ramp down the rows added a second encoding that meant
- * nothing — and with eight rows it walked through near-neighbour tints that
- * looked like they were signalling something. A row can still override with
- * `row.color` when the colour genuinely carries meaning.
- */
-export function BarRows({ rows, formatValue = formatNumber, color = 'var(--c-series-0)' }) {
+export function BarRows({ rows, formatValue = formatNumber }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
     <div className="stack stack--tight">
-      {rows.map((row) => (
+      {rows.map((row, i) => (
         <div key={row.label} className="stack" style={{ gap: 3 }}>
           <div className="row row--between row--nowrap">
             <span className="small truncate">{row.label}</span>
@@ -381,7 +372,7 @@ export function BarRows({ rows, formatValue = formatNumber, color = 'var(--c-ser
             </span>
           </div>
           <div className="meter">
-            <div className="meter__fill" style={{ width: `${(row.value / max) * 100}%`, background: row.color ?? color }} />
+            <div className="meter__fill" style={{ width: `${(row.value / max) * 100}%`, background: row.color ?? seriesColor(i) }} />
           </div>
         </div>
       ))}
