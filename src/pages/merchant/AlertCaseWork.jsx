@@ -229,10 +229,15 @@ export function AlertCaseWork() {
                 rowKey={(r) => r.id}
                 selection={{
                   selected,
+                  // Only an open alert can still be actioned, so only an open
+                  // alert can be ticked. Declaring it here rather than
+                  // filtering inside onToggleAll is what lets the header
+                  // checkbox know when everything selectable is selected.
+                  isSelectable: (r) => r.outcome === 'open',
                   onToggle: (id) => setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; }),
                   onToggleAll: (ids, checked) => setSelected((p) => {
                     const n = new Set(p);
-                    ids.forEach((id) => { const row = filtered.find((r) => r.id === id); if (row?.outcome === 'open') checked ? n.add(id) : n.delete(id); });
+                    ids.forEach((id) => (checked ? n.add(id) : n.delete(id)));
                     return n;
                   }),
                 }}

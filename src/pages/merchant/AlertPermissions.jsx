@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import useTableSort from '@/hooks/useTableSort';
 import { PageHeader, Card, Badge, Button } from '@/components/ui/Surface';
-import { DataTable } from '@/components/ui/DataTable';
+import { DataTable, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
-import { SearchInput, SelectField } from '@/components/ui/Form';
+import { SelectField } from '@/components/ui/Form';
 import { ALERTS_ROLES, AGENT_ROLES, WORKABLE_ENTITIES } from '@/data/alerts';
 import brand from '@/brand/brand.config';
 import { useToast } from '@/context/ToastContext';
@@ -62,6 +62,10 @@ export function AlertPermissions() {
   const [search, setSearch] = useState('');
   const [editingEntity, setEditingEntity] = useState(null);
 
+  // Table chrome, matching every other table.
+  const [density, setDensity] = useState('comfortable');
+  const [hidden, setHidden] = useState([]);
+
   const eligibleAgents = agents.filter((a) => a.alertsRole !== 'No access');
   const filtered = agents.filter((a) => `${a.name} ${a.email}`.toLowerCase().includes(search.toLowerCase()));
 
@@ -92,6 +96,8 @@ export function AlertPermissions() {
     },
   ];
 
+  const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
   const entityColumns = [
     { key: 'label', header: 'Entity', fw: 10, cell: (e) => <span className="small strong">{e.label}</span> },
     {
@@ -118,10 +124,24 @@ export function AlertPermissions() {
 
       <div className="stack stack--tight">
         <Card title="Agent permissions" bodyClassName="card__body--flush">
-          <div style={{ padding: 'var(--s-3) var(--s-4) 0' }}>
-            <SearchInput value={search} onChange={setSearch} placeholder="Search agents…" />
-          </div>
-          <DataTable columns={columns} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.email} />
+          {/* The standard toolbar, same as every other table — this page had a
+              bare search input in a hand-rolled padded div, which is why it
+              spanned the full width and carried none of the usual controls. */}
+          <TableToolbar
+            search={search}
+            onSearch={setSearch}
+            searchPlaceholder="Search agents…"
+            density={density}
+            onDensityChange={setDensity}
+            columns={columns}
+            hidden={hidden}
+            onHiddenChange={setHidden}
+            exportColumns={visibleColumns}
+            exportRows={sortedRows}
+            exportName="alert-permissions"
+            onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Copy failed.', ok ? 'success' : 'error')}
+          />
+          <DataTable columns={visibleColumns} rows={sortedRows} density={density} sort={sort} onSort={onSort} rowKey={(r) => r.email} />
         </Card>
 
         <Card title="Workable entities" bodyClassName="card__body--flush">

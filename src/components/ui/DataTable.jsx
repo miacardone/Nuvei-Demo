@@ -277,12 +277,38 @@ export function DataTable({
   const lead = (selection ? 1 : 0) + (expansion ? 1 : 0) + (rowDrag ? 1 : 0);
   const colSpan = columns.length + lead;
 
-  // Fit mode spreads the remaining width by each column's weight.
-  const totalWeight = columns.reduce((s, c) => s + (c.fw ?? 8), 0);
-  const widthFor = (c) => (fit ? `${((c.fw ?? 8) / totalWeight) * 100}%` : c.width);
+  /**
+   * Fit mode spreads the remaining width by each column's weight — but a
+   * pinned column with an explicit width keeps it.
+   *
+   * An actions column holds a button of a fixed size. Giving it a share of the
+   * table instead meant that on a wide table its share fell below the button
+   * and, with `.dt--fit` clipping overflow, the button was cut off. Its width
+   * comes out of the pool before the rest is shared.
+   */
+  const fixedInFit = (c) => fit && c.pinned && c.width;
+  const totalWeight = columns.reduce((s, c) => (fixedInFit(c) ? s : s + (c.fw ?? 8)), 0);
+  const fixedTotal = columns.filter(fixedInFit).map((c) => c.width).join(' + ');
+  const widthFor = (c) => {
+    if (!fit) return c.width;
+    if (fixedInFit(c)) return c.width;
+    const share = ((c.fw ?? 8) / (totalWeight || 1)) * 100;
+    return fixedTotal ? `calc((100% - (${fixedTotal})) * ${share / 100})` : `${share}%`;
+  };
 
-  const allSelected = rows.length > 0 && rows.every((r) => selection?.selected.has(rowKey(r)));
-  const someSelected = rows.some((r) => selection?.selected.has(rowKey(r)));
+  /**
+   * "Select all" is measured over the rows that can actually be selected.
+   *
+   * A table where some rows are not selectable (a completed alert cannot be
+   * actioned, so it cannot be ticked) could never reach "every row selected",
+   * so the header box stayed unchecked and every click sent `check: true` —
+   * select-all worked and unselect-all did nothing. A caller declares which
+   * rows are eligible with `selection.isSelectable`; the default is all of them.
+   */
+  const canSelect = selection?.isSelectable ?? (() => true);
+  const selectableRows = selection ? rows.filter(canSelect) : [];
+  const allSelected = selectableRows.length > 0 && selectableRows.every((r) => selection.selected.has(rowKey(r)));
+  const someSelected = selectableRows.some((r) => selection.selected.has(rowKey(r)));
 
   const dropLine = (indent) => (
     <tr className="drop-line" aria-hidden>
@@ -304,8 +330,9 @@ export function DataTable({
                     className="checkbox"
                     aria-label="Select all rows"
                     checked={allSelected}
+                    disabled={selectableRows.length === 0}
                     ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
-                    onChange={() => selection.onToggleAll(rows.map(rowKey), !allSelected)}
+                    onChange={() => selection.onToggleAll(selectableRows.map(rowKey), !allSelected)}
                   />
                 </span>
               </th>
@@ -419,6 +446,7 @@ export function DataTable({
                           type="checkbox"
                           className="checkbox"
                           checked={selection.selected.has(id)}
+                          disabled={!canSelect(row)}
                           onChange={() => selection.onToggle(id)}
                           aria-label={`Select ${id}`}
                         />

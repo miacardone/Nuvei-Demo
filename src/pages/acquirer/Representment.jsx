@@ -157,7 +157,6 @@ export function Representment() {
             density={density}
             rows={pageRows}
             rowKey={(r) => r.id}
-            density="fit"
             sort={sort}
             onSort={(key) => setSort((p) => (p.key === key ? { key, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }))}
             onRowClick={(row) => navigate(routes.workCaseDetail(row.id))}

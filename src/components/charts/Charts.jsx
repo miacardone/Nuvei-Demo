@@ -22,6 +22,22 @@ const seriesColor = (i) => `var(--c-series-${i % 5})`;
 const maxTicks = (width) => Math.max(4, Math.floor(width / 90));
 
 /**
+ * Left padding wide enough for the widest y-axis tick label, plus a lane for
+ * the rotated axis title when there is one.
+ *
+ * This was a flat 46px. A value axis running to "400,000" needs more than
+ * that, so the tick labels ran backwards over the axis title and the two
+ * printed on top of each other. Measured from the formatted label rather than
+ * the raw number, because the thousands separators count.
+ */
+const axisPadLeft = (niceMax, formatTick, hasTitle) => {
+  const widest = Math.max(
+    ...[0, 1, 2, 3].map((i) => String(formatTick(Math.round((niceMax / 3) * i))).length),
+  );
+  return Math.max(34, Math.ceil(widest * 6.4) + 12) + (hasTitle ? 16 : 0);
+};
+
+/**
  * Marker shapes, assigned by series index alongside the colour ramp.
  *
  * Colour alone was carrying the whole burden of "which line is which", and on
@@ -82,14 +98,19 @@ export function BarChart({
   const [hover, setHover] = useState(null);
 
   const H = height;
-  const PAD = { top: 8, right: 6, bottom: xLabel ? 34 : 20, left: yLabel ? 46 : 34 };
-  const plotW = Math.max(W - PAD.left - PAD.right, 10);
-  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
 
+  // Scale first — the left padding is sized from the tick labels it produces.
   const totals = data.map((row) => series.reduce((s, x) => s + (row[x.key] ?? 0), 0));
   const max = Math.max(1, ...totals);
   const step = 10 ** Math.floor(Math.log10(max));
   const niceMax = Math.ceil(max / step) * step || 10;
+
+  const PAD = {
+    top: 8, right: 6, bottom: xLabel ? 34 : 20,
+    left: axisPadLeft(niceMax, formatNumber, Boolean(yLabel)),
+  };
+  const plotW = Math.max(W - PAD.left - PAD.right, 10);
+  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
 
   const slot = plotW / Math.max(data.length, 1);
   /* Bars fill most of their slot. The old 0.62 of a capped 46px left a
@@ -188,13 +209,18 @@ export function AreaChart({
   const [hover, setHover] = useState(null);
 
   const H = height;
-  const PAD = { top: 8, right: 8, bottom: xLabel ? 34 : 20, left: yLabel ? 46 : 34 };
-  const plotW = Math.max(W - PAD.left - PAD.right, 10);
-  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
 
+  // Scale first — the left padding is sized from the tick labels it produces.
   const max = Math.max(1, ...data.map((d) => d[valueKey] ?? 0));
   const step = 10 ** Math.floor(Math.log10(max));
   const niceMax = Math.ceil(max / step) * step || 10;
+
+  const PAD = {
+    top: 8, right: 8, bottom: xLabel ? 34 : 20,
+    left: axisPadLeft(niceMax, formatNumber, Boolean(yLabel)),
+  };
+  const plotW = Math.max(W - PAD.left - PAD.right, 10);
+  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
 
   const x = (i) => PAD.left + (data.length <= 1 ? plotW / 2 : (plotW / (data.length - 1)) * i);
   const y = (v) => PAD.top + plotH - (v / niceMax) * plotH;
@@ -390,13 +416,19 @@ export function LineChart({
   const [hover, setHover] = useState(null);
 
   const H = height;
-  const PAD = { top: 8, right: 8, bottom: xLabel ? 34 : 20, left: yLabel ? 46 : 34 };
-  const plotW = Math.max(W - PAD.left - PAD.right, 10);
-  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
 
+  // The scale has to be known before the padding, because the padding is
+  // sized to fit the widest tick label the scale will print.
   const max = Math.max(1, ...data.flatMap((d) => series.map((s) => d[s.key] ?? 0)));
   const step = 10 ** Math.floor(Math.log10(max));
   const niceMax = Math.ceil(max / step) * step || 10;
+
+  const PAD = {
+    top: 8, right: 8, bottom: xLabel ? 34 : 20,
+    left: axisPadLeft(niceMax, formatNumber, Boolean(yLabel)),
+  };
+  const plotW = Math.max(W - PAD.left - PAD.right, 10);
+  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
 
   const x = (i) => PAD.left + (data.length <= 1 ? plotW / 2 : (plotW / (data.length - 1)) * i);
   const y = (v) => PAD.top + plotH - (v / niceMax) * plotH;
@@ -488,13 +520,19 @@ export function DotPlot({ data, xKey = 'label', valueKey = 'value', height = 220
   const [hover, setHover] = useState(null);
 
   const H = height;
-  const PAD = { top: 10, right: 10, bottom: 34, left: yLabel ? 46 : 34 };
-  const plotW = Math.max(W - PAD.left - PAD.right, 10);
-  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
 
+  // Scale first — the left padding is sized from the tick labels it produces.
   const values = data.map((d) => d[valueKey] ?? 0);
   const max = Math.max(1, ...values);
   const min = Math.min(0, ...values);
+
+  const PAD = {
+    top: 10, right: 10, bottom: 34,
+    left: axisPadLeft(max, formatNumber, Boolean(yLabel)),
+  };
+  const plotW = Math.max(W - PAD.left - PAD.right, 10);
+  const plotH = Math.max(H - PAD.top - PAD.bottom, 10);
+
   const y = (v) => PAD.top + plotH - ((v - min) / (max - min || 1)) * plotH;
   const slot = plotW / Math.max(data.length, 1);
   const x = (i) => PAD.left + slot * i + slot / 2;

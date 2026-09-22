@@ -253,19 +253,14 @@ export function Alerts() {
 
       {view === 'operational' && (
       <div className="stack">
-        <div className="grid grid--4">
-          <Card bodyClassName="card__body--tight">
-            <Kpi label="Open alerts" value={formatNumber(summary.total - acked.size)} meta={`${formatNumber(acked.size)} acknowledged`} spark={alertSpark} />
-          </Card>
-          <Card bodyClassName="card__body--tight">
-            <Kpi label={`${brand.terms.cases} affected`} value={formatNumber(summary.casesAffected)} meta="counted once, not per rule" spark={alertSpark} />
-          </Card>
-          <Card bodyClassName="card__body--tight">
-            <Kpi label="Exposure" value={formatCompactCurrency(summary.exposure)} meta="value of the affected cases" spark={exposureSpark} />
-          </Card>
-          <Card bodyClassName="card__body--tight">
-            <Kpi label="Critical exposure" value={formatCompactCurrency(summary.criticalExposure)} meta="deadline passed or money leaving" spark={criticalSpark} />
-          </Card>
+        {/* Same strip as every other page: .kpi-row, and no Card wrapper —
+            Kpi already draws its own card, so wrapping it in another one gave
+            this page a double border and its own padding. */}
+        <div className="kpi-row">
+          <Kpi label="Open alerts" value={formatNumber(summary.total - acked.size)} meta={`${formatNumber(acked.size)} acknowledged`} spark={alertSpark} />
+          <Kpi label={`${brand.terms.cases} affected`} value={formatNumber(summary.casesAffected)} meta="counted once, not per rule" spark={alertSpark} />
+          <Kpi label="Exposure" value={formatCompactCurrency(summary.exposure)} meta="value of the affected cases" spark={exposureSpark} />
+          <Kpi label="Critical exposure" value={formatCompactCurrency(summary.criticalExposure)} meta="deadline passed or money leaving" spark={criticalSpark} />
         </div>
 
         <Card bodyClassName="card__body">

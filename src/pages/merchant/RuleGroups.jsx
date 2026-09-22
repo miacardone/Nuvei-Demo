@@ -24,22 +24,25 @@ import { formatDateTime, formatNumber } from '@/utils/format';
  * utils/reorderRules.js.
  */
 
-function GroupModal({ open, onClose, onSave }) {
-  const [name, setName] = useState('');
-  const [trigger, setTrigger] = useState(RULE_TRIGGERS[0]);
-  const [description, setDescription] = useState('');
-
+/** Creates a group, or edits one when `group` is supplied. Mount it with a
+ *  `key` tied to the group so the fields re-seed when the subject changes. */
+function GroupModal({ open, group, onClose, onSave }) {
+  const editing = Boolean(group);
+  const [name, setName] = useState(group?.name ?? '');
+  const [trigger, setTrigger] = useState(group?.triggeredBy ?? RULE_TRIGGERS[0]);
+  const [description, setDescription] = useState(group?.description ?? '');
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Create rule group"
+      title={editing ? 'Edit rule group' : 'Create rule group'}
+      subtitle={editing ? group.name : undefined}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" disabled={!name.trim()} onClick={() => { onSave({ name: name.trim(), triggeredBy: trigger, description: description.trim() }); setName(''); setDescription(''); }}>
-            Create group
+          <Button variant="primary" disabled={!name.trim()} onClick={() => { onSave({ name: name.trim(), triggeredBy: trigger, description: description.trim() }); if (!editing) { setName(''); setDescription(''); } }}>
+            {editing ? 'Save changes' : 'Create group'}
           </Button>
         </>
       }
@@ -112,6 +115,7 @@ export function RuleGroups() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
   const [groupModal, setGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
   const [historyRule, setHistoryRule] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   // Density is new; hidden columns were already tracked as a Set here.
@@ -248,7 +252,7 @@ export function RuleGroups() {
         <div className="stack stack--tight">
           <Card
             title={`Rule creation logic — ${group.name}`}
-            action={<Button variant="secondary" size="sm" icon="edit">Edit group</Button>}
+            action={<Button variant="secondary" size="sm" icon="edit" onClick={() => setEditingGroup(group)}>Edit group</Button>}
           >
             <div className="row" style={{ gap: 'var(--s-6)' }}>
               <div><div className="t-section-label">Triggered by</div><div className="small strong">{group.triggeredBy}</div></div>
@@ -315,6 +319,17 @@ export function RuleGroups() {
           setGroups((p) => [...p, { ...g, id: `rg${p.length + 1}`, enabled: true }]);
           setGroupModal(false);
           notify(`Group “${g.name}” created.`, 'success');
+        }}
+      />
+      <GroupModal
+        key={editingGroup?.id ?? 'edit-none'}
+        open={Boolean(editingGroup)}
+        group={editingGroup}
+        onClose={() => setEditingGroup(null)}
+        onSave={(g) => {
+          setGroups((p) => p.map((x) => (x.id === editingGroup.id ? { ...x, ...g } : x)));
+          notify(`Group “${g.name}” updated.`, 'success');
+          setEditingGroup(null);
         }}
       />
       <HistoryModal rule={historyRule} onClose={() => setHistoryRule(null)} />

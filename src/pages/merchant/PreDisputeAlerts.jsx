@@ -11,10 +11,11 @@ import { ALERT_OUTCOMES, ALERT_SOURCES, ALERT_STATUSES, AUTO_RULES, PRE_DISPUTE_
   bySource, getAlertStatus, getOutcome, getSource, preDisputeKpis,
 } from '@/data/pre-dispute';
 import { sortRows } from '@/utils/sortRows';
+import { weeklyRate, weeklySeries } from '@/domain/metrics';
 import { useToast } from '@/context/ToastContext';
 import { useBrand } from '@/brand/BrandProvider';
 import { ROUTES } from '@/data/navigation';
-import { formatCurrency, formatDate, formatNumber, formatPercent, relativeTime } from '@/utils/format';
+import { formatCompactCurrency, formatCurrency, formatDate, formatNumber, formatPercent, relativeTime } from '@/utils/format';
 
 /**
  * PRE-DISPUTE ALERTS
@@ -137,11 +138,24 @@ export function PreDisputeAlerts() {
   }, [search, source, outcome, status, window]);
 
   const kpis = useMemo(() => preDisputeKpis(filtered), [filtered]);
+
+  /* Network alerts carry their own timestamp, so every figure in the strip has
+     a real weekly history behind it — no card in this row is left without a
+     trend line. */
+  const kpiSparks = useMemo(() => {
+    const at = (a) => a.alertedAt;
+    return {
+      deflection: weeklyRate(filtered, 12, () => true, (a) => a.status === 'resolved' && getOutcome(a.outcome).deflected, at),
+      refunded: weeklySeries(filtered, 12, (a) => a.amount, (a) => a.status === 'resolved' && a.outcome === 'refunded', at),
+      open: weeklySeries(filtered, 12, () => 1, (a) => a.status === 'open', at),
+      tooLate: weeklySeries(filtered, 12, () => 1, (a) => a.outcome === 'already_chargeback', at),
+    };
+  }, [filtered]);
   const sources = useMemo(() => bySource(filtered), [filtered]);
 
   const columns = useMemo(() => [
     {
-      key: 'actions', header: 'Actions', pinned: true, fw: 4, width: '56px', pinned: true,
+      key: 'actions', header: 'Actions', pinned: true, fw: 4, width: '56px',
       cell: (row) => (row.caseId
         ? <IconButton icon="wrench" label={`Open case ${row.caseId}`} size={13} onClick={(e) => { e.stopPropagation(); navigate(ROUTES.workCaseDetail(row.caseId)); }} />
         : <Tooltip label="Deflected — there is no case, which is the point"><span className="nano subtle">—</span></Tooltip>),
@@ -190,29 +204,36 @@ export function PreDisputeAlerts() {
 
   return (
     <div className="stack">
-      <div className="grid grid--4">
-        <Card bodyClassName="card__body--tight">
-          <Kpi
-            label="Deflection rate"
-            value={formatPercent(kpis.deflectionRate, 1)}
-            meta={`${formatNumber(kpis.deflected)} of ${formatNumber(kpis.total)} stopped a ${brand.terms.chargeback}`}
-          />
-        </Card>
-        {advanced.modal}
-        <Card bodyClassName="card__body--tight">
-          <Kpi label="Refunded" value={formatCurrency(kpis.refundValue)} meta={`${formatNumber(kpis.autoResolved)} resolved by rule, no analyst`} />
-        </Card>
-        <Card bodyClassName="card__body--tight">
-          <Kpi label="Open now" value={formatNumber(kpis.open)} meta={`${formatNumber(kpis.expired)} expired unactioned`} />
-        </Card>
-        <Card bodyClassName="card__body--tight">
-          <Kpi
-            label="Missed window"
-            value={formatNumber(kpis.tooLate)}
-            meta={`${formatCurrency(kpis.tooLateValue)} — alert landed after the ${brand.terms.chargeback} was already filed`}
-            tooltip={`The alert arrived after the refund window had closed — the ${brand.terms.chargeback} had already been filed, so the alert was paid for but could not be acted on.`}
-          />
-        </Card>
+      {advanced.modal}
+
+      {/* Same strip as every other page — see the note on Alerts. */}
+      <div className="kpi-row">
+        <Kpi
+          label="Deflection rate"
+          value={formatPercent(kpis.deflectionRate, 1)}
+          meta={`${formatNumber(kpis.deflected)} of ${formatNumber(kpis.total)} stopped a ${brand.terms.chargeback}`}
+          spark={kpiSparks.deflection}
+        />
+        <Kpi
+          label="Refunded"
+          value={formatCompactCurrency(kpis.refundValue)}
+          meta={`${formatNumber(kpis.autoResolved)} resolved by rule, no analyst`}
+          spark={kpiSparks.refunded}
+        />
+        <Kpi
+          label="Open now"
+          value={formatNumber(kpis.open)}
+          meta={`${formatNumber(kpis.expired)} expired unactioned`}
+          spark={kpiSparks.open}
+        />
+        <Kpi
+          label="Missed window"
+          value={formatNumber(kpis.tooLate)}
+          meta={`${formatCurrency(kpis.tooLateValue)} — alert landed after the ${brand.terms.chargeback} was already filed`}
+          tooltip={`The alert arrived after the refund window had closed — the ${brand.terms.chargeback} had already been filed, so the alert was paid for but could not be acted on.`}
+          invert
+          spark={kpiSparks.tooLate}
+        />
       </div>
 
       <Card
