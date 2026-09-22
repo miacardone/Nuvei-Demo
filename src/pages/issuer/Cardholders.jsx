@@ -10,6 +10,8 @@ import { TruncatedText } from '@/components/ui/Overlay';
 import { ISSUING_BANK, CARDHOLDERS, casesForCardholder } from '@/data/cardholders';
 import { authorizationsFor } from '@/data/authorizations';
 import { getStatus } from '@/domain/statuses';
+import { CASES } from '@/data/cases';
+import { weeklySeries } from '@/domain/metrics';
 import { STATUS_ICON } from '@/components/cases/caseColumns';
 import { useToast } from '@/context/ToastContext';
 import { usePerspective } from '@/hooks/usePerspective';
@@ -68,7 +70,24 @@ export function Cardholders() {
     active: BOOK.filter((c) => c.status === 'Active').length,
     repeatFilers: BOOK.filter((c) => c.disputeCount > 1).length,
     lifetimeSpend: BOOK.reduce((s, c) => s + c.lifetimeSpend, 0),
+    disputes: BOOK.reduce((s, c) => s + (c.disputeCount ?? 0), 0),
   }), [BOOK]);
+
+  /* Every card in the strip carries a trend line. A cardholder record has no
+     dates of its own, so each line is the weekly dispute activity of the
+     cardholders that card describes — which is what actually moves the
+     figure above it. */
+  const sparks = useMemo(() => {
+    const names = new Set(BOOK.map((c) => c.name));
+    const repeats = new Set(BOOK.filter((c) => c.disputeCount > 1).map((c) => c.name));
+    const mine = CASES.filter((c) => names.has(c.cardholder));
+    return {
+      cardholders: weeklySeries(mine, 12),
+      repeats: weeklySeries(mine, 12, () => 1, (c) => repeats.has(c.cardholder)),
+      spend: weeklySeries(mine, 12, (c) => c.disputeAmount),
+      disputes: weeklySeries(mine, 12),
+    };
+  }, [BOOK]);
 
   const columns = [
     {
@@ -105,7 +124,6 @@ export function Cardholders() {
 
   const advanced = useAdvancedFilters(columns);
 
-
   return (
     <>
       <PageHeader
@@ -115,10 +133,10 @@ export function Cardholders() {
 
       <div className="stack">
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
-          <Kpi label="Cardholders" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} />
-          <Kpi label="Repeat filers" value={formatNumber(totals.repeatFilers)} meta={`${formatPercent((totals.repeatFilers / totals.count) * 100, 0)} of the book`} />
-          <Kpi label="Lifetime spend" value={formatCompactCurrency(totals.lifetimeSpend)} meta="Across this book" />
-          <Kpi label="Issuing bank" value={ISSUING_BANK.shortName} meta={`Founded ${ISSUING_BANK.founded} · ${ISSUING_BANK.headquarters}`} />
+          <Kpi label="Cardholders" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} spark={sparks.cardholders} />
+          <Kpi label="Repeat filers" value={formatNumber(totals.repeatFilers)} meta={`${formatPercent((totals.repeatFilers / totals.count) * 100, 0)} of the book`} invert spark={sparks.repeats} />
+          <Kpi label="Lifetime spend" value={formatCompactCurrency(totals.lifetimeSpend)} meta="Across this book" spark={sparks.spend} />
+          <Kpi label="Disputes raised" value={formatNumber(totals.disputes)} meta={`Across ${ISSUING_BANK.shortName}`} invert spark={sparks.disputes} />
         </div>
 
         <Card bodyClassName="card__body--flush">

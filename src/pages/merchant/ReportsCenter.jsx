@@ -7,6 +7,7 @@ import { DUE_BUCKETS, avgAmountByEntity, casesByDueDatePerWeek, disputedValueTre
   entityTotalsByDueDate, newCasesPerDay, reasonCategoryByDueDate, topSellersByVolume, totalsByMarket,
 } from '@/domain/metrics';
 import { useBrand } from '@/brand/BrandProvider';
+import { weeklySeries } from '@/domain/metrics';
 import { formatCompactCurrency, formatNumber } from '@/utils/format';
 
 /** Every chart here carries axis titles — the brief calls for them explicitly. */
@@ -32,6 +33,15 @@ export function ReportsCenter() {
   }, [outcomes]);
   const topMarket = byMarket[0];
 
+  /* Two of these cards name a thing rather than count one. The line under them
+     tracks that thing's own weekly case volume, which is what makes it the top
+     one — a card with a name and no trend sat oddly beside three with trends. */
+  const sparks = useMemo(() => ({
+    topMarket: weeklySeries(CASES, 12, () => 1, (c) => c.market === topMarket?.market),
+    topSeller: weeklySeries(CASES, 12, () => 1, (c) => c.seller === topSuppliers[0]?.label),
+    markets: weeklySeries(CASES, 12),
+  }), [topMarket, topSuppliers]);
+
   const columns = [
     { key: 'description', header: 'Description', fw: 14, cell: (r) => <span className="small strong">{r.description}</span> },
     ...DUE_BUCKETS.map((b) => ({
@@ -55,9 +65,9 @@ export function ReportsCenter() {
       <div className="stack">
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Total disputed value" value={formatCompactCurrency(CASES.reduce((s, c) => s + c.disputeAmount, 0))} spark={valueTrend.map((t) => t.disputed)} />
-          <Kpi label="Top market" value={topMarket?.market ?? '—'} meta={topMarket ? `${formatNumber(topMarket.count)} cases` : undefined} />
-          <Kpi label={`Top ${brand.terms.seller}`} value={topSuppliers[0]?.label ?? '—'} meta={topSuppliers[0] ? `${formatNumber(topSuppliers[0].value)} cases` : undefined} />
-          <Kpi label="Markets active" value={formatNumber(byMarket.length)} />
+          <Kpi label="Top market" value={topMarket?.market ?? '—'} meta={topMarket ? `${formatNumber(topMarket.count)} cases` : 'No cases in range'} spark={sparks.topMarket} />
+          <Kpi label={`Top ${brand.terms.seller}`} value={topSuppliers[0]?.label ?? '—'} meta={topSuppliers[0] ? `${formatNumber(topSuppliers[0].value)} cases` : 'No cases in range'} spark={sparks.topSeller} />
+          <Kpi label="Markets active" value={formatNumber(byMarket.length)} meta="With at least one case" spark={sparks.markets} />
         </div>
 
         <div className="grid grid--2">

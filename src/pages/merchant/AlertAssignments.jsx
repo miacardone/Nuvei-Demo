@@ -5,6 +5,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { ALERTS, WORKABLE_ENTITIES, agentRollup, unassignedOpenAlerts } from '@/data/alerts';
 import brand from '@/brand/brand.config';
 import { useToast } from '@/context/ToastContext';
+import { weeklySeries } from '@/domain/metrics';
 import { formatCompactCurrency, formatNumber } from '@/utils/format';
 
 /**
@@ -23,6 +24,18 @@ export function AlertAssignments() {
 
   const rollup = useMemo(() => agentRollup(alerts), [alerts]);
   const backlog = useMemo(() => unassignedOpenAlerts(alerts), [alerts]);
+
+  /* Every card in the strip carries a trend line, drawn from the alerts each
+     figure is counted over rather than left blank. */
+  const sparks = useMemo(() => {
+    const at = (a) => a.alertDate;
+    const assigned = alerts.filter((a) => a.assignedTo);
+    return {
+      agents: weeklySeries(assigned, 12, () => 1, () => true, at),
+      load: weeklySeries(assigned, 12, () => 1, (a) => a.outcome === 'open', at),
+      backlog: weeklySeries(alerts, 12, () => 1, (a) => a.outcome === 'open' && !a.assignedTo, at),
+    };
+  }, [alerts]);
 
   const balanceWorkload = () => {
     let placed = 0;
@@ -76,9 +89,9 @@ export function AlertAssignments() {
 
       <div className="stack stack--tight">
         <div className="kpi-row">
-          <Kpi label="Agents with access" value={formatNumber(rollup.length)} />
-          <Kpi label="Total assigned load" value={formatNumber(rollup.reduce((s, r) => s + r.openLoad, 0))} meta="open alerts with an owner" />
-          <Kpi label="Unassigned backlog" value={formatNumber(backlog.length)} meta="open, nobody's working it yet" />
+          <Kpi label="Agents with access" value={formatNumber(rollup.length)} meta="can be assigned alerts" spark={sparks.agents} />
+          <Kpi label="Total assigned load" value={formatNumber(rollup.reduce((s, r) => s + r.openLoad, 0))} meta="open alerts with an owner" spark={sparks.load} />
+          <Kpi label="Unassigned backlog" value={formatNumber(backlog.length)} meta="open, nobody's working it yet" invert spark={sparks.backlog} />
         </div>
 
         <Card bodyClassName="card__body--flush">

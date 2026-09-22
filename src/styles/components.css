@@ -636,7 +636,15 @@
 .kpi:hover { box-shadow: var(--shadow-card); border-color: var(--c-line-strong); }
 .kpi__label { font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--c-ink-muted); }
 .kpi__value { font-family: var(--font-mono); font-size: 1.375rem; font-weight: 600; letter-spacing: -0.03em; }
-.kpi__meta { font-size: var(--fs-micro); color: var(--c-ink-subtle); }
+/* Exactly one line, always. The slot is reserved even when a card passes no
+   meta, and a long caption is truncated rather than allowed to wrap — either
+   one changes the card's height and drops that card's sparkline below its
+   neighbours'. */
+.kpi__meta {
+  font-size: var(--fs-micro); color: var(--c-ink-subtle);
+  min-height: 1.25em; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .kpi__trend {
   display: inline-flex; align-items: center; gap: 2px;
   font-size: var(--fs-micro); font-weight: 700;

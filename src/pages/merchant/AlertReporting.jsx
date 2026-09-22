@@ -7,6 +7,7 @@ import { SelectField } from '@/components/ui/Form';
 import { ALERTS, findOutcome, findSource } from '@/data/alerts';
 import { useToast } from '@/context/ToastContext';
 import { downloadCsv, downloadExcel } from '@/utils/export';
+import { weeklySeries } from '@/domain/metrics';
 import { formatCompactCurrency, formatCurrency, formatDate, formatNumber } from '@/utils/format';
 
 /**
@@ -48,6 +49,18 @@ export function AlertReporting() {
     missed: rows.filter((a) => a.outcome !== 'refunded').length,
     valueProtected: rows.filter((a) => a.outcome === 'refunded').reduce((s, a) => s + a.amount, 0),
   };
+
+  /* Alerts carry their own date, so every card in the strip has a real weekly
+     history rather than some cards being charted and others bare. */
+  const sparks = useMemo(() => {
+    const at = (a) => a.alertDate;
+    return {
+      total: weeklySeries(rows, 12, () => 1, () => true, at),
+      refunded: weeklySeries(rows, 12, () => 1, (a) => a.outcome === 'refunded', at),
+      missed: weeklySeries(rows, 12, () => 1, (a) => a.outcome !== 'refunded', at),
+      value: weeklySeries(rows, 12, (a) => a.amount, (a) => a.outcome === 'refunded', at),
+    };
+  }, [rows]);
 
   const columns = [
     { key: 'id', header: 'Alert ID', fw: 8, cell: (r) => <span className="mono strong">{r.id}</span> },
@@ -114,10 +127,10 @@ export function AlertReporting() {
 
       <div className="stack stack--tight">
         <div className="kpi-row">
-          <Kpi label="Decided alerts" value={formatNumber(totals.total)} meta={RANGES.find((r) => r.value === range)?.label.toLowerCase()} />
-          <Kpi label="Refunded" value={formatNumber(totals.refunded)} meta="chargeback stopped" />
-          <Kpi label="Missed" value={formatNumber(totals.missed)} meta="ineligible or expired" />
-          <Kpi label="Value protected" value={formatCompactCurrency(totals.valueProtected)} meta="in this range" />
+          <Kpi label="Decided alerts" value={formatNumber(totals.total)} meta={RANGES.find((r) => r.value === range)?.label.toLowerCase()} spark={sparks.total} />
+          <Kpi label="Refunded" value={formatNumber(totals.refunded)} meta="chargeback stopped" spark={sparks.refunded} />
+          <Kpi label="Missed" value={formatNumber(totals.missed)} meta="ineligible or expired" invert spark={sparks.missed} />
+          <Kpi label="Value protected" value={formatCompactCurrency(totals.valueProtected)} meta="in this range" spark={sparks.value} />
         </div>
 
         <Card bodyClassName="card__body--flush">

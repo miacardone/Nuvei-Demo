@@ -7,7 +7,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
 import useScopedCases from '@/hooks/useScopedCases';
 import { MERCHANTS } from '@/data/portfolio';
-import { caseKpis, rateTrend, weeklyRate } from '@/domain/metrics';
+import { caseKpis, rateTrend, weeklyRate, weeklySeries } from '@/domain/metrics';
 import { isClosed } from '@/domain/statuses';
 import { usePerspective } from '@/hooks/usePerspective';
 import { formatCompactCurrency, formatCurrency, formatNumber, formatPercent, formatShortDate } from '@/utils/format';
@@ -96,6 +96,18 @@ export function Risk() {
   const exposureSpark = useMemo(() => trend.map((t) => t.value), [trend]);
   const winRateSpark = useMemo(() => weeklyRate(CASES, 12, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
   const winRateTrend = useMemo(() => rateTrend(CASES, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
+  /* Every card in the strip carries a trend line, so the row reads as one
+     object rather than a mix of charted and uncharted cards. The ratio line
+     tracks the chargeback volume driving it; the flagged line tracks the case
+     volume of the merchants currently over the threshold. */
+  const ratioSpark = useMemo(
+    () => weeklySeries(CASES, 12, () => 1, (c) => c.caseType === 'chargeback'),
+    [CASES],
+  );
+  const flaggedSpark = useMemo(() => {
+    const ids = new Set(flagged.map((m) => m.id));
+    return weeklySeries(CASES, 12, () => 1, (c) => ids.has(c.merchantId));
+  }, [CASES, flagged]);
 
   const columns = [
     { key: 'name', header: 'Merchant', fw: 12, cell: (r) => <TruncatedText value={r.name} className="small strong" /> },
@@ -112,8 +124,8 @@ export function Risk() {
       <div className="stack">
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Portfolio exposure" value={formatCompactCurrency(portfolioExposure)} spark={exposureSpark} />
-          <Kpi label={`${subjectName} chargeback ratio`} value={formatPercent(subjectRatio, 2)} meta={subjectMeta} />
-          <Kpi label="Merchants flagged" value={formatNumber(flagged.length)} meta={`At or above ${formatPercent(RISK_THRESHOLD, 2)}`} />
+          <Kpi label={`${subjectName} chargeback ratio`} value={formatPercent(subjectRatio, 2)} meta={subjectMeta} invert spark={ratioSpark} />
+          <Kpi label="Merchants flagged" value={formatNumber(flagged.length)} meta={`At or above ${formatPercent(RISK_THRESHOLD, 2)}`} invert spark={flaggedSpark} />
           <Kpi label={`${subjectName} win rate`} value={formatPercent(flagshipKpis.winRate, 0)} meta={`${formatNumber(flagshipKpis.overdueCases)} overdue cases`} trend={winRateTrend} spark={winRateSpark} />
         </div>
 

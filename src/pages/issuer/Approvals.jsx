@@ -63,6 +63,14 @@ export function Approvals() {
 
   const countSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 12, () => 1, (a) => a.result === 'Approved', authDateOf), []);
   const valueSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 12, (a) => a.amount, (a) => a.result === 'Approved', authDateOf), []);
+  /* Average ticket is a mean, not a total, so it needs its own series rather
+     than reusing the value line — a rising total with rising volume can hide a
+     falling average. */
+  const avgTicketSpark = useMemo(() => {
+    const counts = weeklySeries(AUTHORIZATIONS, 12, () => 1, (a) => a.result === 'Approved', authDateOf);
+    const values = weeklySeries(AUTHORIZATIONS, 12, (a) => a.amount, (a) => a.result === 'Approved', authDateOf);
+    return values.map((v, i) => (counts[i] ? v / counts[i] : 0));
+  }, []);
   const cardholdersSpark = useMemo(() => {
     const now = Date.now();
     const DAY = 86_400_000;
@@ -98,7 +106,7 @@ export function Approvals() {
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Approvals" value={formatNumber(totals.count)} meta={`${formatNumber(AUTHORIZATIONS.length)} total attempts`} spark={countSpark} />
           <Kpi label="Approved value" value={formatCompactCurrency(totals.value)} spark={valueSpark} />
-          <Kpi label="Average ticket" value={formatCurrency(totals.avgTicket)} />
+          <Kpi label="Average ticket" value={formatCurrency(totals.avgTicket)} spark={avgTicketSpark} />
           <Kpi label="Cardholders active" value={formatNumber(totals.cardholders)} meta="Last 90 days" spark={cardholdersSpark} />
         </div>
 

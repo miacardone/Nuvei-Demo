@@ -87,6 +87,12 @@ export function Declines() {
     });
   }, []);
   const valueSpark = useMemo(() => weeklySeries(AUTHORIZATIONS, 12, (a) => a.amount, (a) => a.result === 'Declined', authDateOf), []);
+  /* The value is a reason name, so the line tracks how often that reason is
+     being hit — which is the thing worth watching about it. */
+  const topReasonSpark = useMemo(
+    () => weeklySeries(AUTHORIZATIONS, 12, () => 1, (a) => a.result === 'Declined' && a.declineReason === totals.topReason, authDateOf),
+    [totals.topReason],
+  );
 
   const columns = [
     { key: 'date', header: 'Date', fw: 8, sortable: true, cell: (r) => <span className="micro subtle nowrap">{formatDateTime(r.date)}</span> },
@@ -114,7 +120,7 @@ export function Declines() {
           <Kpi label="Declines" value={formatNumber(totals.count)} meta={`${formatNumber(AUTHORIZATIONS.length)} total attempts`} invert spark={countSpark} />
           <Kpi label="Decline rate" value={formatPercent(totals.declineRate, 1)} invert spark={rateSpark} />
           <Kpi label="Declined value" value={formatCompactCurrency(totals.value)} invert spark={valueSpark} />
-          <Kpi label="Top reason" value={totals.topReason} />
+          <Kpi label="Top reason" value={totals.topReason} meta="Most frequent decline reason" invert spark={topReasonSpark} />
         </div>
 
         <Card bodyClassName="card__body--flush">

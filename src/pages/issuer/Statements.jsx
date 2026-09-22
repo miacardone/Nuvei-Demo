@@ -10,6 +10,7 @@ import Icon from '@/components/ui/Icon';
 import { CARDHOLDERS, casesForCardholder } from '@/data/cardholders';
 import { authorizationsFor } from '@/data/authorizations';
 import { getStatus } from '@/domain/statuses';
+import { weeklySeries } from '@/domain/metrics';
 import { formatCompactCurrency, formatCurrency, formatDate, formatDateTime, formatNumber } from '@/utils/format';
 
 /**
@@ -102,6 +103,20 @@ export function Statements() {
     };
   }, [lines]);
 
+  /* Every card in the strip carries a trend line, drawn from the statement
+     lines themselves. The period and card-status cards used to carry a figure
+     that never moves, which is why they sat oddly next to the two that do —
+     they now report the activity behind them instead. */
+  const sparks = useMemo(() => {
+    const at = (l) => l.date;
+    return {
+      lines: weeklySeries(lines, 12, () => 1, (l) => l.kind !== 'declined', at),
+      charges: weeklySeries(lines, 12, (l) => l.amount, (l) => l.kind !== 'declined', at),
+      disputed: weeklySeries(lines, 12, (l) => l.amount, (l) => l.kind === 'disputed', at),
+      declined: weeklySeries(lines, 12, () => 1, (l) => l.kind === 'declined', at),
+    };
+  }, [lines]);
+
   const columns = [
     { key: 'date', header: 'Date', fw: 8, cell: (r) => <span className="micro subtle nowrap">{formatDateTime(r.date)}</span> },
     {
@@ -174,10 +189,10 @@ export function Statements() {
         {cardholder && (
           <>
             <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
-              <Kpi label="Statement period" value={`${STATEMENT_WINDOW_DAYS} days`} meta={`Through ${formatDate(new Date())}`} />
-              <Kpi label="Charges this period" value={formatCompactCurrency(totals.charges)} meta={`${formatNumber(totals.count)} line items`} />
-              <Kpi label="Disputed this period" value={formatCompactCurrency(totals.disputed)} meta={`${formatNumber(totals.disputedCount)} items flagged`} />
-              <Kpi label="Card status" value={cardholder.status} meta={`${cardholder.schemeLabel} · ${cardholder.cardType}`} />
+              <Kpi label="Posted line items" value={formatNumber(totals.count)} meta={`Last ${STATEMENT_WINDOW_DAYS} days, through ${formatDate(new Date())}`} spark={sparks.lines} />
+              <Kpi label="Charges this period" value={formatCompactCurrency(totals.charges)} meta={`${formatNumber(totals.count)} line items`} spark={sparks.charges} />
+              <Kpi label="Disputed this period" value={formatCompactCurrency(totals.disputed)} meta={`${formatNumber(totals.disputedCount)} items flagged`} invert spark={sparks.disputed} />
+              <Kpi label="Declined attempts" value={formatNumber(lines.filter((l) => l.kind === 'declined').length)} meta={`${cardholder.status} · ${cardholder.schemeLabel} ${cardholder.cardType}`} invert spark={sparks.declined} />
             </div>
 
             <Card
