@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Icon from '@/components/ui/Icon';
 import { Popover, Tooltip } from '@/components/ui/Overlay';
@@ -17,7 +17,7 @@ const NOTIFICATIONS = [
   { id: 'n3', title: 'Upload completed', detail: '147 of 148 rows imported.', hours: 6, read: true },
 ];
 
-function Topbar() {
+function Topbar({ onOpenNav }) {
   const { user, signOut } = useAuth();
   const brand = useBrand();
   const { routes, meta } = usePerspective();
@@ -29,6 +29,17 @@ function Topbar() {
 
   return (
     <header className="topbar">
+      {/* Only rendered as a control below the drawer breakpoint; CSS hides it
+          on wider screens where the rail is always visible. */}
+      <button
+        type="button"
+        className="topbar__menu"
+        onClick={onOpenNav}
+        aria-label="Open navigation"
+      >
+        <Icon name="menu" size={18} />
+      </button>
+
       <Tooltip label={`Open ${meta.label.toLowerCase()} home`} side="bottom">
         <button
           type="button"
@@ -111,22 +122,63 @@ function Topbar() {
   );
 }
 
+/* Two breakpoints, for two different problems.
+ *
+ *   < 1024  the rail costs more screen than it earns, so it collapses to icons
+ *   <  760  it cannot earn its place at all, so it becomes an overlay drawer
+ *
+ * The stored preference still wins on a wide screen; it is only overridden
+ * while the viewport is too narrow to honour it. */
+const COLLAPSE_AT = 1024;
+const DRAWER_AT = 760;
+
+function useViewport() {
+  const [width, setWidth] = useState(() => (typeof window === 'undefined' ? 1440 : window.innerWidth));
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return width;
+}
+
 export function AppLayout() {
-  const [collapsed, setCollapsed] = useState(() => readPref(SIDEBAR_KEY) === 'true');
+  const width = useViewport();
+  const [preferred, setPreferred] = useState(() => readPref(SIDEBAR_KEY) === 'true');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const isDrawer = width < DRAWER_AT;
+  const collapsed = isDrawer ? false : preferred || width < COLLAPSE_AT;
 
   const toggle = () => {
-    setCollapsed((c) => {
+    setPreferred((c) => {
       const next = !c;
       writePref(SIDEBAR_KEY, next);
       return next;
     });
   };
 
+  // A route change should not leave the drawer sitting open over the page.
+  const location = useLocation();
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+
   return (
-    <div className="shell">
-      <Sidebar collapsed={collapsed} onToggle={toggle} />
+    <div className={`shell ${isDrawer ? 'shell--drawer' : ''}`.trim()}>
+      {isDrawer && drawerOpen && (
+        <button
+          type="button"
+          className="shell__scrim"
+          aria-label="Close navigation"
+          onClick={() => setDrawerOpen(false)}
+        />
+      )}
+
+      <div className={`shell__rail ${isDrawer && drawerOpen ? 'is-open' : ''}`.trim()}>
+        <Sidebar collapsed={collapsed} onToggle={isDrawer ? () => setDrawerOpen(false) : toggle} />
+      </div>
+
       <div className="shell__main">
-        <Topbar />
+        <Topbar onOpenNav={() => setDrawerOpen(true)} />
         <main className="shell__content">
           <Outlet />
         </main>

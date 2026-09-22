@@ -1178,3 +1178,46 @@
 }
 .statement-hit:hover { color: var(--c-primary); }
 .statement-hit.is-active { color: var(--c-primary); font-weight: 600; }
+
+/* --- Responsive shell ---------------------------------------------------- *
+ * The rail is a column at desktop width and an overlay drawer on a phone.
+ * Below 760px it is taken out of flow entirely rather than shrunk, because a
+ * 236px rail against a 375px screen leaves 139px of content — technically
+ * present, practically unusable. */
+.shell__rail { display: contents; }
+
+.topbar__menu {
+  display: none;
+  border: 0; background: transparent; cursor: pointer;
+  padding: 6px; margin-right: 2px; border-radius: var(--r-sm);
+  color: var(--c-ink-muted);
+}
+.topbar__menu:hover { background: var(--c-surface-sunken); color: var(--c-ink); }
+
+@media (max-width: 760px) {
+  .shell--drawer .topbar__menu { display: inline-flex; }
+
+  .shell--drawer .shell__rail {
+    display: block;
+    position: fixed; inset: 0 auto 0 0; z-index: 60;
+    transform: translateX(-100%);
+    transition: transform var(--dur) var(--ease);
+    box-shadow: var(--shadow-card);
+  }
+  .shell--drawer .shell__rail.is-open { transform: translateX(0); }
+  .shell--drawer .shell__rail .rail { height: 100%; width: var(--rail-w); }
+
+  .shell__scrim {
+    position: fixed; inset: 0; z-index: 59;
+    border: 0; padding: 0; cursor: pointer;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  /* Give the content the space the rail gave up. */
+  .shell__content { padding: var(--s-4); }
+  .page-head__title { font-size: var(--fs-h1); }
+
+  /* Wide content scrolls inside its own card rather than stretching the page. */
+  .dt-wrap, .dt-wrap--fit { overflow-x: auto; }
+  .card__body--chart { overflow-x: auto; }
+}
