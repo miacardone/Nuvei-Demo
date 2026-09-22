@@ -41,8 +41,22 @@ export function DensityToggle({ value, onChange }) {
 
 /* ---------- Column toggle ---------- */
 
+/**
+ * `hidden` may arrive as a Set or as an array of column keys.
+ *
+ * The two conventions both exist across the pages this build was assembled
+ * from, and this component previously assumed a Set — so on any page holding
+ * an array, opening the popover threw `hidden.has is not a function` during
+ * render and took the whole app down with it. Rather than convert seventeen
+ * pages and leave the next one to guess, normalise here and hand the caller
+ * back the same shape it gave us.
+ */
 export function ColumnToggle({ columns, hidden, onChange }) {
-  const allVisible = hidden.size === 0;
+  const isSet = hidden instanceof Set;
+  const hiddenKeys = isSet ? hidden : new Set(hidden ?? []);
+  /** Emit in whichever shape the caller's state uses. */
+  const emit = (next) => onChange(isSet ? next : [...next]);
+  const allVisible = hiddenKeys.size === 0;
 
   return (
     <Popover
@@ -56,7 +70,7 @@ export function ColumnToggle({ columns, hidden, onChange }) {
         <>
           <div className="popover__label t-section-label">Columns</div>
           <label className="popover__item" style={{ borderBottom: '1px solid var(--c-line)' }}>
-            <input type="checkbox" className="checkbox" checked={allVisible} onChange={() => onChange(new Set())} />
+            <input type="checkbox" className="checkbox" checked={allVisible} onChange={() => emit(new Set())} />
             <span className="strong">All columns</span>
           </label>
           {columns.map((c) => (
@@ -64,12 +78,12 @@ export function ColumnToggle({ columns, hidden, onChange }) {
               <input
                 type="checkbox"
                 className="checkbox"
-                checked={!hidden.has(c.key)}
+                checked={!hiddenKeys.has(c.key)}
                 disabled={c.locked}
                 onChange={() => {
-                  const next = new Set(hidden);
+                  const next = new Set(hiddenKeys);
                   if (next.has(c.key)) next.delete(c.key); else next.add(c.key);
-                  onChange(next);
+                  emit(next);
                 }}
               />
               {c.header}

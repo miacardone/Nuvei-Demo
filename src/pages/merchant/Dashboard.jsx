@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { PageHeader, Card, Badge, Kpi } from '@/components/ui/Surface';
-import { BarChart, AreaChart, Donut, BarRows, LineChart, DotPlot } from '@/components/charts/Charts';
+import { BarChart, AreaChart, Donut, BarRows, LineChart, DeviationBars } from '@/components/charts/Charts';
 import { DataTable } from '@/components/ui/DataTable';
 import { TruncatedText } from '@/components/ui/Overlay';
 import useScopedCases from '@/hooks/useScopedCases';
+import { userByEmail } from '@/data/people';
 import { useBrand } from '@/brand/BrandProvider';
 import { isClosed } from '@/domain/statuses';
 import { analystActivity, caseActivityPerWeek, caseKpis, caseTypeTrend, countTrend, disputeOutcomes,
@@ -61,40 +62,88 @@ export function Dashboard() {
   const winRateSpark = useMemo(() => weeklyRate(CASES, 12, (c) => isClosed(c.status), (c) => c.outcome === 'won'), [CASES]);
   const mixSpark = useMemo(() => weeklySeries(CASES, 12, () => 1, (c) => c.caseType === 'claim'), [CASES]);
 
-  const activity = useMemo(() => caseActivityPerWeek(CASES, weeks), [weeks]);
-  const daily = useMemo(() => newCasesPerDay(CASES, days), [days]);
+  // Every one of these reads CASES, so CASES belongs in the dependency list.
+  // Without it the charts kept the figures from whichever merchant was in
+  // scope when the page first mounted, while the KPI strip above them updated
+  // — the same page showing two different books at once.
+  const activity = useMemo(() => caseActivityPerWeek(CASES, weeks), [CASES, weeks]);
+  const daily = useMemo(() => newCasesPerDay(CASES, days), [CASES, days]);
   const analysts = useMemo(() => analystActivity(CASES), [CASES]);
   const donuts = useMemo(
     () => brand.schemes.slice(0, 2).map((s) => ({ scheme: s, ...reasonCodeDonut(CASES, s.id) })),
-    [brand.schemes],
+    [CASES, brand.schemes],
   );
   const queueDepth = useMemo(
     () => [...totalsByQueue(CASES)].sort((a, b) => b.casesInQueue - a.casesInQueue).map((q) => ({ label: q.label, value: q.casesInQueue, meta: formatCompactCurrency(q.value) })),
-    [],
+    [CASES],
   );
   const outcomes = useMemo(() => disputeOutcomes(CASES), [CASES]);
   const docs = useMemo(() => documentProcessing(CASES), [CASES]);
 
-  const typeTrend = useMemo(() => caseTypeTrend(CASES, weeks), [weeks]);
+  const typeTrend = useMemo(() => caseTypeTrend(CASES, weeks), [CASES, weeks]);
 
   const typeSplit = useMemo(() => {
     const chargebacks = CASES.filter((c) => c.caseType === 'chargeback').length;
     const claims = CASES.length - chargebacks;
     return [
-      { label: brand.terms.chargebacks, value: chargebacks },
-      { label: brand.terms.claims, value: claims, color: 'var(--c-series-1)' },
+      { label: brand.terms.chargebacks, value: chargebacks, color: 'var(--c-series-0)' },
+      { label: brand.terms.claims, value: claims, color: 'var(--c-series-2)' },
     ];
   }, [brand.terms]);
 
+  // Sorted fastest first, so the bars read top-to-bottom as a ranking rather
+  // than as an arbitrary order. Real names, not the email local part — a
+  // column of `chris.sca…` was neither readable nor worth the space.
   const ahtByAnalyst = useMemo(
-    () => [...analysts].sort((a, b) => b.aht - a.aht).slice(0, 8).map((a) => ({ label: a.email.split('@')[0], value: Math.round(a.aht * 100) / 100 })),
+    () => [...analysts]
+      .sort((a, b) => a.aht - b.aht)
+      .slice(0, 8)
+      .map((a) => {
+        const u = userByEmail(a.email);
+        return {
+          label: u?.name ?? a.email.split('@')[0],
+          meta: `${formatNumber(a.casesPerUser)} cases`,
+          value: Math.round(a.aht * 100) / 100,
+        };
+      }),
     [analysts],
   );
 
   const analystColumns = [
-    { key: 'email', header: 'Email', fw: 14, cell: (r) => <TruncatedText value={r.email} className="mono" /> },
-    { key: 'aht', header: 'AHT (minutes)', fw: 7, align: 'right', cell: (r) => <span className="mono">{r.aht.toFixed(2)}</span> },
-    { key: 'casesPerUser', header: 'Cases per user', fw: 7, align: 'right', cell: (r) => <span className="mono">{formatNumber(r.casesPerUser)}</span> },
+    {
+      key: 'email', header: brand.terms.analyst, fw: 16,
+      cell: (r) => {
+        const u = userByEmail(r.email);
+        return (
+          <span className="row row--xtight row--nowrap" style={{ minWidth: 0 }}>
+            <span className="avatar avatar--sm avatar--tint">{u?.initials ?? '—'}</span>
+            <span className="stack stack--xtight" style={{ minWidth: 0 }}>
+              <span className="small strong truncate">{u?.name ?? r.email}</span>
+              <TruncatedText value={u?.title ?? r.email} className="micro subtle" />
+            </span>
+          </span>
+        );
+      },
+    },
+    { key: 'casesPerUser', header: 'Cases', fw: 6, align: 'right', cell: (r) => <span className="mono">{formatNumber(r.casesPerUser)}</span> },
+    { key: 'open', header: 'Open', fw: 6, align: 'right', cell: (r) => <span className="mono">{formatNumber(r.open)}</span> },
+    {
+      key: 'overdue', header: 'Overdue', fw: 7, align: 'right',
+      // Zero overdue is the good case and should not shout; anything above it
+      // is the number a supervisor is scanning this table for.
+      cell: (r) => (r.overdue > 0
+        ? <Badge tone="danger">{formatNumber(r.overdue)}</Badge>
+        : <span className="mono subtle">0</span>),
+    },
+    { key: 'closed', header: 'Closed', fw: 6, align: 'right', cell: (r) => <span className="mono">{formatNumber(r.closed)}</span> },
+    {
+      key: 'winRate', header: 'Win rate', fw: 7, align: 'right',
+      cell: (r) => (r.closed
+        ? <span className="mono">{formatPercent(r.winRate, 0)}</span>
+        : <span className="subtle">—</span>),
+    },
+    { key: 'aht', header: 'AHT (min)', fw: 7, align: 'right', cell: (r) => <span className="mono">{r.aht.toFixed(1)}</span> },
+    { key: 'exposure', header: 'Open exposure', fw: 8, align: 'right', cell: (r) => <span className="mono">{formatCompactCurrency(r.exposure)}</span> },
   ];
 
   return (
@@ -120,11 +169,11 @@ export function Dashboard() {
             data={activity}
             height={200}
             series={[
-              { key: 'completed', name: 'Completed', color: 'var(--c-series-4)' },
+              { key: 'completed', name: 'Completed', color: 'var(--c-series-1)' },
               { key: 'represented', name: 'Represented', color: 'var(--c-series-0)' },
-              { key: 'open', name: 'Open', color: 'var(--c-series-1)' },
+              { key: 'open', name: 'Open', color: 'var(--c-series-4)' },
               { key: 'expired', name: 'Expired', color: 'var(--c-series-3)' },
-              { key: 'rejected', name: 'Rejected', color: 'var(--c-nav-active)' },
+              { key: 'rejected', name: 'Rejected', color: 'var(--c-series-contrast)' },
             ]}
           />
         </Card>
@@ -168,8 +217,8 @@ export function Dashboard() {
               data={outcomes}
               height={200}
               series={[
-                { key: 'won', name: 'Won', color: 'var(--c-primary)' },
-                { key: 'lost', name: 'Lost', color: 'var(--c-nav-active)' },
+                { key: 'won', name: 'Won', color: 'var(--c-series-0)' },
+                { key: 'lost', name: 'Lost', color: 'var(--c-series-contrast)' },
                 { key: 'written_off', name: 'Written off', color: 'var(--c-series-neutral)' },
               ]}
             />
@@ -179,9 +228,9 @@ export function Dashboard() {
               data={docs}
               height={200}
               series={[
-                { key: 'received', name: 'Received', color: 'var(--c-primary)' },
+                { key: 'received', name: 'Received', color: 'var(--c-series-0)' },
                 { key: 'pending', name: 'Pending', color: 'var(--c-series-2)' },
-                { key: 'missing', name: 'Missing', color: 'var(--c-nav-active)' },
+                { key: 'missing', name: 'Missing', color: 'var(--c-series-contrast)' },
               ]}
             />
           </Card>
@@ -192,14 +241,25 @@ export function Dashboard() {
             data={typeTrend}
             height={200}
             series={[
-              { key: 'chargeback', name: brand.terms.chargebacks },
-              { key: 'claim', name: brand.terms.claims, color: 'var(--c-series-1)' },
+              // The same two categories carry the same two colours wherever
+              // they appear on this page — here and in the Intake Mix donut.
+              { key: 'chargeback', name: brand.terms.chargebacks, color: 'var(--c-series-0)' },
+              { key: 'claim', name: brand.terms.claims, color: 'var(--c-series-2)' },
             ]}
           />
         </Card>
 
-        <Card title={`Average Handle Time by ${brand.terms.analyst}`} description="Mean minutes spent per case, by analyst. Dashed line marks the team average." bodyClassName="card__body--chart">
-          <DotPlot data={ahtByAnalyst} yLabel="Minutes" />
+        <Card
+          title={`Average Handle Time by ${brand.terms.analyst}`}
+          description="Mean minutes per case, measured against the team average. Bars left of centre are faster than the team; bars right of centre are slower."
+        >
+          <DeviationBars
+            data={ahtByAnalyst}
+            unit=" min"
+            betterWhen="low"
+            averageLabel="Team average"
+            formatDelta={(n) => n.toFixed(1)}
+          />
         </Card>
 
         <Card title="Queue Depth" description="Open cases currently sitting in each queue.">

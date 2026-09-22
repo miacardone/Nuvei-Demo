@@ -113,13 +113,29 @@ export function reasonCodeDonut(cases, schemeId, topN = 5) {
 
 /** Analyst activity table — EMAIL / AHT (MINUTES) / CASES PER USER. */
 export function analystActivity(cases) {
+  const today = new Date().toISOString().slice(0, 10);
   const byUser = new Map();
 
   cases.forEach((c) => {
     if (c.worker === '—') return;
-    if (!byUser.has(c.worker)) byUser.set(c.worker, { email: c.worker, minutes: 0, handled: 0, cases: 0 });
+    if (!byUser.has(c.worker)) {
+      byUser.set(c.worker, {
+        email: c.worker, minutes: 0, handled: 0, cases: 0,
+        open: 0, overdue: 0, closed: 0, won: 0, exposure: 0,
+      });
+    }
     const row = byUser.get(c.worker);
     row.cases += 1;
+
+    if (isClosed(c.status)) {
+      row.closed += 1;
+      if (c.outcome === 'won') row.won += 1;
+    } else {
+      row.open += 1;
+      row.exposure += c.disputeAmount;
+      if (c.dueDate < today) row.overdue += 1;
+    }
+
     if (c.handlingMinutes > 0) {
       row.minutes += c.handlingMinutes;
       row.handled += 1;
@@ -127,7 +143,20 @@ export function analystActivity(cases) {
   });
 
   return [...byUser.values()]
-    .map((r) => ({ email: r.email, aht: r.handled ? r.minutes / r.handled : 0, casesPerUser: r.cases }))
+    .map((r) => ({
+      email: r.email,
+      aht: r.handled ? r.minutes / r.handled : 0,
+      casesPerUser: r.cases,
+      open: r.open,
+      overdue: r.overdue,
+      closed: r.closed,
+      won: r.won,
+      /** Win rate is over cases this analyst actually closed, so somebody
+       *  holding a big open book is not scored on work they have not finished.
+       *  Expressed 0-100 to match every other rate in this module. */
+      winRate: r.closed ? (r.won / r.closed) * 100 : 0,
+      exposure: Math.round(r.exposure * 100) / 100,
+    }))
     .sort((a, b) => b.casesPerUser - a.casesPerUser);
 }
 

@@ -26,7 +26,7 @@ export function ReportsCenter() {
     const totals = outcomes.reduce((s, w) => ({ won: s.won + w.won, lost: s.lost + w.lost, written_off: s.written_off + w.written_off }), { won: 0, lost: 0, written_off: 0 });
     return [
       { label: 'Won', value: totals.won, color: 'var(--c-success)' },
-      { label: 'Lost', value: totals.lost, color: 'var(--c-nav-active)' },
+      { label: 'Lost', value: totals.lost, color: 'var(--c-series-contrast)' },
       { label: 'Written off', value: totals.written_off, color: 'var(--c-series-neutral)' },
     ];
   }, [outcomes]);
@@ -88,7 +88,7 @@ export function ReportsCenter() {
             series={DUE_BUCKETS.map((b, i) => ({
               key: b.id,
               name: b.label,
-              color: b.id === 'pastDue' ? 'var(--c-nav-active)'
+              color: b.id === 'pastDue' ? 'var(--c-series-contrast)'
                 : b.id === 'd5plus' ? 'var(--c-series-neutral)'
                   : `var(--c-series-${i - 1})`,
             }))}

@@ -114,7 +114,7 @@ export function Reporting() {
             series={DUE_BUCKETS.map((b, i) => ({
               key: b.id,
               name: b.label,
-              color: b.id === 'pastDue' ? 'var(--c-nav-active)'
+              color: b.id === 'pastDue' ? 'var(--c-series-contrast)'
                 : b.id === 'd5plus' ? 'var(--c-series-neutral)'
                   : `var(--c-series-${i - 1})`,
             }))}

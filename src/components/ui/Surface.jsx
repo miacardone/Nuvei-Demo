@@ -282,7 +282,12 @@ export function Kpi({ label, value, meta, trend, invert = false, spark, tooltip 
               </span>
             )}
           </span>
-          {meta && <span className="kpi__meta">{meta}</span>}
+          {/* The meta line always occupies its row, even when a page passes
+              no meta. Without this, a card with a caption is one line taller
+              than the card beside it, and the sparkline baselines in a KPI
+              row no longer line up — which is what made the strip look
+              subtly different from page to page. */}
+          <span className="kpi__meta">{meta || ' '}</span>
         </div>
       </div>
       <KpiSpark data={spark} id={uid} />

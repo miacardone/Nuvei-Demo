@@ -272,7 +272,6 @@ export function PreDisputeAlerts() {
           density={density}
           rows={pageRows}
           rowKey={(r) => r.id}
-          density="fit"
           sort={sort}
           onSort={(key) => setSort((p) => (p.key === key ? { key, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }))}
           totals={{ keys: ['amount'], rows: sorted, label: `Total · ${formatNumber(sorted.length)} alert${sorted.length === 1 ? '' : 's'}` }}

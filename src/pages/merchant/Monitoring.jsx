@@ -103,7 +103,7 @@ export function Monitoring() {
           series={[
             { key: 'received', name: 'Received', color: 'var(--c-primary)' },
             { key: 'pending', name: 'Pending', color: 'var(--c-series-2)' },
-            { key: 'missing', name: 'Missing', color: 'var(--c-nav-active)' },
+            { key: 'missing', name: 'Missing', color: 'var(--c-series-contrast)' },
           ]}
         />
 
@@ -115,7 +115,7 @@ export function Monitoring() {
           totalsLabel="Outcome"
           series={[
             { key: 'won', name: 'Won', color: 'var(--c-primary)' },
-            { key: 'lost', name: 'Lost', color: 'var(--c-nav-active)' },
+            { key: 'lost', name: 'Lost', color: 'var(--c-series-contrast)' },
             { key: 'written_off', name: 'Written off', color: 'var(--c-series-neutral)' },
           ]}
         />

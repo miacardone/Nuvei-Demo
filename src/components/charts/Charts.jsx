@@ -21,6 +21,35 @@ const seriesColor = (i) => `var(--c-series-${i % 5})`;
 /** Axis ticks: at most this many, so a 28-day series does not print 28 labels. */
 const maxTicks = (width) => Math.max(4, Math.floor(width / 90));
 
+/**
+ * Marker shapes, assigned by series index alongside the colour ramp.
+ *
+ * Colour alone was carrying the whole burden of "which line is which", and on
+ * a line chart the reader has to match a 10px legend swatch to a 2px stroke
+ * several inches away. A shape survives that trip; a near-neighbour hue does
+ * not. It also means the chart still reads in grayscale and for a reader with
+ * colour-vision deficiency.
+ */
+const SERIES_SHAPES = ['circle', 'square', 'diamond', 'triangle', 'ring'];
+const seriesShape = (i) => SERIES_SHAPES[i % SERIES_SHAPES.length];
+
+/** One series marker centred on (cx, cy). `r` is the circle-equivalent radius;
+ *  the other shapes are scaled to carry roughly the same visual weight. */
+function SeriesMark({ shape, cx, cy, r, color }) {
+  switch (shape) {
+    case 'square':
+      return <rect x={cx - r * 0.92} y={cy - r * 0.92} width={r * 1.84} height={r * 1.84} rx={1} fill={color} />;
+    case 'diamond':
+      return <path d={`M${cx},${cy - r * 1.3}L${cx + r * 1.3},${cy}L${cx},${cy + r * 1.3}L${cx - r * 1.3},${cy}Z`} fill={color} />;
+    case 'triangle':
+      return <path d={`M${cx},${cy - r * 1.3}L${cx + r * 1.2},${cy + r * 0.9}L${cx - r * 1.2},${cy + r * 0.9}Z`} fill={color} />;
+    case 'ring':
+      return <circle cx={cx} cy={cy} r={r * 0.85} fill="var(--c-surface)" stroke={color} strokeWidth={2.5} />;
+    default:
+      return <circle cx={cx} cy={cy} r={r} fill={color} />;
+  }
+}
+
 /* ---------- Legend ---------- */
 
 export function Legend({ items, className = '' }) {
@@ -28,7 +57,13 @@ export function Legend({ items, className = '' }) {
     <ul className={`legend ${className}`.trim()} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
       {items.map((it) => (
         <li key={it.label} className="legend__item">
-          <span className="legend__swatch" style={{ background: it.color }} />
+          {it.shape ? (
+            <svg width={11} height={11} viewBox="0 0 11 11" className="legend__mark" aria-hidden>
+              <SeriesMark shape={it.shape} cx={5.5} cy={5.5} r={4.4} color={it.color} />
+            </svg>
+          ) : (
+            <span className="legend__swatch" style={{ background: it.color }} />
+          )}
           {it.label}
           {it.value != null && <span className="mono strong" style={{ marginLeft: 4 }}>{it.value}</span>}
         </li>
@@ -323,11 +358,20 @@ export function Donut({
 
 /* ---------- Horizontal bar rows ---------- */
 
-export function BarRows({ rows, formatValue = formatNumber }) {
+/**
+ * Ranked horizontal bars.
+ *
+ * One colour, deliberately. The bar length already carries the value, so
+ * cycling the series ramp down the rows added a second encoding that meant
+ * nothing — and with eight rows it walked through near-neighbour tints that
+ * looked like they were signalling something. A row can still override with
+ * `row.color` when the colour genuinely carries meaning.
+ */
+export function BarRows({ rows, formatValue = formatNumber, color = 'var(--c-series-0)' }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
     <div className="stack stack--tight">
-      {rows.map((row, i) => (
+      {rows.map((row) => (
         <div key={row.label} className="stack" style={{ gap: 3 }}>
           <div className="row row--between row--nowrap">
             <span className="small truncate">{row.label}</span>
@@ -337,7 +381,7 @@ export function BarRows({ rows, formatValue = formatNumber }) {
             </span>
           </div>
           <div className="meter">
-            <div className="meter__fill" style={{ width: `${(row.value / max) * 100}%`, background: row.color ?? seriesColor(i) }} />
+            <div className="meter__fill" style={{ width: `${(row.value / max) * 100}%`, background: row.color ?? color }} />
           </div>
         </div>
       ))}
@@ -383,14 +427,14 @@ export function LineChart({
         {series.map((s, si) => {
           const line = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i)},${y(d[s.key] ?? 0)}`).join(' ');
           const color = s.color ?? seriesColor(si);
+          const shape = s.shape ?? seriesShape(si);
           return (
             <g key={s.key}>
               <path d={line} className="chart__line" stroke={color} />
               {data.map((d, i) => (
-                <circle
-                  key={i} cx={x(i)} cy={y(d[s.key] ?? 0)}
-                  r={hover === i ? 5.5 : 4} fill={color}
-                  style={{ transition: 'r 120ms var(--ease)' }}
+                <SeriesMark
+                  key={i} shape={shape} cx={x(i)} cy={y(d[s.key] ?? 0)}
+                  r={hover === i ? 5.5 : 4} color={color}
                 />
               ))}
             </g>
@@ -426,7 +470,10 @@ export function LineChart({
           {series.map((s, si) => (
             <div key={s.key} className="row row--between row--nowrap" style={{ gap: 10 }}>
               <span className="row row--xtight row--nowrap">
-                <span className="legend__swatch" style={{ background: s.color ?? seriesColor(si) }} />{s.name}
+                <svg width={11} height={11} viewBox="0 0 11 11" className="legend__mark" aria-hidden>
+                  <SeriesMark shape={s.shape ?? seriesShape(si)} cx={5.5} cy={5.5} r={4.4} color={s.color ?? seriesColor(si)} />
+                </svg>
+                {s.name}
               </span>
               <span className="mono strong">{formatValue(data[hover][s.key] ?? 0)}</span>
             </div>
@@ -435,7 +482,7 @@ export function LineChart({
       )}
 
       {legend && series.length > 1 && (
-        <Legend items={series.map((s, i) => ({ label: s.name, color: s.color ?? seriesColor(i) }))} />
+        <Legend items={series.map((s, i) => ({ label: s.name, color: s.color ?? seriesColor(i), shape: s.shape ?? seriesShape(i) }))} />
       )}
     </div>
   );
@@ -500,6 +547,91 @@ export function DotPlot({ data, xKey = 'label', valueKey = 'value', height = 220
           <span className="mono">{formatValue(data[hover][valueKey] ?? 0)}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- Diverging deviation bars ---------- */
+
+/**
+ * One row per category, each bar measured from the group average rather than
+ * from zero.
+ *
+ * A dot plot of eight analysts whose handle times sit within a few minutes of
+ * each other is a row of dots at the same height: technically accurate, and it
+ * tells the reader nothing. Re-centring on the average turns the same numbers
+ * into the question people actually have — who is faster than the team, who is
+ * slower, and by how much — and the bars separate because the scale is now the
+ * spread, not the absolute value.
+ *
+ * Laid out in HTML rather than SVG so names wrap and never truncate; the
+ * truncated `chris.sca…` labels were a symptom of forcing names into fixed
+ * SVG slots.
+ *
+ * `betterWhen` says which side of the average is good, so the colouring is a
+ * judgement the caller makes, not one this component assumes.
+ */
+export function DeviationBars({
+  data, valueKey = 'value', labelKey = 'label',
+  average, unit = '', formatValue = formatNumber, formatDelta,
+  betterWhen = 'low', averageLabel = 'Team average',
+}) {
+  if (!data?.length) return null;
+
+  const values = data.map((d) => d[valueKey] ?? 0);
+  const avg = average ?? values.reduce((s, v) => s + v, 0) / values.length;
+  const maxDev = Math.max(...values.map((v) => Math.abs(v - avg))) || 1;
+  const showDelta = formatDelta ?? formatValue;
+  /* The longest bar stops short of the track edge so its delta label still has
+     somewhere to sit — at a full 50% it collided with the name column. */
+  const REACH = 46;
+
+  return (
+    <div className="deviation">
+      <div className="deviation__scale">
+        <div className="deviation__scale-inner">
+          <span className="micro subtle">{betterWhen === 'low' ? 'Faster' : 'Lower'}</span>
+          <span className="deviation__avg-label micro">
+            {averageLabel} · <span className="mono strong">{formatValue(Math.round(avg * 100) / 100)}{unit}</span>
+          </span>
+          <span className="micro subtle">{betterWhen === 'low' ? 'Slower' : 'Higher'}</span>
+        </div>
+      </div>
+
+      {data.map((d) => {
+        const value = d[valueKey] ?? 0;
+        const dev = value - avg;
+        const good = betterWhen === 'low' ? dev <= 0 : dev >= 0;
+        const width = (Math.abs(dev) / maxDev) * REACH;
+        return (
+          <div key={d[labelKey]} className="deviation__row">
+            <div className="deviation__who">
+              <span className="deviation__name">{d[labelKey]}</span>
+              {d.meta && <span className="deviation__meta micro subtle">{d.meta}</span>}
+            </div>
+
+            <div className="deviation__track">
+              <span className="deviation__centre" />
+              <span
+                className={`deviation__bar ${good ? 'deviation__bar--good' : 'deviation__bar--bad'}`}
+                style={dev < 0
+                  ? { right: '50%', width: `${width}%` }
+                  : { left: '50%', width: `${width}%` }}
+              />
+              <span
+                className="deviation__delta micro mono"
+                style={dev < 0
+                  ? { right: `calc(50% + ${width}% + 6px)` }
+                  : { left: `calc(50% + ${width}% + 6px)` }}
+              >
+                {dev >= 0 ? '+' : '−'}{showDelta(Math.round(Math.abs(dev) * 10) / 10)}
+              </span>
+            </div>
+
+            <span className="deviation__value mono small strong">{formatValue(Math.round(value * 100) / 100)}{unit}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
