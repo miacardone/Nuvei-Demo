@@ -310,11 +310,16 @@ export function AlertSettings() {
         <div style={{ padding: '0 var(--s-4)' }}>
           <Tabs tabs={TABS} value={tab} onChange={setTab} />
         </div>
-        <div style={{ padding: 'var(--s-4)' }}>
-          {tab === 'recipients' && <RecipientsTab />}
-          {tab === 'identifiers' && <IdentifiersTab />}
-          {tab === 'selfService' && <SelfServiceTab />}
-        </div>
+        {/* The two table tabs sit flush: TableToolbar carries its own padding
+            and its own full-bleed bottom rule, so wrapping them in a padded
+            box stacked the two paddings and left the rule floating short of
+            the card edges. Self-service renders its own cards, so it keeps
+            the padding. */}
+        {tab === 'recipients' && <RecipientsTab />}
+        {tab === 'identifiers' && <IdentifiersTab />}
+        {tab === 'selfService' && (
+          <div style={{ padding: 'var(--s-4)' }}><SelfServiceTab /></div>
+        )}
       </Card>
     </>
   );

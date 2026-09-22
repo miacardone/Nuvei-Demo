@@ -70,7 +70,19 @@ export function ColumnToggle({ columns, hidden, onChange }) {
         <>
           <div className="popover__label t-section-label">Columns</div>
           <label className="popover__item" style={{ borderBottom: '1px solid var(--c-line)' }}>
-            <input type="checkbox" className="checkbox" checked={allVisible} onChange={() => emit(new Set())} />
+            {/* Ticking shows everything; unticking hides everything it is
+                allowed to. Before, both directions emitted an empty set, so
+                the box could be unticked but nothing happened — it only ever
+                selected all, never cleared. Locked columns stay put, so the
+                table can never be left with no columns at all. */}
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={allVisible}
+              onChange={() => emit(allVisible
+                ? new Set(columns.filter((c) => !c.locked && !c.pinned).map((c) => c.key))
+                : new Set())}
+            />
             <span className="strong">All columns</span>
           </label>
           {columns.map((c) => (
