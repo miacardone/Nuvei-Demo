@@ -13,7 +13,7 @@ import { DEFAULT_PERSPECTIVE } from '@/data/perspectives';
 const POINTS = [
   { icon: 'layers', title: 'One queue, two intake paths', body: `Card chargebacks and ${brand.terms.claimProgramme} claims in a single book.` },
   { icon: 'link', title: 'Consolidation built in', body: `Linked disputes surface before the same ${brand.terms.order} is refunded twice.` },
-  { icon: 'briefcase', title: 'Three perspectives, one case', body: 'Switch between merchant, acquirer and issuer without signing in again.' },
+  { icon: 'briefcase', title: 'One portfolio, one picture', body: 'Scope the whole console to a merchant or merchant group in a single click.' },
 ];
 
 const HOME_ROUTE = landingRouteFor(DEFAULT_PERSPECTIVE);

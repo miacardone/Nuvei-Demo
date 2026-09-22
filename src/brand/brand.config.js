@@ -70,7 +70,7 @@ export const nuveiBrand = {
   productName: 'Dispute Console',
   legalName: 'Nuvei Corporation',
   shortName: 'NUV',
-  tagline: 'Chargebacks and cardholder claims in one operational queue — across merchant, acquirer and issuer.',
+  tagline: 'Chargebacks and cardholder claims in one operational queue — across every merchant you process for.',
   supportEmail: 'disputes@nuvei.example',
   emailDomain: 'nuvei.example',
 
