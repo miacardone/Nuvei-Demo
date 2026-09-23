@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Badge } from '@/components/ui/Surface';
 import Icon from '@/components/ui/Icon';
 import { COMMAND_EXAMPLES, parseCommand } from '@/domain/command-parser';
@@ -17,10 +17,22 @@ import { COMMAND_EXAMPLES, parseCommand } from '@/domain/command-parser';
  * The parse is a vocabulary scan, not a model — same sentence, same rule,
  * every time, and a wrong result is something you can point at.
  */
-export function CommandBar({ onParsed }) {
-  const [text, setText] = useState('');
+export function CommandBar({ onParsed, initialQuery = '' }) {
+  const [text, setText] = useState(initialQuery);
   const [result, setResult] = useState(null);
   const [missed, setMissed] = useState(false);
+
+  /* Arriving from site search with a question already typed: run it once so
+     the reader lands on the answer rather than on a filled box they still
+     have to press a button on. Guarded so it cannot re-fire on every render. */
+  const ranInitial = useRef(false);
+  useEffect(() => {
+    if (initialQuery && !ranInitial.current) {
+      ranInitial.current = true;
+      run(initialQuery);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
   const run = (value) => {
     const query = value ?? text;

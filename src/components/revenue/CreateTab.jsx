@@ -183,7 +183,7 @@ export function CreateTab({ prefill, onSaved }) {
   const [values, setValues] = useState({});
   const [selected, setSelected] = useState(new Set());
   const [confirming, setConfirming] = useState(false);
-  const [starter, setStarter] = useState(null);
+  const [starter, setStarter] = useState(prefill.starter ?? null);
   /* The questionnaire is hidden until it is actually wanted. It appears when
      you choose to build by hand, and also the moment a command or a quick
      start fills it in — because the whole point of those two is that they
@@ -426,7 +426,7 @@ export function CreateTab({ prefill, onSaved }) {
             ))}
           </div>
 
-          {starter === 'describe' && <CommandBar onParsed={fillFrom} />}
+          {starter === 'describe' && <CommandBar onParsed={fillFrom} initialQuery={prefill.askQuery ?? ''} />}
 
           {starter === 'quick' && (
             <div className="quickstarts">

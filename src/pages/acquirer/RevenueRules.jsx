@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader, Card, Tabs } from '@/components/ui/Surface';
 import Icon from '@/components/ui/Icon';
 import SuggestionsTab from '@/components/revenue/SuggestionsTab';
@@ -40,9 +41,27 @@ export function RevenueRules() {
   const saved = useSavedSuggestions();
   const standingRules = useStandingRules();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [tab, setTab] = useState('suggestions');
   const [prefill, setPrefill] = useState({ ctx: { settingsFor } });
   const [seed, setSeed] = useState(0);
+
+  /* Arriving from site search with a question attached: open Create on the
+     Describe it route with the sentence already in the bar, which runs it and
+     lands the reader on the answer. The parameter is cleared afterwards so a
+     refresh does not keep re-asking a question they have moved on from. */
+  useEffect(() => {
+    const ask = searchParams.get('ask');
+    if (!ask) return;
+    setPrefill({ ctx: { settingsFor }, starter: 'describe', askQuery: ask });
+    setSeed((n) => n + 1);
+    setTab('create');
+    const next = new URLSearchParams(searchParams);
+    next.delete('ask');
+    setSearchParams(next, { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const openInCreate = (next) => {
     setPrefill({ ctx: { settingsFor }, ...next });

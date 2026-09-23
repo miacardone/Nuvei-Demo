@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Icon from '@/components/ui/Icon';
+import OmniSearch from '@/components/layout/OmniSearch';
 import { Popover, Tooltip } from '@/components/ui/Overlay';
 import { useAuth } from '@/context/AuthContext';
 import { useBrand } from '@/brand/BrandProvider';
@@ -39,6 +40,11 @@ function Topbar({ onOpenNav }) {
       >
         <Icon name="menu" size={18} />
       </button>
+
+      {/* The search sits first and widest — it is the fastest route to
+          anywhere on the site, so it should look like the main control in the
+          bar rather than an afterthought beside the notifications bell. */}
+      <OmniSearch />
 
       <Tooltip label={`Open ${meta.label.toLowerCase()} home`} side="bottom">
         <button
