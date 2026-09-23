@@ -49,7 +49,7 @@ const acquirerRoutes = {
   portfolioMerchants: '/acquirer/portfolio/merchants',
   onboarding: '/acquirer/portfolio/onboarding',
   underwriting: '/acquirer/portfolio/underwriting',
-  revenueRules: '/acquirer/portfolio/revenue-rules',
+  revenueRules: '/acquirer/revenue-rules',
 
   /* Two products that both say "alert" — see the note in the nav below. */
   alerts: '/acquirer/alerts',
@@ -113,9 +113,9 @@ const acquirerNav = [
       { label: 'Merchants', path: acquirerRoutes.portfolioMerchants, icon: 'table', permission: 'Portfolio Merchants', area: 'Portfolio' },
       { label: 'Onboarding', path: acquirerRoutes.onboarding, icon: 'upload', permission: 'Onboarding', area: 'Portfolio' },
       { label: 'Underwriting', path: acquirerRoutes.underwriting, icon: 'searchCheck', permission: 'Underwriting', area: 'Portfolio' },
-      { label: 'Revenue rules', path: acquirerRoutes.revenueRules, icon: 'chart', permission: 'Portfolio Merchants', area: 'Portfolio' },
     ],
   },
+  { label: 'Revenue rules', path: acquirerRoutes.revenueRules, icon: 'chart', permission: 'Portfolio Merchants', area: 'Portfolio' },
   {
     label: 'Alerts',
     path: '/acquirer/alerts-group',

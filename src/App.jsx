@@ -121,7 +121,9 @@ export function App() {
                 <Route path="portfolio/merchants" element={<PortfolioMerchants />} />
                 <Route path="portfolio/onboarding" element={<Onboarding />} />
                 <Route path="portfolio/underwriting" element={<Underwriting />} />
-                <Route path="portfolio/revenue-rules" element={<RevenueRules />} />
+                <Route path="revenue-rules" element={<RevenueRules />} />
+                {/* Briefly shipped nested under Portfolio. */}
+                <Route path="portfolio/revenue-rules" element={<Navigate to="/acquirer/revenue-rules" replace />} />
                 <Route path="disputes/cases" element={<CaseManagement />} />
                 <Route path="disputes/representment" element={<Representment />} />
                 <Route path="risk" element={<Risk />} />
