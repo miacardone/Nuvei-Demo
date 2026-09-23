@@ -1751,3 +1751,20 @@
   .omni-trigger__text, .omni-trigger .omni__kbd { display: none; }
   .omni__backdrop { padding: var(--s-4) var(--s-2); }
 }
+
+/* Text shortcuts in the top bar. Extracted from a repeated inline style
+   object — two copies of the same five declarations is how they drift apart. */
+.topbar__link {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--c-ink-muted); font-family: inherit; font-size: var(--fs-small);
+  padding: 4px 6px; border-radius: var(--r-sm); white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.topbar__link:hover { color: var(--c-primary); background: var(--c-primary-wash); }
+
+/* Below the drawer breakpoint the bar is tight, so the shortcuts collapse to
+   their icons rather than pushing the search box off the screen. */
+@media (max-width: 860px) {
+  .topbar__link { font-size: 0; gap: 0; padding: 4px; }
+}

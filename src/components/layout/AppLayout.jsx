@@ -46,14 +46,20 @@ function Topbar({ onOpenNav }) {
           bar rather than an afterthought beside the notifications bell. */}
       <OmniSearch />
 
+      {/* Two shortcuts to the screens people open most. The icons are the
+          same ones those screens carry in the rail, so the association is
+          learned once — which is also why "View my stats" now takes the
+          dashboard glyph it actually navigates to, rather than the bar chart
+          that belongs to Revenue rules. */}
       <Tooltip label={`Open ${meta.label.toLowerCase()} home`} side="bottom">
-        <button
-          type="button"
-          className="row row--xtight"
-          style={{ border: 0, background: 'transparent', cursor: 'pointer', color: 'var(--c-ink-muted)', fontSize: 'var(--fs-small)' }}
-          onClick={() => navigate(homeRoute)}
-        >
-          <Icon name="chart" size={15} /> View my stats
+        <button type="button" className="topbar__link" onClick={() => navigate(homeRoute)}>
+          <Icon name="dashboard" size={15} /> View my stats
+        </button>
+      </Tooltip>
+
+      <Tooltip label="Ask what your merchants could be worth, and act on it" side="bottom">
+        <button type="button" className="topbar__link" onClick={() => navigate(routes.revenueRules)}>
+          <Icon name="chart" size={15} /> Revenue rules
         </button>
       </Tooltip>
 
