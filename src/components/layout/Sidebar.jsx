@@ -7,6 +7,7 @@ import { Popover, Tooltip } from '@/components/ui/Overlay';
 import { useBrand } from '@/brand/BrandProvider';
 import { usePerspective } from '@/hooks/usePerspective';
 import { MERCHANTS, MERCHANT_GROUPS } from '@/data/portfolio';
+import { PORTFOLIO_TOTAL } from '@/data/merchants';
 import { labelFor, merchantIdsFor, setScope } from '@/data/merchant-scope';
 import useMerchantScope from '@/hooks/useMerchantScope';
 
@@ -150,7 +151,7 @@ function ScopePickerBody({ scope, close }) {
             onClick={() => pick({ kind: 'all' })}
             icon="layers"
             title="All merchants"
-            meta={`Whole portfolio · ${MERCHANTS.length} merchants`}
+            meta={`Whole portfolio · ${PORTFOLIO_TOTAL} merchants`}
           />
           <div style={{ padding: '8px 10px 2px' }} className="micro subtle">Groups</div>
           {MERCHANT_GROUPS.map((g) => {
@@ -199,7 +200,7 @@ function MerchantScopePicker({ collapsed }) {
   const label = labelFor(scope);
   const sub =
     scope.kind === 'all'
-      ? `${MERCHANTS.length} merchants`
+      ? `${PORTFOLIO_TOTAL} merchants`
       : scope.kind === 'group'
         ? `${merchantIdsFor(scope)?.length ?? 0} merchants`
         : MERCHANTS.find((m) => m.id === scope.id)?.vertical ?? '';
@@ -209,7 +210,7 @@ function MerchantScopePicker({ collapsed }) {
       <button type="button" className="rail__perspective-btn" onClick={toggle} aria-label="Change merchant scope">
         <Icon name={scope.kind === 'merchant' ? 'briefcase' : 'layers'} size={15} style={{ color: 'var(--c-nav-active)' }} />
         {!collapsed && (
-          <span style={{ minWidth: 0, textAlign: 'left' }}>
+          <span style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
             <span className="rail__perspective-label">{label}</span>
             <span className="rail__perspective-sub">{sub}</span>
           </span>

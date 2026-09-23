@@ -122,6 +122,7 @@ export function RuleGroups() {
   const [density, setDensity] = useState('comfortable');
   const [hidden, setHidden] = useState(new Set());
   const [draggingId, setDraggingId] = useState(null);
+  const [search, setSearch] = useState('');
 
   const group = groups.find((g) => g.id === activeId) ?? groups[0];
   const groupRules = useMemo(() => rules.filter((r) => r.groupId === group.id), [rules, group.id]);
@@ -145,7 +146,7 @@ export function RuleGroups() {
       key: 'sortOrder', header: 'Sort order', fw: 6, width: '96px',
       cell: (r) => (
         <span className="row row--xtight row--nowrap">
-          <span className="drag-handle"><Icon name="drag" size={12} /></span>
+          {!filtering && <span className="drag-handle"><Icon name="drag" size={12} /></span>}
           <span className="mono small">{r.parentId ? '↳ ' : ''}{numbers.get(r.id)}</span>
         </span>
       ),
@@ -199,8 +200,19 @@ export function RuleGroups() {
 
 
   // Per-column advanced search, same control on every table.
-
   const advanced = useAdvancedFilters(columns);
+
+  /* Rules run in order, and dragging one moves it relative to the rows either
+     side of it. A search or filter hides rows, so a drop onto a shortened list
+     would land the rule somewhere the reader did not choose — dragging is
+     therefore switched off while either is on, rather than silently
+     misplacing rules. */
+  const q = search.trim().toLowerCase();
+  const searched = q
+    ? ordered.filter((r) => `${r.name} ${r.description} ${r.criteria.map(describeCriterion).join(' ')}`.toLowerCase().includes(q))
+    : ordered;
+  const visibleRules = advanced.apply(searched);
+  const filtering = advanced.count > 0 || q.length > 0;
 
 
   return (
@@ -264,16 +276,23 @@ export function RuleGroups() {
 
           <Card bodyClassName="card__body--flush">
             <TableToolbar
+              search={search}
+              onSearch={setSearch}
+              searchPlaceholder="Search rules…"
               onAdvanced={advanced.onAdvanced}
               advancedCount={advanced.count}
-              afterSearch={<span className="t-section-label">Rules &amp; execution order</span>}
+              afterSearch={
+                <span className="t-section-label">
+                  {filtering ? 'Rules — filtered, reordering paused' : 'Rules & execution order'}
+                </span>
+              }
               density={density}
               onDensityChange={setDensity}
               columns={columns}
               hidden={hidden}
               onHiddenChange={setHidden}
               exportColumns={visible}
-              exportRows={ordered}
+              exportRows={visibleRules}
               exportName={`rules-${group.id}`}
               onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
               extras={<Button variant="primary" size="sm" icon="plus" onClick={() => navigate(`${routes.addRule}?groupId=${group.id}`)}>Add Rule</Button>}
@@ -282,9 +301,9 @@ export function RuleGroups() {
             <DataTable
               density={density}
               columns={visible}
-              rows={ordered}
+              rows={visibleRules}
               rowKey={(r) => r.id}
-              rowDrag={{
+              rowDrag={filtering ? undefined : {
                 draggingId,
                 blockIds: draggingId ? blockFor(groupRules, draggingId) : new Set(),
                 onDragStart: setDraggingId,

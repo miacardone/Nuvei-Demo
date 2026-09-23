@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
 import { ACQUIRER_NAME, MERCHANTS } from '@/data/portfolio';
+import { PORTFOLIO_TOTAL } from '@/data/merchants';
 import { CASES } from '@/data/cases';
 import { weeklySeries } from '@/domain/metrics';
 import { isClosed } from '@/domain/statuses';
@@ -222,7 +223,7 @@ export function PortfolioMerchants() {
 
       <div className="stack">
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
-          <Kpi label="Merchants" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} spark={sparks.merchantCount} />
+          <Kpi label="Merchants" value={formatNumber(PORTFOLIO_TOTAL)} meta={`${formatNumber(totals.count)} with dispute activity`} spark={sparks.merchantCount} />
           <Kpi label="Portfolio exposure" value={formatCompactCurrency(totals.exposure)} meta="Open case value across the book" spark={sparks.exposure} />
           <Kpi label="Flagged for review" value={formatNumber(totals.flagged)} meta="Under review or suspended" spark={sparks.flagged} />
           <Kpi label="Avg. chargeback ratio" value={formatPercent(totals.avgRatio, 2)} meta="Across processing merchants" spark={sparks.ratio} />

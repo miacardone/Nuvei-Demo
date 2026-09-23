@@ -63,7 +63,6 @@ export function Cardholders() {
     return rows;
   }, [filtered, sort]);
 
-  const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const totals = useMemo(() => ({
     count: BOOK.length,
@@ -123,6 +122,14 @@ export function Cardholders() {
   // Per-column advanced search, same control on every table.
 
   const advanced = useAdvancedFilters(columns);
+  /* The advanced filters have to actually be applied — they were collected and
+     counted but never used, so setting one changed the badge and nothing else.
+     Paging happens after the filter, or you page through excluded rows. */
+  const visibleRows = useMemo(() => advanced.apply(sorted), [advanced, sorted]);
+  const pageRows = useMemo(
+    () => visibleRows.slice((page - 1) * pageSize, page * pageSize),
+    [visibleRows, page, pageSize],
+  );
 
   return (
     <>
@@ -152,7 +159,7 @@ export function Cardholders() {
             hidden={hidden}
             onHiddenChange={setHidden}
             exportColumns={visibleColumns}
-            exportRows={sorted}
+            exportRows={visibleRows}
             exportName="cardholders"
             onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
           />
@@ -167,7 +174,7 @@ export function Cardholders() {
             onRowClick={(row) => setDetail(row)}
           />
 
-          <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+          <Pagination total={visibleRows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
 

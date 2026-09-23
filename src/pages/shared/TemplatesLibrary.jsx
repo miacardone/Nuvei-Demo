@@ -138,7 +138,7 @@ export function TemplatesLibrary() {
               onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
             />
 
-          <DataTable columns={columns} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} density={density} />
+          <DataTable columns={columns} rows={advanced.apply(sortedRows)} sort={sort} onSort={onSort} rowKey={(r) => r.id} density={density} />
         </Card>
       </div>
 

@@ -391,11 +391,11 @@ export function Users() {
                     hidden={hidden}
                     onHiddenChange={setHidden}
                     exportColumns={visibleColumns.filter((c) => c.key !== 'actions')}
-                    exportRows={filteredUsers}
+                    exportRows={advanced.apply(filteredUsers)}
                     exportName="users"
                     onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
                   />
-                <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(u) => u.id} />
+                <DataTable columns={visibleColumns} density={density} rows={advanced.apply(sortedRows)} sort={sort} onSort={onSort} rowKey={(u) => u.id} />
               </>
             )}
             {subTab === 'roles' && <DataTable columns={roleColumns} rows={ROLES} rowKey={(r) => r.id} />}

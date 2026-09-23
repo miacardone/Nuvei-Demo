@@ -66,7 +66,6 @@ export function Settlement() {
     return rows;
   }, [filtered, sort]);
 
-  const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const kpis = useMemo(() => settlementKpis(BATCHES), [BATCHES]);
   const scopedKpis = useMemo(() => settlementKpis(filtered), [filtered]);
@@ -94,6 +93,14 @@ export function Settlement() {
   // Per-column advanced search, same control on every table.
 
   const advanced = useAdvancedFilters(columns);
+  /* The advanced filters have to actually be applied — they were collected and
+     counted but never used, so setting one changed the badge and nothing else.
+     Paging happens after the filter, or you page through excluded rows. */
+  const visibleRows = useMemo(() => advanced.apply(sorted), [advanced, sorted]);
+  const pageRows = useMemo(
+    () => visibleRows.slice((page - 1) * pageSize, page * pageSize),
+    [visibleRows, page, pageSize],
+  );
 
 
   return (
@@ -122,7 +129,7 @@ export function Settlement() {
               hidden={hidden}
               onHiddenChange={setHidden}
               exportColumns={visibleColumns}
-              exportRows={sorted}
+              exportRows={visibleRows}
               exportName="settlement-batches"
               onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
             />
@@ -142,7 +149,7 @@ export function Settlement() {
             onSort={(key) => setSort((p) => (p.key === key ? { key, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }))}
           />
 
-          <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+          <Pagination total={visibleRows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
       {advanced.modal}

@@ -209,7 +209,7 @@ export function AlertCaseWork() {
               hidden={hidden}
               onHiddenChange={setHidden}
               exportColumns={visibleColumns}
-              exportRows={filtered}
+              exportRows={advanced.apply(filtered)}
               exportName="alerts"
               onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
               extras={selected.size > 0 && (
@@ -225,7 +225,7 @@ export function AlertCaseWork() {
                 sort={sort}
                 onSort={onSort}
                 density={density}
-                rows={sortedRows}
+                rows={advanced.apply(sortedRows)}
                 rowKey={(r) => r.id}
                 selection={{
                   selected,

@@ -54,8 +54,17 @@
 }
 .rail__perspective-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.24); }
 .rail--collapsed .rail__perspective-btn { justify-content: center; padding: 6px 0; }
-.rail__perspective-label { display: block; font-size: var(--fs-small); font-weight: 700; line-height: 1.3; }
-.rail__perspective-sub { display: block; font-size: var(--fs-nano); color: rgba(255,255,255,0.5); }
+/* Both lines truncate rather than wrap. A merchant called "Harborside Dining
+   Group" wrapped to two lines and pushed the chevron out of the box, which is
+   what made the control look like it did not fit its own rail. */
+.rail__perspective-label {
+  display: block; font-size: var(--fs-small); font-weight: 700; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rail__perspective-sub {
+  display: block; font-size: var(--fs-nano); color: rgba(255,255,255,0.5);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .rail__nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--s-2); }
 .rail__nav::-webkit-scrollbar { width: 6px; }

@@ -189,7 +189,6 @@ export function PreDisputeAlerts() {
   ], [navigate]);
 
   const sorted = useMemo(() => sortRows(filtered, sort, columns), [filtered, sort, columns]);
-  const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   const reset = () => { setSearch(''); setSource('all'); setOutcome('all'); setStatus('all'); setWindow('all'); setPage(1); };
 
@@ -198,8 +197,10 @@ export function PreDisputeAlerts() {
 
 
   // Per-column advanced search, same control on every table.
-
   const advanced = useAdvancedFilters(columns);
+
+  const visibleRows = advanced.apply(sorted);
+  const pageRows = visibleRows.slice((page - 1) * pageSize, page * pageSize);
 
 
   return (
@@ -283,7 +284,7 @@ export function PreDisputeAlerts() {
           hidden={hidden}
           onHiddenChange={setHidden}
           exportColumns={visibleColumns}
-          exportRows={filtered}
+          exportRows={visibleRows}
           exportName="pre-dispute-alerts"
           onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         />
@@ -299,7 +300,7 @@ export function PreDisputeAlerts() {
           empty={<EmptyState icon="bell" title="No alerts match" hint="Widen the filters to see more." />}
         />
 
-        <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+        <Pagination total={visibleRows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
       </Card>
 
       <RulesModal

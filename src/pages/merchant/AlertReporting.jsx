@@ -147,7 +147,7 @@ export function AlertReporting() {
               hidden={hidden}
               onHiddenChange={setHidden}
             />
-          <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
+          <DataTable columns={visibleColumns} density={density} rows={advanced.apply(sortedRows)} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
         </Card>
       </div>
       {advanced.modal}

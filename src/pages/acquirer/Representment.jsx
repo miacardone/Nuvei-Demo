@@ -61,7 +61,6 @@ export function Representment() {
     return rows;
   }, [filtered, sort]);
 
-  const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const kpis = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -118,6 +117,14 @@ export function Representment() {
   // Per-column advanced search, same control on every table.
 
   const advanced = useAdvancedFilters(allColumns);
+  /* The advanced filters have to actually be applied — they were collected and
+     counted but never used, so setting one changed the badge and nothing else.
+     Paging happens after the filter, or you page through excluded rows. */
+  const visibleRows = useMemo(() => advanced.apply(sorted), [advanced, sorted]);
+  const pageRows = useMemo(
+    () => visibleRows.slice((page - 1) * pageSize, page * pageSize),
+    [visibleRows, page, pageSize],
+  );
 
 
   return (
@@ -147,7 +154,7 @@ export function Representment() {
               hidden={hidden}
               onHiddenChange={setHidden}
               exportColumns={visibleColumns}
-              exportRows={sorted}
+              exportRows={visibleRows}
               exportName="representment-queue"
               onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
             />
@@ -163,7 +170,7 @@ export function Representment() {
             empty={<EmptyState icon="search" title="Nothing queued" hint="No open chargebacks are waiting on a representment packet right now." />}
           />
 
-          <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+          <Pagination total={visibleRows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
       {advanced.modal}

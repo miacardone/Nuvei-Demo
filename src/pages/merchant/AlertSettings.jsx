@@ -88,7 +88,7 @@ function RecipientsTab() {
         onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         extras={<Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, name: '', email: '' })}>Add recipient</Button>}
       />
-      <DataTable columns={visibleColumns} density={density} rows={sortedRows} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
+      <DataTable columns={visibleColumns} density={density} rows={advanced.apply(sortedRows)} sort={sort} onSort={onSort} rowKey={(r) => r.id} />
 
       <Modal
         open={Boolean(editing)}
@@ -147,11 +147,11 @@ function IdentifiersTab() {
 
   const columns = [
     { key: 'identifier', header: 'Identifier', fw: 12, cell: (r) => <span className="mono small strong">{r.identifier}</span> },
-    { key: 'type', header: 'Type', fw: 8, filter: { kind: 'select', options: IDENTIFIER_TYPES.map((t) => t.label) }, cell: (r) => <Badge tone="neutral">{findIdentifierType(r.type).label}</Badge> },
-    { key: 'entityId', header: 'Entity', fw: 9, cell: (r) => <span className="small">{entityLabel(r.entityId)}</span> },
+    { key: 'type', header: 'Type', fw: 8, filter: { kind: 'select', options: IDENTIFIER_TYPES.map((t) => t.label) }, filterValue: (r) => findIdentifierType(r.type).label, cell: (r) => <Badge tone="neutral">{findIdentifierType(r.type).label}</Badge> },
+    { key: 'entityId', header: 'Entity', fw: 9, filterValue: (r) => entityLabel(r.entityId), cell: (r) => <span className="small">{entityLabel(r.entityId)}</span> },
     { key: 'mid', header: 'MID', fw: 8, cell: (r) => <span className="mono small">{r.mid}</span> },
-    { key: 'matched', header: 'Matched alerts', fw: 7, align: 'right', cell: (r) => <span className="mono small">{matchedCount(r.identifier)}</span> },
-    { key: 'active', header: 'Active', fw: 5, cell: (r) => <Badge tone={r.active ? 'success' : 'muted'} dot>{r.active ? 'Active' : 'Inactive'}</Badge> },
+    { key: 'matched', header: 'Matched alerts', fw: 7, align: 'right', filter: { kind: 'number' }, filterValue: (r) => matchedCount(r.identifier), cell: (r) => <span className="mono small">{matchedCount(r.identifier)}</span> },
+    { key: 'active', header: 'Active', fw: 5, filter: { kind: 'select', options: ['Active', 'Inactive'] }, filterValue: (r) => (r.active ? 'Active' : 'Inactive'), cell: (r) => <Badge tone={r.active ? 'success' : 'muted'} dot>{r.active ? 'Active' : 'Inactive'}</Badge> },
     { key: 'actions', pinned: true, header: 'Actions', fw: 6, width: '76px',
       cell: (r) => (
         <div className="row row--xtight row--nowrap">
@@ -163,6 +163,10 @@ function IdentifiersTab() {
   ];
 
   const visibleColumns = columns.filter((c) => !hidden.includes(c.key));
+
+  // Per-column advanced search, same control on every table.
+  const advanced = useAdvancedFilters(columns);
+  const visibleRows = advanced.apply(filtered);
 
   return (
     <>
@@ -176,15 +180,17 @@ function IdentifiersTab() {
         hidden={hidden}
         onHiddenChange={setHidden}
         exportColumns={visibleColumns}
-        exportRows={filtered}
+        exportRows={visibleRows}
         exportName="alert-identifiers"
+        onAdvanced={advanced.onAdvanced}
+        advancedCount={advanced.count}
         onCopied={(ok) => notify(ok ? 'Copied.' : 'Clipboard blocked.', ok ? 'success' : 'danger')}
         extras={<>
           <Button variant="secondary" icon="link" onClick={() => notify('Checked unmatched alerts against active identifiers — no new matches right now.', 'success')}>Match unmatched alerts</Button>
           <Button variant="primary" icon="plus" onClick={() => setEditing({ entityId: brand.entities[0].id, mid: brand.entities[0].mid, type: 'descriptor', identifier: '', active: true })}>Add identifier</Button>
         </>}
       />
-      <DataTable columns={visibleColumns} density={density} rows={filtered} rowKey={(r) => r.id} />
+      <DataTable columns={visibleColumns} density={density} rows={visibleRows} rowKey={(r) => r.id} />
 
       <Modal
         open={Boolean(editing)}
@@ -242,6 +248,7 @@ function IdentifiersTab() {
         onCancel={() => setConfirm(null)}
         onConfirm={() => { setRows((p) => p.filter((x) => x.id !== confirm.id)); notify('Identifier deleted.', 'success'); setConfirm(null); }}
       />
+      {advanced.modal}
     </>
   );
 }

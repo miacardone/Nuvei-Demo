@@ -73,7 +73,6 @@ export function Chargebacks() {
     return rows;
   }, [filtered, sort]);
 
-  const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   const kpis = useMemo(() => caseKpis(chargebackCases), [chargebackCases]);
   const openTrend = useMemo(() => countTrend(chargebackCases, (c) => !isClosed(c.status)), [chargebackCases]);
@@ -113,6 +112,12 @@ export function Chargebacks() {
   // Per-column advanced search, same control on every table.
 
   const advanced = useAdvancedFilters(columns);
+  /* Advanced filters applied, not just collected. */
+  const visibleRows = useMemo(() => advanced.apply(sorted), [advanced, sorted]);
+  const pageRows = useMemo(
+    () => visibleRows.slice((page - 1) * pageSize, page * pageSize),
+    [visibleRows, page, pageSize],
+  );
 
 
   return (
@@ -150,7 +155,7 @@ export function Chargebacks() {
               hidden={hidden}
               onHiddenChange={setHidden}
               exportColumns={visibleColumns}
-              exportRows={sorted}
+              exportRows={visibleRows}
               exportName="chargebacks"
               onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
             />
@@ -173,7 +178,7 @@ export function Chargebacks() {
             }
           />
 
-          <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+          <Pagination total={visibleRows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
       {advanced.modal}
