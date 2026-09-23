@@ -106,18 +106,79 @@ export const merchantById = (id) => MERCHANTS.find((m) => m.id === id) ?? null;
  * ------------------------------------------------------------------ */
 
 const CHECKLIST_STEPS = [
-  { id: 'kyc', label: 'KYC verification' },
-  { id: 'banking', label: 'Banking details verified' },
-  { id: 'mcc', label: 'MCC classification' },
-  { id: 'compliance', label: 'Compliance review' },
-  { id: 'contract', label: 'Contract signed' },
+  { id: 'kyc', label: 'KYC verification', team: 'Financial crime' },
+  { id: 'banking', label: 'Banking details verified', team: 'Onboarding ops' },
+  { id: 'mcc', label: 'MCC classification', team: 'Onboarding ops' },
+  { id: 'compliance', label: 'Compliance review', team: 'Compliance' },
+  { id: 'contract', label: 'Contract signed', team: 'Commercial' },
 ];
 
-function buildChecklist(currentIndex, blocked) {
-  return CHECKLIST_STEPS.map((step, i) => ({
-    ...step,
-    status: i < currentIndex ? 'completed' : i === currentIndex ? (blocked ? 'blocked' : 'in_progress') : 'pending',
-  }));
+/**
+ * What each step actually says once it has been worked.
+ *
+ * A checklist row that carries only a status pill tells a reader nothing they
+ * could act on — who holds it, when it moved and what it is waiting for are
+ * the questions anyone looking at a stalled application asks first. These are
+ * the answers, one line per step and state.
+ */
+const STEP_DETAIL = {
+  kyc: {
+    completed: 'Beneficial owners verified against the registry; no adverse media.',
+    in_progress: 'Registry check running on two beneficial owners.',
+    blocked: 'Awaiting a certified copy of the incorporation document.',
+    pending: 'Starts once the application is picked up.',
+  },
+  banking: {
+    completed: 'Penny test confirmed on the settlement account.',
+    in_progress: 'Penny test sent — awaiting confirmation from the merchant.',
+    blocked: 'Bank letter does not match the legal entity name on file.',
+    pending: 'Needs the settlement account details from the merchant.',
+  },
+  mcc: {
+    completed: 'Classification agreed with the merchant and recorded.',
+    in_progress: 'Draft classification sent to the merchant for sign-off.',
+    blocked: 'Merchant disputes the proposed category — rate impact under review.',
+    pending: 'Follows KYC; the trading description drives the category.',
+  },
+  compliance: {
+    completed: 'Sanctions and PEP screening clear; file signed off.',
+    in_progress: 'Sanctions and PEP screening in review.',
+    blocked: 'Escalated to second-line compliance for a manual decision.',
+    pending: 'Runs once classification is agreed.',
+  },
+  contract: {
+    completed: 'Countersigned and filed; pricing schedule attached.',
+    in_progress: 'Out for signature with the merchant.',
+    blocked: 'Legal redlines on the liability clause still outstanding.',
+    pending: 'Issued after compliance sign-off.',
+  },
+};
+
+/**
+ * Dates the checklist backwards from today so the worked steps land between
+ * submission and now in the order they were actually done, rather than each
+ * step carrying an unrelated random date.
+ */
+function buildChecklist(currentIndex, blocked, submittedMs) {
+  const span = Math.max(NOW - submittedMs, DAY);
+  const workedCount = Math.min(currentIndex + 1, CHECKLIST_STEPS.length);
+
+  return CHECKLIST_STEPS.map((step, i) => {
+    const status = i < currentIndex ? 'completed' : i === currentIndex ? (blocked ? 'blocked' : 'in_progress') : 'pending';
+    const worked = status !== 'pending';
+    // Spread the worked steps evenly across submission → now, so step 1 is
+    // the oldest and the live step is the most recent.
+    const at = worked ? submittedMs + Math.round((span * (i + 1)) / (workedCount + 1)) : null;
+
+    return {
+      ...step,
+      status,
+      detail: STEP_DETAIL[step.id][status],
+      owner: worked ? draw.pick(REVIEWER_OPTIONS) : null,
+      date: at ? isoDay(at) : null,
+      days: worked ? Math.max(1, Math.round((NOW - at) / DAY)) : null,
+    };
+  });
 }
 
 /**
@@ -160,11 +221,17 @@ const ONBOARDING_SOURCES = [
 ];
 
 export const ONBOARDING_APPLICATIONS = ONBOARDING_SOURCES.map((m, i) => {
-  /* Up to and INCLUDING the step count, so some applications come out fully
-     complete. Capping at length - 1 meant nothing ever reached "ready for
-     go-live" and that stage filter could only ever read zero. */
-  const currentIndex = draw.int(1, CHECKLIST_STEPS.length);
-  const blocked = currentIndex < CHECKLIST_STEPS.length && draw.bool(0.3);
+  /* Walk the checklist position rather than drawing it. A random draw left
+     whole stages empty on some seeds — "Ready for go-live" read zero and its
+     filter returned nothing, which is the one thing a pipeline view must not
+     do. Cycling guarantees every stage, including fully complete, is
+     represented whatever the seed. */
+  const currentIndex = 1 + (i % CHECKLIST_STEPS.length);
+  // Same reasoning as the position above: a 30% draw returned no blocked
+  // applications at all on this seed, leaving that KPI and filter dead.
+  const blocked = currentIndex < CHECKLIST_STEPS.length && i % 4 === 2;
+  const submittedMs = NOW - draw.int(10, 75) * DAY;
+  const goLiveMs = NOW + draw.int(7, 60) * DAY;
 
   return {
     id: `APP-${2001 + i}`,
@@ -175,10 +242,12 @@ export const ONBOARDING_APPLICATIONS = ONBOARDING_SOURCES.map((m, i) => {
     vertical: m.vertical,
     mccLabel: m.mccLabel,
     projectedVolume: m.projectedVolume,
-    submittedDate: isoDay(NOW - draw.int(10, 75) * DAY),
-    targetGoLive: isoDay(NOW + draw.int(7, 60) * DAY),
+    submittedDate: isoDay(submittedMs),
+    daysOpen: Math.max(1, Math.round((NOW - submittedMs) / DAY)),
+    daysToGoLive: Math.round((goLiveMs - NOW) / DAY),
+    targetGoLive: isoDay(goLiveMs),
     assignedAnalyst: draw.pick(REVIEWER_OPTIONS),
-    steps: buildChecklist(currentIndex, blocked),
+    steps: buildChecklist(currentIndex, blocked, submittedMs),
     note: blocked
       ? 'Blocked — awaiting an updated document from the merchant.'
       : currentIndex >= CHECKLIST_STEPS.length

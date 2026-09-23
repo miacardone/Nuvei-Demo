@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, EmptyState, Kpi, Stepper } from '@/components/ui/Surface';
 import { Icon } from '@/components/ui/Icon';
+import { TruncatedText } from '@/components/ui/Overlay';
 import { ONBOARDING_APPLICATIONS } from '@/data/portfolio';
 import { useToast } from '@/context/ToastContext';
 import { usePerspective } from '@/hooks/usePerspective';
@@ -34,17 +35,32 @@ function ApplicationCard({ app, onAdvance }) {
 
         <Stepper steps={app.steps.map((s) => s.label)} current={currentIndex === -1 ? app.steps.length : currentIndex} />
 
-        <div className="grid grid--3" style={{ gap: 'var(--s-2)' }}>
-          <div className="detail-row"><span className="detail-row__k">Submitted</span><span className="detail-row__v">{formatDate(app.submittedDate)}</span></div>
-          <div className="detail-row"><span className="detail-row__k">Target go-live</span><span className="detail-row__v">{formatDate(app.targetGoLive)}</span></div>
-          <div className="detail-row"><span className="detail-row__k">Assigned to</span><span className="detail-row__v mono">{app.assignedAnalyst}</span></div>
+        {/* Label above value rather than beside it: at two cards to a row a
+            42%/58% split wrapped both halves of every line. */}
+        <div className="onb-meta">
+          <div><span className="onb-meta__k">Submitted</span><span className="onb-meta__v">{formatDate(app.submittedDate)}</span><span className="onb-meta__sub">{app.daysOpen}d ago</span></div>
+          <div><span className="onb-meta__k">Target go-live</span><span className="onb-meta__v">{formatDate(app.targetGoLive)}</span><span className="onb-meta__sub">{app.daysToGoLive < 0 ? `${-app.daysToGoLive}d overdue` : `in ${app.daysToGoLive}d`}</span></div>
+          <div><span className="onb-meta__k">Projected volume</span><span className="onb-meta__v">{formatCompactCurrency(app.projectedVolume)}</span><span className="onb-meta__sub">a year, once live</span></div>
+          <div style={{ minWidth: 0 }}><span className="onb-meta__k">Assigned to</span><span className="onb-meta__v mono"><TruncatedText value={app.assignedAnalyst} /></span><span className="onb-meta__sub">{done ? 'ready for go-live' : `with ${app.steps[currentIndex].team}`}</span></div>
         </div>
 
+        {/* Each row carries what was actually done, who holds it and when it
+            last moved — a status pill on its own leaves the reader with no
+            way to tell a step that finished yesterday from one sitting for
+            three weeks. */}
         <div className="stack stack--xtight">
           {app.steps.map((s) => (
-            <div key={s.id} className="row row--between row--nowrap" style={{ padding: 'var(--s-1) 0' }}>
-              <span className="small">{s.label}</span>
-              <Badge tone={STEP_TONE[s.status]} dot>{STEP_LABEL[s.status]}</Badge>
+            <div key={s.id} className="onb-step">
+              <div className="row row--between row--nowrap">
+                <span className="small strong">{s.label}</span>
+                <Badge tone={STEP_TONE[s.status]} dot>{STEP_LABEL[s.status]}</Badge>
+              </div>
+              <div className="micro subtle">{s.detail}</div>
+              <div className="micro subtle onb-step__who">
+                <span>{s.team}</span>
+                {s.owner && <><span aria-hidden="true">·</span><span className="mono" style={{ minWidth: 0 }}><TruncatedText value={s.owner} /></span></>}
+                {s.date && <><span aria-hidden="true">·</span><span>{s.status === 'completed' ? 'done' : 'since'} {formatDate(s.date)} ({s.days}d)</span></>}
+              </div>
             </div>
           ))}
         </div>
