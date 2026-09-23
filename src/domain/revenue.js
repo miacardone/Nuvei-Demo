@@ -93,6 +93,17 @@ export function matchMerchants(merchants, criteria, mode, ctx) {
  * Valuation
  * ------------------------------------------------------------------ */
 
+/**
+ * The lowest rate worth quoting, whatever the arithmetic says.
+ *
+ * Expected loss covers the chargebacks and nothing else — not the analysts who
+ * work them, not the capital behind the liability, and not the fact that a
+ * chargeback ratio is a historic average rather than a guarantee. A book with
+ * a low ratio breaks even near 3 bps; quoting 4 would be arithmetically
+ * correct and commercially wrong.
+ */
+export const PRICING_FLOOR_BPS = 15;
+
 /** Disputed value we would be on the hook for, before anything is won back. */
 export const disputedValue = (m) => (m.projectedVolume ?? 0) * ((m.chargebackRatio ?? 0) / 100);
 
@@ -281,3 +292,336 @@ export const SUGGESTIONS = [
 ];
 
 export const suggestionFor = (id) => SUGGESTIONS.find((s) => s.id === id);
+
+/* ================================================================== *
+ * ASK — the engine behind the Create tab
+ * ================================================================== *
+ * The Create tab is a questionnaire: pick a category, pick a subject
+ * (a merchant, or a set of criteria), pick the question you actually
+ * have, and the answer builds as you type. Nothing here returns a
+ * canned string — every answer is computed from the live portfolio and
+ * case book, and every one carries the rows behind it so the reader can
+ * check the working.
+ */
+
+export const CATEGORIES = [
+  { id: 'revenue', label: 'Grow revenue', hint: 'Pricing and uncaptured income.', icon: 'chart' },
+  { id: 'indemnification', label: 'Indemnification', hint: 'Who to cover, and at what rate.', icon: 'shield' },
+  { id: 'risk', label: 'Reduce risk', hint: 'Exposure and chargeback ratios.', icon: 'alert' },
+  { id: 'operations', label: 'Operations', hint: 'Where the dispute load actually sits.', icon: 'inbox' },
+];
+
+export const categoryFor = (id) => CATEGORIES.find((c) => c.id === id);
+
+/**
+ * Activity score — "based on what is actually happening on the site".
+ *
+ * Four signals, each normalised against the busiest merchant in the book so
+ * the score is a comparison rather than an absolute: recent case volume,
+ * recent disputed value, how much of that is overdue, and how much analyst
+ * time it consumed. A merchant nobody has touched scores zero however large
+ * it is, which is the point — this ranks attention, not size.
+ */
+export function activityIndex(merchants, cases, days = 30) {
+  const since = Date.now() - days * 86_400_000;
+  const recent = cases.filter((c) => new Date(c.dateCreated).getTime() >= since);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const raw = merchants.map((m) => {
+    const mine = recent.filter((c) => c.merchantId === m.id);
+    return {
+      merchant: m,
+      cases: mine.length,
+      value: mine.reduce((s, c) => s + (c.disputeAmount ?? 0), 0),
+      overdue: mine.filter((c) => c.dueDate < today && c.status !== 'completed').length,
+      minutes: mine.reduce((s, c) => s + (c.handlingMinutes ?? 0), 0),
+      touched: mine.filter((c) => c.worker && c.worker !== '—').length,
+    };
+  });
+
+  const peak = (key) => Math.max(1, ...raw.map((r) => r[key]));
+  const peaks = { cases: peak('cases'), value: peak('value'), overdue: peak('overdue'), minutes: peak('minutes') };
+
+  return raw
+    .map((r) => ({
+      ...r,
+      score: Math.round(
+        ((r.cases / peaks.cases) * 40)
+        + ((r.value / peaks.value) * 30)
+        + ((r.overdue / peaks.overdue) * 20)
+        + ((r.minutes / peaks.minutes) * 10),
+      ),
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+/** Group-level roll-up of the same signal, for the "merchant types" cut. */
+export function activityByGroup(merchants, cases, days = 30) {
+  const index = activityIndex(merchants, cases, days);
+  const byGroup = new Map();
+
+  index.forEach((row) => {
+    const id = row.merchant.groupId;
+    if (!byGroup.has(id)) {
+      byGroup.set(id, {
+        groupId: id,
+        label: row.merchant.groupLabel ?? id,
+        merchants: 0, cases: 0, value: 0, overdue: 0, score: 0,
+      });
+    }
+    const g = byGroup.get(id);
+    g.merchants += 1;
+    g.cases += row.cases;
+    g.value += row.value;
+    g.overdue += row.overdue;
+    g.score += row.score;
+  });
+
+  return [...byGroup.values()]
+    .map((g) => ({ ...g, score: Math.round(g.score / Math.max(g.merchants, 1)) }))
+    .sort((a, b) => b.score - a.score);
+}
+
+/* ---------- Goals ---------- *
+ * One per question a user might actually have. `inputs` declares the extra
+ * controls the questionnaire should render, so the form is data-driven and a
+ * new question needs no new JSX.
+ */
+
+export const GOALS = [
+  {
+    id: 'what-to-charge',
+    category: 'revenue',
+    label: 'What should we charge?',
+    blurb: 'Recommends a rate from break-even plus the margin you want.',
+    inputs: [{ key: 'margin', label: 'Target margin over break-even', type: 'number', suffix: '%', default: 60, step: 5 }],
+    answer: ({ subjects, values }) => {
+      const be = breakEvenBps(subjects);
+      const margin = Number(values.margin) || 0;
+      /* Expected loss is not the whole cost of carrying a book — handling the
+         disputes, the capital behind the liability, and the fact that a ratio
+         is an average rather than a promise all sit on top of it. On a
+         low-ratio book break-even lands near 3 bps, and a recommendation of
+         4 bps would undercut every rate actually in use. The floor is what
+         stops the arithmetic from being naive. */
+      const recommended = Math.max(PRICING_FLOOR_BPS, Math.round(be * (1 + margin / 100)));
+      const floored = recommended === PRICING_FLOOR_BPS && be * (1 + margin / 100) < PRICING_FLOOR_BPS;
+      const pricing = { basis: 'bps', bps: recommended, fee: 0.04 };
+      const p = projectPortfolio(subjects, pricing);
+
+      return {
+        headline: `${recommended} bps`,
+        headlineNote: floored
+          ? `Break-even is only ${be.toFixed(1)} bps, so this is the ${PRICING_FLOOR_BPS} bps floor for handling cost and volatility.`
+          : `Break-even is ${be.toFixed(1)} bps. This adds your ${margin}% margin on top.`,
+        narrative: `At ${recommended} bps these ${subjects.length === 1 ? 'merchant earns' : 'merchants earn'} ${fmtMoney(p.revenue)} a year against ${fmtMoney(p.loss)} of expected chargeback losses, leaving ${fmtMoney(p.net)} net.`,
+        stats: [
+          { label: 'Recommended rate', value: `${recommended} bps` },
+          { label: 'Annual revenue', value: fmtMoney(p.revenue) },
+          { label: 'Expected loss', value: fmtMoney(p.loss) },
+          { label: 'Net', value: fmtMoney(p.net), tone: p.net >= 0 ? 'good' : 'bad' },
+        ],
+        rows: p.rows.sort((a, b) => b.net - a.net),
+        apply: { enabled: true, ...pricing },
+        applyLabel: `Apply ${recommended} bps`,
+      };
+    },
+  },
+  {
+    id: 'revenue-left',
+    category: 'revenue',
+    label: 'What revenue are we leaving on the table?',
+    blurb: 'Values everyone in the selection who is not indemnified today.',
+    inputs: [{ key: 'rate', label: 'Rate to model', type: 'number', suffix: 'bps', default: 25, step: 1 }],
+    answer: ({ subjects, values, ctx }) => {
+      const pricing = { basis: 'bps', bps: Number(values.rate) || 0, fee: 0.04 };
+      const uncovered = subjects.filter((m) => !ctx.settingsFor(m.id).enabled);
+      const p = projectPortfolio(uncovered, pricing);
+
+      return {
+        headline: fmtMoney(p.revenue),
+        headlineNote: `${uncovered.length} of ${subjects.length} in this selection are not indemnified today.`,
+        narrative: uncovered.length
+          ? `Priced at ${pricing.bps} bps, the merchants in this selection that carry no arrangement would bring in ${fmtMoney(p.revenue)} a year. After ${fmtMoney(p.loss)} of expected losses that is ${fmtMoney(p.net)} net.`
+          : 'Everything in this selection is already indemnified — there is no uncaptured revenue here.',
+        stats: [
+          { label: 'Not indemnified', value: String(uncovered.length) },
+          { label: 'Revenue available', value: fmtMoney(p.revenue) },
+          { label: 'Expected loss', value: fmtMoney(p.loss) },
+          { label: 'Net', value: fmtMoney(p.net), tone: p.net >= 0 ? 'good' : 'bad' },
+        ],
+        rows: p.rows.sort((a, b) => b.revenue - a.revenue),
+        apply: { enabled: true, ...pricing },
+        applyLabel: `Indemnify at ${pricing.bps} bps`,
+      };
+    },
+  },
+  {
+    id: 'should-indemnify',
+    category: 'indemnification',
+    label: 'Should we indemnify them?',
+    blurb: 'A yes or no per merchant at the rate you pick, with the reason.',
+    inputs: [{ key: 'rate', label: 'Rate to test', type: 'number', suffix: 'bps', default: 25, step: 1 }],
+    answer: ({ subjects, values }) => {
+      const pricing = { basis: 'bps', bps: Number(values.rate) || 0, fee: 0.04 };
+      const rows = subjects.map((m) => projectMerchant(m, pricing)).sort((a, b) => b.net - a.net);
+      const yes = rows.filter((r) => r.net > 0);
+      const no = rows.filter((r) => r.net <= 0);
+
+      return {
+        headline: `${yes.length} yes, ${no.length} no`,
+        headlineNote: `Tested at ${pricing.bps} bps.`,
+        narrative: yes.length
+          ? `${yes.length} of ${rows.length} earn more than we expect to pay out at this rate — ${fmtMoney(yes.reduce((s, r) => s + r.net, 0))} net between them.${no.length ? ` The other ${no.length} would cost us money at ${pricing.bps} bps and need a higher rate or a decline.` : ''}`
+          : `None of these clear their expected losses at ${pricing.bps} bps. Raise the rate or leave the liability with the merchant.`,
+        stats: [
+          { label: 'Worth covering', value: String(yes.length), tone: 'good' },
+          { label: 'Not at this rate', value: String(no.length), tone: no.length ? 'bad' : undefined },
+          { label: 'Net if all covered', value: fmtMoney(rows.reduce((s, r) => s + r.net, 0)) },
+          { label: 'Break-even', value: `${breakEvenBps(subjects).toFixed(1)} bps` },
+        ],
+        rows,
+        apply: { enabled: true, ...pricing },
+        applyLabel: `Indemnify at ${pricing.bps} bps`,
+      };
+    },
+  },
+  {
+    id: 'underpriced',
+    category: 'indemnification',
+    label: 'Is anyone underpriced?',
+    blurb: 'Compares what each indemnified merchant pays against what we expect to lose.',
+    inputs: [],
+    answer: ({ subjects, ctx }) => {
+      const covered = subjects.filter((m) => ctx.settingsFor(m.id).enabled);
+      const rows = covered.map((m) => projectMerchant(m, ctx.settingsFor(m.id))).sort((a, b) => a.net - b.net);
+      const short = rows.filter((r) => r.net < 0);
+      const gap = Math.abs(short.reduce((s, r) => s + r.net, 0));
+
+      return {
+        headline: short.length ? `${short.length} underpriced` : 'All covered',
+        headlineNote: short.length ? `${fmtMoney(gap)} short of covering expected losses.` : 'Every indemnified merchant in this selection clears its expected losses.',
+        narrative: short.length
+          ? `These merchants pay less than we expect to absorb on their behalf. Re-pricing them to break-even would close a ${fmtMoney(gap)} gap.`
+          : 'Nothing in this selection is priced below what we expect it to cost. No action needed.',
+        stats: [
+          { label: 'Indemnified', value: String(covered.length) },
+          { label: 'Underpriced', value: String(short.length), tone: short.length ? 'bad' : 'good' },
+          { label: 'Shortfall', value: fmtMoney(gap), tone: short.length ? 'bad' : undefined },
+          { label: 'Break-even', value: `${breakEvenBps(covered).toFixed(1)} bps` },
+        ],
+        rows,
+        apply: covered.length ? { enabled: true, basis: 'bps', bps: Math.ceil(breakEvenBps(covered) * 1.6), fee: 0.04 } : null,
+        applyLabel: covered.length ? `Re-price at ${Math.ceil(breakEvenBps(covered) * 1.6)} bps` : null,
+      };
+    },
+  },
+  {
+    id: 'exposure',
+    category: 'risk',
+    label: 'How exposed are we?',
+    blurb: 'The chargeback liability behind this selection, ranked.',
+    inputs: [],
+    answer: ({ subjects }) => {
+      const rows = subjects
+        .map((m) => projectMerchant(m, { basis: 'bps', bps: 0, fee: 0 }))
+        .sort((a, b) => b.loss - a.loss);
+      const total = rows.reduce((s, r) => s + r.loss, 0);
+      const worst = rows[0];
+
+      return {
+        headline: fmtMoney(total),
+        headlineNote: 'Expected annual chargeback losses across this selection.',
+        narrative: worst
+          ? `${worst.merchant.name} carries the most at ${fmtMoney(worst.loss)} — ${total ? Math.round((worst.loss / total) * 100) : 0}% of the total. Covering this selection needs at least ${breakEvenBps(subjects).toFixed(1)} bps to break even.`
+          : 'Nothing in this selection.',
+        stats: [
+          { label: 'Merchants', value: String(rows.length) },
+          { label: 'Expected loss', value: fmtMoney(total), tone: 'bad' },
+          { label: 'Open exposure', value: fmtMoney(subjects.reduce((s, m) => s + (m.exposure ?? 0), 0)) },
+          { label: 'Break-even', value: `${breakEvenBps(subjects).toFixed(1)} bps` },
+        ],
+        rows,
+        apply: null,
+        applyLabel: null,
+      };
+    },
+  },
+  {
+    id: 'ratio-drivers',
+    category: 'risk',
+    label: 'Who is driving our chargeback ratio?',
+    blurb: 'Ranks the selection by how much each one lifts the portfolio ratio.',
+    inputs: [{ key: 'threshold', label: 'Flag above', type: 'number', suffix: '%', default: 0.65, step: 0.05 }],
+    answer: ({ subjects, values }) => {
+      const threshold = Number(values.threshold) || 0;
+      const rows = subjects
+        .map((m) => projectMerchant(m, { basis: 'bps', bps: 0, fee: 0 }))
+        .sort((a, b) => (b.merchant.chargebackRatio ?? 0) - (a.merchant.chargebackRatio ?? 0));
+      const over = rows.filter((r) => (r.merchant.chargebackRatio ?? 0) >= threshold);
+      const volume = subjects.reduce((s, m) => s + (m.projectedVolume ?? 0), 0);
+      const disputed = subjects.reduce((s, m) => s + disputedValue(m), 0);
+      const blended = volume ? (disputed / volume) * 100 : 0;
+
+      return {
+        headline: `${over.length} above ${threshold}%`,
+        headlineNote: `Blended ratio across this selection is ${blended.toFixed(2)}%.`,
+        narrative: over.length
+          ? `${over.map((r) => r.merchant.name).slice(0, 3).join(', ')}${over.length > 3 ? ` and ${over.length - 3} more` : ''} sit at or above ${threshold}%. They account for ${fmtMoney(over.reduce((s, r) => s + r.loss, 0))} of expected losses.`
+          : `Nothing in this selection is at or above ${threshold}%. The blended ratio is ${blended.toFixed(2)}%.`,
+        stats: [
+          { label: 'Blended ratio', value: `${blended.toFixed(2)}%` },
+          { label: `Above ${threshold}%`, value: String(over.length), tone: over.length ? 'bad' : 'good' },
+          { label: 'Disputed value', value: fmtMoney(disputed) },
+          { label: 'Expected loss', value: fmtMoney(rows.reduce((s, r) => s + r.loss, 0)) },
+        ],
+        rows,
+        apply: null,
+        applyLabel: null,
+      };
+    },
+  },
+  {
+    id: 'load',
+    category: 'operations',
+    label: 'Where is the dispute load sitting?',
+    blurb: 'Case volume, overdue count and analyst time across the selection.',
+    inputs: [],
+    answer: ({ subjects, ctx }) => {
+      const index = ctx.activity.filter((a) => subjects.some((m) => m.id === a.merchant.id));
+      const cases = index.reduce((s, a) => s + a.cases, 0);
+      const overdue = index.reduce((s, a) => s + a.overdue, 0);
+      const hours = index.reduce((s, a) => s + a.minutes, 0) / 60;
+      const top = index[0];
+
+      return {
+        headline: `${cases} cases`,
+        headlineNote: 'Raised in the last 30 days across this selection.',
+        narrative: top
+          ? `${top.merchant.name} is the busiest, with ${top.cases} cases and ${top.overdue} of them overdue. The selection has consumed about ${Math.round(hours)} analyst hours in the last 30 days.`
+          : 'No recent case activity in this selection.',
+        stats: [
+          { label: 'Cases, 30 days', value: String(cases) },
+          { label: 'Overdue', value: String(overdue), tone: overdue ? 'bad' : 'good' },
+          { label: 'Analyst hours', value: String(Math.round(hours)) },
+          { label: 'Merchants', value: String(subjects.length) },
+        ],
+        rows: index.map((a) => projectMerchant(a.merchant, { basis: 'bps', bps: 0, fee: 0 })),
+        apply: null,
+        applyLabel: null,
+      };
+    },
+  },
+];
+
+export const goalsFor = (category) => GOALS.filter((g) => g.category === category);
+export const goalFor = (id) => GOALS.find((g) => g.id === id);
+
+/** Local money formatter so the engine owns its own phrasing. */
+function fmtMoney(n) {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '−' : '';
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+  return `${sign}$${abs.toFixed(0)}`;
+}

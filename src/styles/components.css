@@ -654,6 +654,153 @@
 .kpi__tooltip-fill { display: flex !important; width: 100% !important; }
 .kpi__spark { flex: none; margin-top: 2px; }
 
+/* ---------- Ask (Revenue rules > Create) ---------- *
+ * Questionnaire left, live answer right. The form column is fixed and sticky
+ * so the questions stay put while the answer grows past them; below the
+ * breakpoint the two stack and the stickiness is dropped, because a sticky
+ * column on a narrow screen is just a panel that will not scroll. */
+
+.ask {
+  display: grid;
+  grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
+  gap: var(--s-4);
+  align-items: start;
+}
+.ask__form {
+  display: flex; flex-direction: column; gap: var(--s-3);
+  position: sticky; top: var(--s-4);
+}
+.ask__answer { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+
+@media (max-width: 1100px) {
+  .ask { grid-template-columns: minmax(0, 1fr); }
+  .ask__form { position: static; }
+}
+
+/* --- Mode switch: two large targets, not a dropdown. The choice changes the
+       whole shape of the question, so it is worth the space. --- */
+.ask-modes { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+.ask-mode {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: var(--s-3); border: 1px solid var(--c-line); border-radius: var(--r-md);
+  background: var(--c-surface); cursor: pointer; text-align: left;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  color: var(--c-ink-muted);
+}
+.ask-mode:hover { border-color: var(--c-line-strong); }
+.ask-mode.is-active {
+  border-color: var(--c-primary); background: var(--c-primary-tint); color: var(--c-primary);
+  box-shadow: inset 0 0 0 1px var(--c-primary);
+}
+.ask-mode__label { font-size: var(--fs-body); font-weight: 600; color: var(--c-ink); }
+.ask-mode.is-active .ask-mode__label { color: var(--c-primary); }
+.ask-mode__hint { font-size: var(--fs-micro); color: var(--c-ink-subtle); }
+
+/* --- Numbered steps --- */
+.ask-steps { display: flex; flex-direction: column; }
+.ask-step {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: var(--s-3);
+  padding: var(--s-3) 0; position: relative;
+}
+.ask-step + .ask-step { border-top: 1px solid var(--c-line); }
+.ask-step:not(.is-active) { opacity: 0.45; pointer-events: none; }
+.ask-step__marker {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid var(--c-line-strong); background: var(--c-surface);
+  font-size: var(--fs-micro); font-weight: 700; color: var(--c-ink-muted);
+}
+.ask-step.is-done .ask-step__marker {
+  background: var(--c-primary); border-color: var(--c-primary); color: #fff;
+}
+.ask-step__body { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
+.ask-step__head { display: flex; align-items: baseline; gap: var(--s-2); flex-wrap: wrap; }
+.ask-step__title { font-size: var(--fs-body); font-weight: 600; }
+.ask-step__hint { font-size: var(--fs-micro); color: var(--c-ink-subtle); }
+
+/* --- Chips --- */
+.ask-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.ask-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--r-pill);
+  border: 1px solid var(--c-line); background: var(--c-surface);
+  font-size: var(--fs-small); color: var(--c-ink-muted); cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.ask-chip:hover { border-color: var(--c-line-strong); }
+.ask-chip.is-active { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+
+/* --- Merchant picker: a scrollable list of toggles rather than a multi-select,
+       which cannot show the ratio beside each name. --- */
+.ask-picker {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 232px; overflow-y: auto;
+  border: 1px solid var(--c-line); border-radius: var(--r-md); padding: var(--s-1);
+}
+.ask-pick {
+  display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: var(--s-2);
+  padding: 6px var(--s-2); border-radius: var(--r-sm);
+  background: transparent; border: 0; cursor: pointer; text-align: left;
+  transition: background var(--dur-fast) var(--ease);
+}
+.ask-pick:hover { background: var(--c-surface-sunken); }
+.ask-pick.is-active { background: var(--c-primary-tint); }
+.ask-pick__check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 4px;
+  border: 1px solid var(--c-line-strong); background: var(--c-surface); color: #fff;
+}
+.ask-pick.is-active .ask-pick__check { background: var(--c-primary); border-color: var(--c-primary); }
+.ask-pick__name { font-size: var(--fs-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask-pick__meta { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--c-ink-subtle); }
+
+/* --- Goal list --- */
+.ask-goal {
+  display: flex; flex-direction: column; gap: 1px; width: 100%;
+  padding: var(--s-2) var(--s-3); border-radius: var(--r-md);
+  border: 1px solid var(--c-line); background: var(--c-surface);
+  cursor: pointer; text-align: left;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.ask-goal:hover { border-color: var(--c-line-strong); }
+.ask-goal.is-active { border-color: var(--c-primary); background: var(--c-primary-tint); }
+.ask-goal__label { font-size: var(--fs-small); font-weight: 600; }
+.ask-goal__blurb { font-size: var(--fs-micro); color: var(--c-ink-subtle); }
+
+/* --- The answer --- */
+.ask-headline {
+  font-family: var(--font-mono); font-size: 1.75rem; font-weight: 600;
+  letter-spacing: -0.03em; line-height: 1.1; color: var(--c-ink);
+}
+.ask-headline--sm { font-size: 1.25rem; }
+
+/* --- Suggestions tab --- */
+.play-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--s-3); align-items: stretch;
+}
+.play-grid > * { display: flex; }
+.play-grid > * > * { width: 100%; }
+
+.activity-bar {
+  display: block; flex: 1; min-width: 40px; height: 6px;
+  border-radius: var(--r-pill); background: var(--c-surface-sunken); overflow: hidden;
+}
+.activity-bar__fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--c-series-0); }
+
+.group-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(48px, 90px) auto;
+  align-items: center; gap: var(--s-3);
+  padding: var(--s-2) 0;
+}
+.group-row + .group-row { border-top: 1px solid var(--c-line); }
+
+.saved-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3);
+  padding: var(--s-2) 0;
+}
+.saved-row + .saved-row { border-top: 1px solid var(--c-line); }
+
 /* ---------- Revenue rules ---------- *
  * A criterion is one sentence — field, operator, value — so it lays out as a
  * single row that keeps the three controls proportional rather than letting
