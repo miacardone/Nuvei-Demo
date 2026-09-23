@@ -1665,3 +1665,15 @@
    answer panel takes the full width rather than sitting in a half-empty
    two-column grid beside a column of controls nobody has asked for yet. */
 .ask--solo { grid-template-columns: minmax(0, 1fr); }
+
+/* The quick start currently loaded stays lit, so it is clear which preset the
+   form below is showing. It goes out on its own once the rule has been edited
+   into something that is no longer that preset. */
+.quickstart.is-active {
+  border-color: var(--c-primary);
+  background: var(--c-primary-tint);
+  color: var(--c-primary);
+  box-shadow: inset 0 0 0 1px var(--c-primary);
+}
+.quickstart.is-active .quickstart__label { color: var(--c-primary); }
+.quickstart.is-active .quickstart__hint { color: var(--c-primary); opacity: 0.75; }

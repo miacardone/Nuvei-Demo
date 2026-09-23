@@ -200,6 +200,28 @@ export function CreateTab({ prefill, onSaved }) {
   const action = bulkActionFor(actionId) ?? BULK_ACTIONS[0];
   const showForm = starter === 'manual' || formTouched;
 
+  /**
+   * Which quick start, if any, the form currently matches.
+   *
+   * Derived rather than remembered. Storing "the one they clicked" would keep
+   * a preset lit after the criteria underneath it had been edited into
+   * something else, which is a highlight that lies. Comparing against the form
+   * means it stays lit while it is still true, moves when another is picked,
+   * and goes out by itself the moment the rule stops being that preset.
+   */
+  const activeQuick = useMemo(() => {
+    const sameCriteria = (a = [], b = []) => a.length === b.length
+      && a.every((c, i) => c.field === b[i].field
+        && c.operator === b[i].operator
+        && String(c.value) === String(b[i].value));
+
+    return QUICK_STARTS.find((qs) => qs.fill.mode === mode
+      && qs.fill.category === category
+      && qs.fill.goalId === goalId
+      && qs.fill.solution === solution
+      && sameCriteria(criteria, qs.fill.criteria))?.id ?? null;
+  }, [mode, category, goalId, solution, criteria]);
+
   /* What the search offers before anyone types. On a real portfolio this would
      be the accounts you touched most recently; here it is the busiest by case
      activity, which is the same idea and computed rather than hardcoded. */
@@ -409,7 +431,13 @@ export function CreateTab({ prefill, onSaved }) {
           {starter === 'quick' && (
             <div className="quickstarts">
               {QUICK_STARTS.map((qs) => (
-                <button key={qs.id} type="button" className="quickstart" onClick={() => fillFrom(qs.fill)}>
+                <button
+                  key={qs.id}
+                  type="button"
+                  className={`quickstart ${activeQuick === qs.id ? 'is-active' : ''}`.trim()}
+                  aria-pressed={activeQuick === qs.id}
+                  onClick={() => fillFrom(qs.fill)}
+                >
                   <Icon name={qs.icon} size={14} />
                   <span className="stack stack--xtight" style={{ minWidth: 0 }}>
                     <span className="quickstart__label">{qs.label}</span>
