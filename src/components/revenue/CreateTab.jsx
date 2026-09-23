@@ -3,13 +3,18 @@ import { Card, Badge, Button, EmptyState } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
 import { SelectField, TextField } from '@/components/ui/Form';
 import { TruncatedText } from '@/components/ui/Overlay';
+import MerchantSearch from '@/components/ui/MerchantSearch';
+import { Modal } from '@/components/ui/Modal';
 import Icon from '@/components/ui/Icon';
 import { MERCHANTS } from '@/data/portfolio';
+import { MERCHANT_GROUPS } from '@/data/merchants';
+import { CASES } from '@/data/cases';
 import { applyIndemnification, settingsFor } from '@/data/indemnification';
 import { saveSuggestion } from '@/data/suggestions-store';
 import {
-  CATEGORIES, CRITERIA_FIELDS, categoryFor, fieldFor, goalFor, goalsFor,
-  matchMerchants, operatorsFor,
+  CATEGORIES, CRITERIA_FIELDS, CRITERIA_TYPES, SOLUTION_TYPES, activityIndex,
+  categoryFor, criteriaTypeFor, fieldFor, fieldsForType, goalFor, goalsFor,
+  matchMerchants, operatorsFor, shapeAnswer,
 } from '@/domain/revenue';
 import { useToast } from '@/context/ToastContext';
 import { formatCompactCurrency, formatNumber, formatPercent } from '@/utils/format';
@@ -28,9 +33,15 @@ import { formatCompactCurrency, formatNumber, formatPercent } from '@/utils/form
  * identical, which is why the mode is a toggle rather than two screens.
  */
 
+/**
+ * Two ways to name a subject, and at real portfolio size they are not equal.
+ * Picking merchants by name is for named accounts — a handful you already have
+ * in mind. Describing them by their properties is how you address a book you
+ * could never scroll, which is why it carries the segment framing.
+ */
 const MODES = [
-  { id: 'merchant', label: 'Per merchant', icon: 'briefcase', hint: 'Pick the merchants by name.' },
-  { id: 'criteria', label: 'Per criteria', icon: 'sliders', hint: 'Describe them by their properties.' },
+  { id: 'merchant', label: 'Named accounts', icon: 'briefcase', hint: 'Search for specific merchants.' },
+  { id: 'criteria', label: 'Segment', icon: 'sliders', hint: 'Describe them — works at any size.' },
 ];
 
 const blankCriterion = () => ({ field: 'chargebackRatio', operator: 'lt', value: '0.65' });
@@ -51,7 +62,7 @@ function Step({ index, title, hint, children, done, active }) {
   );
 }
 
-function CriterionRow({ criterion, onChange, onRemove, canRemove }) {
+function CriterionRow({ criterion, onChange, onRemove, canRemove, fields = CRITERIA_FIELDS }) {
   const field = fieldFor(criterion.field);
   const operators = operatorsFor(field?.kind);
 
@@ -68,7 +79,7 @@ function CriterionRow({ criterion, onChange, onRemove, canRemove }) {
             value: next?.kind === 'select' ? next.options[0] : '',
           });
         }}
-        options={CRITERIA_FIELDS.map((f) => ({ value: f.key, label: f.label }))}
+        options={fields.map((f) => ({ value: f.key, label: f.label }))}
       />
       <SelectField
         aria-label="Operator"
@@ -105,18 +116,42 @@ export function CreateTab({ prefill, onSaved }) {
   const [category, setCategory] = useState(prefill.category ?? '');
   const [goalId, setGoalId] = useState(prefill.goalId ?? '');
   const [picked, setPicked] = useState(prefill.merchantIds ?? []);
+  const [criteriaType, setCriteriaType] = useState(prefill.criteriaType ?? 'risk');
   const [criteria, setCriteria] = useState(prefill.criteria ?? [blankCriterion()]);
+  const [filters, setFilters] = useState(prefill.filters ?? []);
+  const [solution, setSolution] = useState(prefill.solution ?? 'recommend');
   const [values, setValues] = useState({});
   const [selected, setSelected] = useState(new Set());
+  const [confirming, setConfirming] = useState(false);
 
   const goal = goalFor(goalId);
   const goals = category ? goalsFor(category) : [];
 
-  const subjects = useMemo(() => (mode === 'merchant'
+  /* What the search offers before anyone types. On a real book this would be
+     the accounts you touched most recently; here it is the busiest by case
+     activity, which is the same idea and computed rather than hardcoded. */
+  const mostActive = useMemo(
+    () => activityIndex(MERCHANTS, CASES).slice(0, 6).map((a) => a.merchant),
+    [],
+  );
+
+  /* Step 2 names the book you care about; the filters in step 3 trim it. Kept
+     as two passes so the form can report how much the filters actually removed
+     — "412 matched, filters removed 88" is information, a single final count
+     is not. */
+  const preFiltered = useMemo(() => (mode === 'merchant'
     ? MERCHANTS.filter((m) => picked.includes(m.id))
     : matchMerchants(MERCHANTS, criteria, 'all', ctx)),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [mode, picked, criteria]);
+
+  const subjects = useMemo(
+    () => (filters.length ? matchMerchants(preFiltered, filters, 'all', ctx) : preFiltered),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [preFiltered, filters],
+  );
+
+  const preFilterCount = preFiltered.length;
 
   // Goal inputs carry their own defaults, so the answer is complete the moment
   // a goal is chosen rather than waiting for the user to fill in a rate.
@@ -129,17 +164,32 @@ export function CreateTab({ prefill, onSaved }) {
   const answer = useMemo(() => {
     if (!goal || !subjects.length) return null;
     try {
-      return goal.answer({ subjects, values: effective, ctx });
+      return shapeAnswer(goal.answer({ subjects, values: effective, ctx }), solution);
     } catch {
       return null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goal, subjects, effective]);
+  }, [goal, subjects, effective, solution]);
 
   const chosen = useMemo(
     () => (selected.size ? (answer?.rows ?? []).filter((r) => selected.has(r.merchant.id)) : (answer?.rows ?? [])),
     [answer, selected],
   );
+
+  /* A segment can name more merchants than anyone will ever scroll, so the
+     table shows a sample and says so. The figures above it are computed over
+     the whole match, never over the sample — the two must not be confused,
+     which is why the count is stated on the card rather than left implied. */
+  const ROW_SAMPLE = 50;
+  const rows = answer?.rows ?? [];
+  const sampled = rows.slice(0, ROW_SAMPLE);
+  const truncated = rows.length > ROW_SAMPLE;
+
+  /* A question about risk prices nothing, so its revenue and net columns are
+     a wall of $0 — three columns of noise that invite the reader to wonder
+     what they did wrong. They appear only when the answer actually carries a
+     price. */
+  const priced = Boolean(answer?.apply);
 
   const resultColumns = [
     {
@@ -153,16 +203,20 @@ export function CreateTab({ prefill, onSaved }) {
     },
     { key: 'volume', header: 'Volume', fw: 7, align: 'right', cell: (r) => <span className="mono small">{formatCompactCurrency(r.merchant.projectedVolume)}</span> },
     { key: 'ratio', header: 'CB ratio', fw: 6, align: 'right', cell: (r) => <span className="mono small">{formatPercent(r.merchant.chargebackRatio, 2)}</span> },
-    { key: 'revenue', header: 'Revenue', fw: 7, align: 'right', cell: (r) => <span className="mono small strong">{formatCompactCurrency(r.revenue)}</span> },
+    ...(priced
+      ? [{ key: 'revenue', header: 'Revenue', fw: 7, align: 'right', cell: (r) => <span className="mono small strong">{formatCompactCurrency(r.revenue)}</span> }]
+      : []),
     { key: 'loss', header: 'Expected loss', fw: 7, align: 'right', cell: (r) => <span className="mono small">{formatCompactCurrency(r.loss)}</span> },
-    {
-      key: 'net', header: 'Net', fw: 7, align: 'right',
-      cell: (r) => (
-        <span className="mono small strong" style={{ color: r.net >= 0 ? 'var(--c-success)' : 'var(--c-danger)' }}>
-          {r.net >= 0 ? '+' : '−'}{formatCompactCurrency(Math.abs(r.net))}
-        </span>
-      ),
-    },
+    ...(priced
+      ? [{
+        key: 'net', header: 'Net', fw: 7, align: 'right',
+        cell: (r) => (
+          <span className="mono small strong" style={{ color: r.net >= 0 ? 'var(--c-success)' : 'var(--c-danger)' }}>
+            {r.net >= 0 ? '+' : '−'}{formatCompactCurrency(Math.abs(r.net))}
+          </span>
+        ),
+      }]
+      : [{ key: 'exposure', header: 'Open exposure', fw: 7, align: 'right', cell: (r) => <span className="mono small">{formatCompactCurrency(r.merchant.exposure ?? 0)}</span> }]),
   ];
 
   const title = goal && subjects.length
@@ -182,6 +236,7 @@ export function CreateTab({ prefill, onSaved }) {
   };
 
   const applyNow = () => {
+    setConfirming(false);
     if (!answer?.apply || !chosen.length) return;
     chosen.forEach((r) => applyIndemnification(r.merchant.id, answer.apply));
     saveSuggestion({
@@ -243,41 +298,67 @@ export function CreateTab({ prefill, onSaved }) {
 
             <Step
               index={2}
-              title={mode === 'merchant' ? 'Which merchants?' : 'Which merchants match?'}
-              hint={mode === 'merchant' ? 'Pick one or several' : 'Describe them'}
+              title={mode === 'merchant' ? 'Which merchants or merchant types?' : 'Criteria type'}
+              hint={mode === 'merchant' ? 'Search by name or take a whole type' : 'What kind of criteria?'}
               done={subjects.length > 0}
               active={Boolean(category)}
             >
               {mode === 'merchant' ? (
-                <div className="ask-picker">
-                  {MERCHANTS.map((m) => {
-                    const on = picked.includes(m.id);
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        className={`ask-pick ${on ? 'is-active' : ''}`.trim()}
-                        onClick={() => setPicked((p) => (on ? p.filter((x) => x !== m.id) : [...p, m.id]))}
-                      >
-                        <span className="ask-pick__check">{on && <Icon name="check" size={11} />}</span>
-                        <span className="ask-pick__name">{m.name}</span>
-                        <span className="ask-pick__meta">{formatPercent(m.chargebackRatio, 2)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <MerchantSearch
+                  merchants={MERCHANTS}
+                  groups={MERCHANT_GROUPS}
+                  selected={picked}
+                  onChange={setPicked}
+                  suggestions={mostActive}
+                />
               ) : (
                 <div className="stack stack--tight">
+                  <div className="ask-chips">
+                    {CRITERIA_TYPES.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`ask-chip ${criteriaType === t.id ? 'is-active' : ''}`.trim()}
+                        onClick={() => {
+                          setCriteriaType(t.id);
+                          const first = fieldsForType(t.id)[0];
+                          setCriteria([{
+                            field: first.key,
+                            operator: operatorsFor(first.kind)[0].value,
+                            value: first.kind === 'select' ? first.options[0] : '',
+                          }]);
+                        }}
+                      >
+                        <Icon name={t.icon} size={13} />
+                        <span>{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="micro subtle" style={{ margin: 0 }}>{criteriaTypeFor(criteriaType)?.hint}</p>
+
                   {criteria.map((c, i) => (
                     <CriterionRow
                       key={i}
                       criterion={c}
+                      fields={fieldsForType(criteriaType)}
                       canRemove={criteria.length > 1}
                       onChange={(next) => setCriteria((p) => p.map((x, j) => (j === i ? next : x)))}
                       onRemove={() => setCriteria((p) => p.filter((_, j) => j !== i))}
                     />
                   ))}
-                  <Button variant="secondary" size="sm" icon="plus" onClick={() => setCriteria((p) => [...p, blankCriterion()])}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon="plus"
+                    onClick={() => {
+                      const first = fieldsForType(criteriaType)[0];
+                      setCriteria((p) => [...p, {
+                        field: first.key,
+                        operator: operatorsFor(first.kind)[0].value,
+                        value: first.kind === 'select' ? first.options[0] : '',
+                      }]);
+                    }}
+                  >
                     Add criterion
                   </Button>
                 </div>
@@ -289,9 +370,43 @@ export function CreateTab({ prefill, onSaved }) {
               )}
             </Step>
 
+            {/* Filters narrow whatever step 2 produced. They are the same
+                machinery as criteria but a separate question: step 2 names the
+                book you care about, this trims it. Optional, and skipped
+                entirely if nothing is added. */}
             <Step
               index={3}
+              title="Narrow it down"
+              hint="Optional"
+              done={filters.length > 0}
+              active={subjects.length > 0 || filters.length > 0}
+            >
+              <div className="stack stack--tight">
+                {filters.map((c, i) => (
+                  <CriterionRow
+                    key={i}
+                    criterion={c}
+                    fields={CRITERIA_FIELDS}
+                    canRemove
+                    onChange={(next) => setFilters((p) => p.map((x, j) => (j === i ? next : x)))}
+                    onRemove={() => setFilters((p) => p.filter((_, j) => j !== i))}
+                  />
+                ))}
+                <Button variant="secondary" size="sm" icon="filter" onClick={() => setFilters((p) => [...p, blankCriterion()])}>
+                  Add a filter
+                </Button>
+                {filters.length > 0 && preFilterCount !== subjects.length && (
+                  <p className="micro subtle" style={{ margin: 0 }}>
+                    Filters removed {formatNumber(preFilterCount - subjects.length)} of {formatNumber(preFilterCount)}.
+                  </p>
+                )}
+              </div>
+            </Step>
+
+            <Step
+              index={4}
               title="What do you want to know?"
+              hint="Your question"
               done={Boolean(goal)}
               active={Boolean(category) && subjects.length > 0}
             >
@@ -314,8 +429,30 @@ export function CreateTab({ prefill, onSaved }) {
               )}
             </Step>
 
+            <Step
+              index={5}
+              title="What kind of answer?"
+              hint="Solution type"
+              done={Boolean(goal)}
+              active={Boolean(goal)}
+            >
+              <div className="stack stack--xtight">
+                {SOLUTION_TYPES.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`ask-goal ${solution === t.id ? 'is-active' : ''}`.trim()}
+                    onClick={() => setSolution(t.id)}
+                  >
+                    <span className="ask-goal__label">{t.label}</span>
+                    <span className="ask-goal__blurb">{t.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </Step>
+
             {Boolean(goal?.inputs?.length) && (
-              <Step index={4} title="Set the numbers" done active>
+              <Step index={6} title="Set the numbers" done active>
                 <div className="stack stack--tight">
                   {goal.inputs.map((input) => (
                     <TextField
@@ -377,17 +514,17 @@ export function CreateTab({ prefill, onSaved }) {
             </Card>
 
             <Card
-              title="Who this affects"
+              title={`Who this affects — ${formatNumber(rows.length)} merchant${rows.length === 1 ? '' : 's'}`}
               action={
                 <span className="micro subtle">
-                  {selected.size ? `${formatNumber(selected.size)} selected` : 'All rows — tick to narrow'}
+                  {selected.size ? `${formatNumber(selected.size)} picked out` : 'Everything matched — tick rows to narrow'}
                 </span>
               }
               bodyClassName="card__body--flush"
             >
               <DataTable
                 columns={resultColumns}
-                rows={answer.rows}
+                rows={sampled}
                 rowKey={(r) => r.merchant.id}
                 density="comfortable"
                 selection={{
@@ -400,6 +537,12 @@ export function CreateTab({ prefill, onSaved }) {
                   }),
                 }}
               />
+              {truncated && (
+                <p className="msearch__note" style={{ borderTop: '1px solid var(--c-line)' }}>
+                  Showing the first {ROW_SAMPLE} of {formatNumber(rows.length)}. The figures above are calculated
+                  across all {formatNumber(rows.length)}, not this sample — narrow the segment to see fewer.
+                </p>
+              )}
             </Card>
 
             <Card bodyClassName="card__body--tight">
@@ -410,7 +553,7 @@ export function CreateTab({ prefill, onSaved }) {
                 <div className="row row--tight row--nowrap">
                   <Button variant="secondary" icon="archive" onClick={save}>Save as suggestion</Button>
                   {answer.apply && (
-                    <Button variant="primary" icon="check" disabled={!chosen.length} onClick={applyNow}>
+                    <Button variant="primary" icon="check" disabled={!chosen.length} onClick={() => setConfirming(true)}>
                       {answer.applyLabel} to {formatNumber(chosen.length)}
                     </Button>
                   )}
@@ -420,6 +563,75 @@ export function CreateTab({ prefill, onSaved }) {
           </div>
         )}
       </div>
+
+      {/* A segment rule can rewrite a commercial term on more merchants than
+          anyone can check by eye, and there is no undo. The confirmation
+          states the blast radius in the units that matter — how many accounts,
+          how much volume, and what is being written — before it happens. */}
+      <Modal
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        title="Apply to merchant records"
+        subtitle={answer?.applyLabel ?? undefined}
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setConfirming(false)}>Cancel</Button>
+            <Button variant="primary" icon="check" onClick={applyNow}>
+              Apply to {formatNumber(chosen.length)} merchant{chosen.length === 1 ? '' : 's'}
+            </Button>
+          </>
+        )}
+      >
+        <div className="stack">
+          <p className="small" style={{ margin: 0 }}>
+            This writes the arrangement to every merchant listed below. It takes effect immediately across the
+            console and there is no undo.
+          </p>
+
+          <div className="projection">
+            <div className="projection__cell">
+              <span className="projection__label">Merchants</span>
+              <span className="projection__value">{formatNumber(chosen.length)}</span>
+              <span className="projection__note">
+                {selected.size ? 'the rows you picked out' : 'everything the segment matched'}
+              </span>
+            </div>
+            <div className="projection__cell">
+              <span className="projection__label">Volume affected</span>
+              <span className="projection__value">
+                {formatCompactCurrency(chosen.reduce((t, r) => t + (r.merchant.projectedVolume ?? 0), 0))}
+              </span>
+              <span className="projection__note">annual processed value</span>
+            </div>
+            <div className="projection__cell">
+              <span className="projection__label">Revenue</span>
+              <span className="projection__value">
+                {formatCompactCurrency(chosen.reduce((t, r) => t + r.revenue, 0))}
+              </span>
+              <span className="projection__note">per year, at this rate</span>
+            </div>
+            <div className="projection__cell projection__cell--result">
+              <span className="projection__label">Liability taken on</span>
+              <span className="projection__value" style={{ color: 'var(--c-danger)' }}>
+                {formatCompactCurrency(chosen.reduce((t, r) => t + r.loss, 0))}
+              </span>
+              <span className="projection__note">expected annual loss</span>
+            </div>
+          </div>
+
+          <div className="stack stack--xtight" style={{ maxHeight: 180, overflowY: 'auto' }}>
+            {chosen.slice(0, 12).map((r) => (
+              <div key={r.merchant.id} className="row row--between row--nowrap">
+                <span className="small truncate">{r.merchant.name}</span>
+                <span className="mono micro subtle">{formatCompactCurrency(r.merchant.projectedVolume)}</span>
+              </div>
+            ))}
+            {chosen.length > 12 && (
+              <span className="micro subtle">and {formatNumber(chosen.length - 12)} more.</span>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

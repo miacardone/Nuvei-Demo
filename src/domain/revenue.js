@@ -625,3 +625,78 @@ function fmtMoney(n) {
   if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
   return `${sign}$${abs.toFixed(0)}`;
 }
+
+
+/* ------------------------------------------------------------------ *
+ * Criteria types, filters and solution types
+ * ------------------------------------------------------------------ */
+
+/**
+ * Fields grouped into the kind of thing they describe.
+ *
+ * "Pick a field from a list of nine" asks the reader to hold the whole
+ * vocabulary in their head. "What kind of criteria — risk, size,
+ * classification, coverage?" is the question they actually have, and it makes
+ * the field list short enough to read.
+ */
+export const CRITERIA_TYPES = [
+  { id: 'risk', label: 'Risk profile', hint: 'Tier, chargeback ratio, win rate.', icon: 'alert', fields: ['riskTier', 'chargebackRatio', 'winRate'] },
+  { id: 'size', label: 'Size and volume', hint: 'Processed value, dispute count, exposure.', icon: 'chart', fields: ['projectedVolume', 'disputeVolume', 'exposure'] },
+  { id: 'classification', label: 'Classification', hint: 'Merchant group and trading status.', icon: 'folder', fields: ['groupId', 'status'] },
+  { id: 'coverage', label: 'Coverage', hint: 'Whether we already carry the liability.', icon: 'shield', fields: ['indemnified'] },
+];
+
+export const criteriaTypeFor = (id) => CRITERIA_TYPES.find((t) => t.id === id);
+export const fieldsForType = (id) => (criteriaTypeFor(id)?.fields ?? []).map(fieldFor).filter(Boolean);
+
+/**
+ * What shape of answer the reader wants back. This is a genuinely different
+ * question from "what do you want to know" — the same question can be
+ * answered with a recommendation, with a model of a number you supply, or
+ * with nothing but the rows that fail. It changes the answer, not the wording.
+ */
+export const SOLUTION_TYPES = [
+  { id: 'recommend', label: 'A recommendation', hint: 'Work out the number and tell me.', icon: 'shield' },
+  { id: 'model', label: 'An impact model', hint: 'I will set the number — show me the effect.', icon: 'sliders' },
+  { id: 'exceptions', label: 'The exceptions only', hint: 'Just the ones that fail the test.', icon: 'alert' },
+];
+
+export const solutionTypeFor = (id) => SOLUTION_TYPES.find((s) => s.id === id);
+
+/**
+ * Applies the chosen solution type to a computed answer.
+ *
+ * Kept out of the goals themselves so every goal gets the behaviour for free,
+ * and so a goal that has no meaningful "exception" (an exposure ranking, say)
+ * degrades to the full list rather than to an empty one.
+ */
+export function shapeAnswer(answer, solutionType) {
+  if (!answer || solutionType !== 'exceptions') return answer;
+  const failing = answer.rows.filter((r) => r.net < 0 || r.merchant.riskTier === 'High');
+  if (!failing.length) {
+    return {
+      ...answer,
+      rows: [],
+      headline: 'No exceptions',
+      headlineNote: 'Nothing in this selection fails the test.',
+      narrative: 'Every merchant here either clears its expected losses or sits outside the high-risk tier. There is nothing to action.',
+    };
+  }
+  /* The original narrative describes the whole selection, so appending it here
+     leaves two sentences arguing with each other — "1 exception" followed by
+     "1 of 2 earn more than we expect to pay out". The exception view gets its
+     own sentence and names the merchants, which is the only thing a reader
+     wants from a list of exceptions. */
+  const names = failing.map((r) => r.merchant.name);
+  const named = names.length <= 3
+    ? names.join(', ')
+    : `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`;
+
+  return {
+    ...answer,
+    rows: failing,
+    headline: `${failing.length} exception${failing.length === 1 ? '' : 's'}`,
+    headlineNote: `${failing.length} of ${answer.rows.length} in this selection need attention.`,
+    narrative: `${named} ${failing.length === 1 ? 'either costs' : 'either cost'} more than ${failing.length === 1 ? 'it earns' : 'they earn'} at this rate, or ${failing.length === 1 ? 'sits' : 'sit'} in the high-risk tier. Everything else in the selection is fine and has been left out.`,
+  };
+}

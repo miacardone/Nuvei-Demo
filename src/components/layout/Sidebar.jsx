@@ -104,6 +104,96 @@ function NavGroup({ item, collapsed }) {
  * Groups are offered as their own scope so an operator can look at, say, all
  * of Travel & Hospitality without picking merchants off one at a time.
  */
+const SCOPE_RESULT_CAP = 6;
+
+function ScopeRow({ active, onClick, icon, title, meta }) {
+  return (
+    <button type="button" className="popover__item" style={{ alignItems: 'flex-start' }} onClick={onClick}>
+      <Icon name={icon} size={15} className={active ? '' : 'subtle'} style={active ? { color: 'var(--c-primary)' } : undefined} />
+      <span style={{ minWidth: 0 }}>
+        <span className="small strong" style={{ display: 'block' }}>{title}</span>
+        {meta && <span className="micro subtle" style={{ display: 'block' }}>{meta}</span>}
+      </span>
+      {active && <Icon name="check" size={14} style={{ color: 'var(--c-primary)', marginLeft: 'auto' }} />}
+    </button>
+  );
+}
+
+function ScopePickerBody({ scope, close }) {
+  const [query, setQuery] = useState('');
+  const pick = (next) => { close(); setScope(next); };
+
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? MERCHANTS.filter((m) => `${m.name} ${m.vertical ?? ''} ${m.mccLabel ?? ''} ${m.groupLabel ?? ''}`.toLowerCase().includes(q))
+    : [];
+
+  return (
+    <>
+      <div style={{ padding: '8px 10px 6px' }}>
+        <div className="msearch__field">
+          <Icon name="search" size={14} className="subtle" />
+          <input
+            type="text"
+            value={query}
+            placeholder="Search merchants…"
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search merchants"
+          />
+        </div>
+      </div>
+
+      {!q && (
+        <>
+          <ScopeRow
+            active={scope.kind === 'all'}
+            onClick={() => pick({ kind: 'all' })}
+            icon="layers"
+            title="All merchants"
+            meta={`Whole portfolio · ${MERCHANTS.length} merchants`}
+          />
+          <div style={{ padding: '8px 10px 2px' }} className="micro subtle">Groups</div>
+          {MERCHANT_GROUPS.map((g) => {
+            const members = MERCHANTS.filter((m) => m.groupId === g.id);
+            if (!members.length) return null;
+            return (
+              <ScopeRow
+                key={g.id}
+                active={scope.kind === 'group' && scope.id === g.id}
+                onClick={() => pick({ kind: 'group', id: g.id })}
+                icon="folder"
+                title={g.label}
+                meta={`${members.length} merchants`}
+              />
+            );
+          })}
+        </>
+      )}
+
+      {q && (
+        <>
+          {matches.slice(0, SCOPE_RESULT_CAP).map((m) => (
+            <ScopeRow
+              key={m.id}
+              active={scope.kind === 'merchant' && scope.id === m.id}
+              onClick={() => pick({ kind: 'merchant', id: m.id })}
+              icon="briefcase"
+              title={m.name}
+              meta={`${m.vertical} · ${m.disputeVolume} ${m.disputeVolume === 1 ? 'dispute' : 'disputes'}`}
+            />
+          ))}
+          {matches.length === 0 && <p className="msearch__note">No merchant matches “{query}”.</p>}
+          {matches.length > SCOPE_RESULT_CAP && (
+            <p className="msearch__note">
+              Showing {SCOPE_RESULT_CAP} of {matches.length} matches — keep typing to narrow it down.
+            </p>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
 function MerchantScopePicker({ collapsed }) {
   const scope = useMerchantScope();
   const label = labelFor(scope);
@@ -141,47 +231,17 @@ function MerchantScopePicker({ collapsed }) {
     </button>
   );
 
-  const body = ({ close }) => {
-    const pick = (next) => { close(); setScope(next); };
-    return (
-      <>
-        <div style={{ padding: '8px 10px 4px' }} className="micro subtle">Scope</div>
-        <Row
-          active={scope.kind === 'all'}
-          onClick={() => pick({ kind: 'all' })}
-          icon="layers"
-          title="All merchants"
-          meta={`Whole portfolio · ${MERCHANTS.length} merchants`}
-        />
-        {MERCHANT_GROUPS.map((g) => {
-          const members = MERCHANTS.filter((m) => m.groupId === g.id);
-          if (!members.length) return null;
-          return (
-            <div key={g.id}>
-              <div style={{ padding: '8px 10px 2px' }} className="micro subtle">{g.label}</div>
-              <Row
-                active={scope.kind === 'group' && scope.id === g.id}
-                onClick={() => pick({ kind: 'group', id: g.id })}
-                icon="folder"
-                title={`All ${g.label}`}
-                meta={`${members.length} merchants`}
-              />
-              {members.map((m) => (
-                <Row
-                  key={m.id}
-                  active={scope.kind === 'merchant' && scope.id === m.id}
-                  onClick={() => pick({ kind: 'merchant', id: m.id })}
-                  icon="briefcase"
-                  title={m.name}
-                  meta={`${m.vertical} · ${m.disputeVolume} ${m.disputeVolume === 1 ? 'dispute' : 'disputes'}`}
-                />
-              ))}
-            </div>
-          );
-        })}
-      </>
-    );
-  };
+  /**
+   * Search first, then groups, then matching merchants.
+   *
+   * Listing every merchant under every group is fine for a book of nine and
+   * impossible for the book this console is for. Typing narrows; with an empty
+   * field the picker offers the whole portfolio and the groups, which is what
+   * an operator reaches for most of the time anyway. Merchant rows appear only
+   * once a search actually selects some, and the list is capped with the true
+   * match count stated beneath it.
+   */
+  const body = ({ close }) => <ScopePickerBody scope={scope} close={close} />;
 
   return (
     <Popover align="left" width={300} trigger={trigger}>
