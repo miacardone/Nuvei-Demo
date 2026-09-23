@@ -40,8 +40,19 @@
 .rail--collapsed .rail__head .rail__toggle-btn { margin-left: 0; }
 
 /* Perspective switcher — merchant / acquirer / issuer, one login */
-.rail__perspective { flex: none; padding: 0 var(--s-2) var(--s-2); }
+/* The right gutter matches the nav's, which is a scrollbar wider than its
+   padding — otherwise the picker overhangs the nav rows by those few pixels
+   the moment the nav is long enough to scroll. */
+.rail__perspective {
+  flex: none;
+  padding: 0 calc(var(--s-2) + var(--rail-scrollbar)) var(--s-2) var(--s-2);
+}
 .rail--collapsed .rail__perspective { padding: 0 4px var(--s-2); }
+/* The popover wraps its trigger in an inline-flex span, which shrink-wraps to
+   its text. That made the button's width:100% resolve against the label rather
+   than the rail, leaving the control ~80px short of the nav items' right edge
+   and reading as off-centre. Make the wrapper fill the rail instead. */
+.rail__perspective > * { display: block; width: 100%; }
 .rail__perspective-btn {
   display: flex; align-items: center; gap: var(--s-2);
   /* Inner padding accounts for the 1px border, so the icon lines up with the
@@ -66,8 +77,14 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.rail__nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--s-2); }
-.rail__nav::-webkit-scrollbar { width: 6px; }
+/* `scrollbar-gutter: stable` keeps the gutter reserved whether or not the nav
+   is currently long enough to scroll, so the rows do not shift sideways as
+   groups expand — and so the picker above can line up with them for good. */
+.rail__nav {
+  flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--s-2);
+  scrollbar-gutter: stable;
+}
+.rail__nav::-webkit-scrollbar { width: var(--rail-scrollbar); }
 .rail__nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: var(--r-pill); }
 
 .rail__link, .rail__group-btn {

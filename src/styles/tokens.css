@@ -97,6 +97,9 @@
   /* Layout */
   --rail-w: 236px;
   --rail-w-collapsed: 60px;
+  /* Width of the sidebar nav's scrollbar. The picker above the nav reserves
+     the same gutter so the two line up whether or not the nav scrolls. */
+  --rail-scrollbar: 6px;
   --topbar-h: 52px;
 
   /* Stacking — popovers and tooltips live above everything, in a portal */
