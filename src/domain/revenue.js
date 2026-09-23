@@ -185,6 +185,33 @@ export function breakEvenBps(merchants) {
  * console reads.
  */
 
+/**
+ * What actually changes for these merchants if the suggestion is applied.
+ *
+ * A suggestion that only states an outcome ("$797.3K net") asks the reader to
+ * take the number on trust. Showing today beside afterwards makes the claim
+ * checkable and, more usefully, shows what it costs as well as what it earns —
+ * indemnifying a merchant always adds liability, and a card that reported only
+ * the revenue would be selling rather than advising.
+ */
+function beforeAfter(rows, ctx) {
+  const merchants = rows.map((r) => r.merchant);
+  const revenueNow = merchants.reduce((t, m) => t + annualCharge(m, ctx.settingsFor(m.id)), 0);
+  const revenueAfter = rows.reduce((t, r) => t + r.revenue, 0);
+  const coveredNow = merchants.filter((m) => ctx.settingsFor(m.id).enabled).length;
+  const liabilityNow = merchants
+    .filter((m) => ctx.settingsFor(m.id).enabled)
+    .reduce((t, m) => t + expectedAnnualLoss(m), 0);
+  const liabilityAfter = rows.reduce((t, r) => t + r.loss, 0);
+
+  return [
+    { label: 'Merchants covered', before: `${coveredNow} of ${merchants.length}`, after: `${merchants.length} of ${merchants.length}` },
+    { label: 'We earn', before: fmtMoney(revenueNow), after: fmtMoney(revenueAfter), good: true },
+    { label: 'We carry', before: fmtMoney(liabilityNow), after: fmtMoney(liabilityAfter), bad: true },
+    { label: 'Net to us', before: fmtMoney(revenueNow - liabilityNow), after: fmtMoney(revenueAfter - liabilityAfter), good: true },
+  ];
+}
+
 const notIndemnified = (m, ctx) => !ctx.settingsFor(m.id).enabled;
 const isIndemnified = (m, ctx) => ctx.settingsFor(m.id).enabled;
 
@@ -216,6 +243,7 @@ export const SUGGESTIONS = [
         plain: candidates.length
           ? `Offer chargeback cover to these ${candidates.length} merchants. They rarely get disputes, so we would collect the fee and pay out very little.`
           : 'No new merchants worth covering right now.',
+        changes: beforeAfter(candidates, ctx),
         headline: (f) => `${f.number(candidates.length)} merchants, ${f.money(candidates.reduce((s, r) => s + r.net, 0))} net`,
         because: 'Active, below the 0.65% early-warning threshold, and not indemnified today. At 25 bps each one earns more than we expect to pay out.',
       };
@@ -239,6 +267,7 @@ export const SUGGESTIONS = [
         criteria: [{ field: 'indemnified', operator: 'is', value: 'no' }],
         mode: 'all',
         plain: `${rows.length} merchants pay us nothing for chargeback cover today. Selling it to them would be worth this much a year.`,
+        changes: beforeAfter(rows, ctx),
         headline: (f) => `${f.money(rows.reduce((s, r) => s + r.revenue, 0))} on the table`,
         because: 'Every merchant not currently indemnified, ranked by what 25 bps of their volume would be worth. The top few are where a conversation is worth having.',
       };
@@ -302,7 +331,7 @@ export const SUGGESTIONS = [
     question: 'Chargeback management or indemnification?',
     intent: 'The two models compared across every active merchant.',
     icon: 'card',
-    run: (merchants) => {
+    run: (merchants, ctx) => {
       const pricing = { basis: 'bps', bps: 25, fee: 0.04 };
       const active = merchants.filter((m) => m.status !== 'Onboarding');
 
@@ -332,7 +361,7 @@ export const SUGGESTIONS = [
     question: 'What if we indemnified every merchant at 25 bps?',
     intent: 'A scenario across every active merchant, priced the same way.',
     icon: 'layers',
-    run: (merchants) => {
+    run: (merchants, ctx) => {
       const pricing = { basis: 'bps', bps: 25, fee: 0.04 };
       const active = merchants.filter((m) => m.status !== 'Onboarding');
       const rows = active.map((m) => projectMerchant(m, pricing)).sort((a, b) => b.net - a.net);
@@ -343,6 +372,7 @@ export const SUGGESTIONS = [
         criteria: [{ field: 'status', operator: 'isNot', value: 'Onboarding' }],
         mode: 'all',
         plain: 'What we would make if we sold chargeback cover to every live merchant at one flat rate, instead of pricing them one at a time.',
+        changes: beforeAfter(rows, ctx),
         headline: (f) => `${f.money(rows.reduce((s, r) => s + r.net, 0))} net across ${f.number(rows.length)}`,
         because: `One flat price for everyone. Break-even across these merchants is ${breakEvenBps(active).toFixed(1)} bps, so 25 bps is the margin above that — the losers inside it are the merchants to carve out.`,
       };

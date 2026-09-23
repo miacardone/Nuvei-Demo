@@ -106,11 +106,16 @@ export function RevenueRules() {
         {/* A plain statement of what this screen is for. Everything below it
             assumes you already know what indemnification is and why a
             chargeback ratio matters; someone opening it cold does not. */}
+        {/* Collapsible, and shut by default once you have read it — an
+            explainer that cannot be dismissed becomes furniture you scroll
+            past on every visit. */}
         <Card bodyClassName="card__body--tight">
-          <div className="row row--xtight row--nowrap" style={{ alignItems: 'flex-start' }}>
-            <Icon name="info" size={15} style={{ marginTop: 2, color: 'var(--c-primary)', flex: 'none' }} />
-            <div className="stack stack--xtight">
-              <span className="small strong">What this screen is for</span>
+          <details className="explainer">
+            <summary>
+              <Icon name="info" size={14} />
+              What this screen is for
+            </summary>
+            <div className="stack stack--xtight" style={{ paddingTop: 'var(--s-2)' }}>
               <p className="small" style={{ margin: 0 }}>
                 Chargebacks cost your merchants money. You can sell them protection from that — you take
                 on the losses, they pay you a small slice of what they process. This screen works out
@@ -122,7 +127,7 @@ export function RevenueRules() {
                 {' '}<b>Create</b> is where you ask your own question. Nothing is saved until you press a button.
               </p>
             </div>
-          </div>
+          </details>
         </Card>
 
         <Card bodyClassName="card__body--flush">

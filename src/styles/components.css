@@ -44,7 +44,9 @@
 .rail--collapsed .rail__perspective { padding: 0 4px var(--s-2); }
 .rail__perspective-btn {
   display: flex; align-items: center; gap: var(--s-2);
-  width: 100%; padding: 6px var(--s-2);
+  /* Inner padding accounts for the 1px border, so the icon lines up with the
+     nav icons below rather than sitting three pixels to their left. */
+  width: 100%; padding: 6px calc(var(--s-3) - 1px);
   border: 1px solid rgba(255,255,255,0.14); border-radius: var(--r-md);
   background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.85);
   cursor: pointer; text-align: left;
@@ -548,9 +550,23 @@
 .tab__badge { font-family: var(--font-mono); font-size: var(--fs-nano); padding: 1px 5px; border-radius: var(--r-pill); background: var(--c-surface-sunken); color: var(--c-ink-muted); }
 .tab.is-active .tab__badge { background: var(--c-primary-tint); color: var(--c-primary-deep); }
 
-.subtabs { display: inline-flex; gap: var(--s-2); padding: var(--s-2); background: var(--c-surface-sunken); border: 1px solid var(--c-line); border-radius: var(--r-md); }
-.subtab { padding: var(--s-3) var(--s-5); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--c-ink-muted); font-size: var(--fs-small); font-weight: 600; cursor: pointer; white-space: nowrap; }
-.subtab.is-active { background: var(--c-surface); color: var(--c-primary-deep); box-shadow: var(--shadow-card); }
+.subtabs {
+  display: inline-flex; gap: 2px; padding: 3px;
+  background: var(--c-surface-sunken); border: 1px solid var(--c-line);
+  border-radius: var(--r-pill);
+}
+.subtab {
+  padding: 5px 14px; border: 0; border-radius: var(--r-pill);
+  background: transparent; cursor: pointer;
+  font-family: inherit; font-size: var(--fs-small); font-weight: 500;
+  color: var(--c-ink-muted); white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.subtab:hover { color: var(--c-ink); }
+.subtab.is-active {
+  background: var(--c-surface); color: var(--c-primary); font-weight: 600;
+  box-shadow: 0 1px 2px rgba(11, 27, 51, 0.10);
+}
 
 /* ---------- Modal ---------- */
 
@@ -1785,3 +1801,34 @@
 
 /* The plain sentence at the top of an answer. */
 .ask-plain { margin: 0; font-size: var(--fs-body); line-height: 1.45; color: var(--c-ink); }
+
+/* A dismissible explainer. Shut by default — once read, an always-open help
+   panel is just something to scroll past. */
+.explainer > summary {
+  display: inline-flex; align-items: center; gap: 6px;
+  cursor: pointer; list-style: none;
+  font-size: var(--fs-small); font-weight: 600; color: var(--c-primary);
+}
+.explainer > summary::-webkit-details-marker { display: none; }
+.explainer > summary::after {
+  content: '▸'; font-size: 10px; color: var(--c-ink-subtle);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.explainer[open] > summary::after { transform: rotate(90deg); }
+
+/* Before and after on a suggestion card. Narrow, quiet, and aligned so the
+   two columns can be read against each other at a glance. */
+.ba { width: 100%; border-collapse: collapse; font-size: var(--fs-micro); }
+.ba th {
+  text-align: right; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; font-size: var(--fs-nano);
+  color: var(--c-ink-subtle); padding: 0 0 3px;
+}
+.ba th:first-child { text-align: left; }
+.ba td { padding: 3px 0; border-top: 1px solid var(--c-line); }
+.ba__label { color: var(--c-ink-muted); }
+.ba__before, .ba__after { text-align: right; font-family: var(--font-mono); }
+.ba__before { color: var(--c-ink-subtle); }
+.ba__after { font-weight: 600; color: var(--c-ink); }
+.ba__after.is-good { color: var(--c-success); }
+.ba__after.is-bad { color: var(--c-danger); }

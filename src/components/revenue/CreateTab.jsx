@@ -236,6 +236,34 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
    * leave the reader looking at an editable rule rather than a result they
    * cannot inspect.
    */
+  /**
+   * Switching route starts over.
+   *
+   * Without this, picking a quick start and then choosing "Build it myself"
+   * left the whole rule behind — you were looking at a blank-looking form that
+   * was still carrying a preset's category, criteria and Per-criteria mode,
+   * which is why it seemed to default there. Changing how you want to start is
+   * a decision to begin again, so the form goes back to how it was found.
+   */
+  const chooseStarter = (id) => {
+    const next = starter === id ? null : id;
+    setStarter(next);
+    setMode('merchant');
+    setCategory('');
+    setGoalId('');
+    setPicked([]);
+    setCriteriaType('risk');
+    setCriteria([blankCriterion()]);
+    setFilters([]);
+    setSolution('recommend');
+    setValues({});
+    setSelected(new Set());
+    setActionId('indemnify');
+    setStanding(false);
+    // Only "build it myself" wants the questionnaire without anything in it.
+    setFormTouched(next === 'manual');
+  };
+
   const fillFrom = (parsed) => {
     if (parsed.mode) setMode(parsed.mode);
     if (parsed.merchantIds?.length) setPicked(parsed.merchantIds);
@@ -436,7 +464,7 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                 key={st.id}
                 type="button"
                 className={`ask-mode ${starter === st.id ? 'is-active' : ''}`.trim()}
-                onClick={() => setStarter(starter === st.id ? null : st.id)}
+                onClick={() => chooseStarter(st.id)}
               >
                 <Icon name={st.icon} size={15} />
                 <span className="ask-mode__label">{st.label}</span>

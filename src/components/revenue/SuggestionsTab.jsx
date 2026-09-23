@@ -135,29 +135,42 @@ export function SuggestionsTab({ saved, standingRules = [], merchants = MERCHANT
     },
   ];
 
-  /* Headline numbers for the Dashboard, all from the scoped selection. */
-  const overview = useMemo(() => {
-    const covered = merchants.filter((m) => settingsFor(m.id).enabled);
-    const uncovered = merchants.filter((m) => !settingsFor(m.id).enabled && m.status === 'Active');
-    const atRisk = merchants.filter((m) => (m.chargebackRatio ?? 0) >= 0.65 || m.riskTier === 'High');
+  /* The Dashboard reports on the SUGGESTIONS, not on the business — so every
+     figure here is counted off the plays and the decision history rather than
+     off the case book. */
+  const rollup = useMemo(() => {
+    const live = plays.filter((p) => p.result.rows.length);
+    const touched = new Set(live.flatMap((p) => p.result.rows.map((r) => r.merchant.id)));
+    const pending = standingRules
+      .filter((r) => r.enabled)
+      .reduce((t, rule) => {
+        const qualifying = matchMerchants(merchants, rule.criteria, 'all', ctx);
+        return t + ruleDrift(rule, qualifying, {
+          settingsFor,
+          flagsFor,
+          alreadyAlerted: (ruleId, merchantId) => hasAlert(`${ruleId}:${merchantId}`),
+        }).pending.length;
+      }, 0);
+
     return {
-      covered: covered.length,
-      uncovered,
-      uncapturedRevenue: uncovered.reduce((t, m) => t + (m.projectedVolume ?? 0) * 0.0025, 0),
-      carried: covered.reduce((t, m) => t + expectedAnnualLoss(m), 0),
-      atRisk,
+      opportunity: live.reduce((t, p) => t + p.result.rows.reduce((x, r) => x + r.revenue, 0), 0),
+      open: live.length,
+      merchantsTouched: touched.size,
+      applied: saved.filter((x) => x.status === 'applied').length,
+      dismissed: saved.filter((x) => x.status === 'dismissed').length,
+      savedOnly: saved.filter((x) => x.status === 'saved').length,
+      pending,
     };
-  }, [merchants]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plays, saved, standingRules, merchants]);
 
   const topThree = plays.slice(0, 3);
 
   return (
     <div className="stack">
-      <Card bodyClassName="card__body--flush">
-        <div style={{ padding: '0 var(--s-4)' }}>
-          <SubTabs tabs={SUB_TABS} value={sub} onChange={setSub} />
-        </div>
-      </Card>
+      {/* No Card around this. A grey pill floating inside a white card is a
+          card inside a card, which is what made the row look like a mistake. */}
+      <SubTabs tabs={SUB_TABS} value={sub} onChange={setSub} />
 
       {/* ---------------- Dashboard ---------------- *
           The one-screen picture: where you stand, and the three things most
@@ -165,52 +178,66 @@ export function SuggestionsTab({ saved, standingRules = [], merchants = MERCHANT
           tabs rather than new information, so it is the right place to land. */}
       {sub === 'dashboard' && (
       <>
+        {/* Deliberately NOT a copy of the main Dashboard. That one reports the
+            state of the business; this one reports the state of the SUGGESTIONS
+            — how much is on the table, how much of it is still untouched, and
+            what has already been decided. Repeating case volumes and reason
+            codes here would just be a second, worse version of a page that
+            already exists. */}
         <div className="kpi-row">
           <Kpi
-            label="Not covered yet"
-            value={formatNumber(overview.uncovered.length)}
-            meta={`${formatCompactCurrency(overview.uncapturedRevenue)} a year if we sold them cover`}
-            spark={weeklySeries(CASES, 12)}
-          />
-          <Kpi
-            label="Chargebacks we carry"
-            value={formatCompactCurrency(overview.carried)}
-            meta={`Across the ${formatNumber(overview.covered)} we already cover`}
-            invert
+            label="On the table"
+            value={formatCompactCurrency(rollup.opportunity)}
+            meta="Extra revenue these suggestions add up to"
             spark={weeklySeries(CASES, 12, (c) => c.disputeAmount)}
           />
           <Kpi
-            label="Needing attention"
-            value={formatNumber(overview.atRisk.length)}
-            meta="High risk, or disputing over 0.65%"
-            invert
-            spark={weeklySeries(CASES, 12, () => 1, (c) => overview.atRisk.some((m) => m.id === c.merchantId))}
+            label="Suggestions open"
+            value={formatNumber(rollup.open)}
+            meta={`${formatNumber(rollup.merchantsTouched)} merchants between them`}
+            spark={weeklySeries(CASES, 12)}
           />
           <Kpi
-            label="Merchants in scope"
-            value={formatNumber(merchants.length)}
-            meta={`${formatNumber(overview.covered)} covered, ${formatNumber(merchants.length - overview.covered)} not`}
+            label="Acted on"
+            value={formatNumber(rollup.applied)}
+            meta={`${formatNumber(rollup.dismissed)} dismissed, ${formatNumber(rollup.savedOnly)} saved for later`}
+            spark={weeklySeries(CASES, 12)}
+          />
+          <Kpi
+            label="Rules running"
+            value={formatNumber(standingRules.filter((r) => r.enabled).length)}
+            meta={rollup.pending ? `${formatNumber(rollup.pending)} merchants not yet in step` : 'Everything in step'}
+            invert={rollup.pending > 0}
             spark={weeklySeries(CASES, 12)}
           />
         </div>
 
         <div className="grid grid--2">
-          <Card title="Who we cover today" description="Merchants whose chargebacks we have taken on, against those we have not." bodyClassName="card__body--chart card__body--pie-row">
-            <Donut
-              data={[
-                { label: 'Covered', value: overview.covered },
-                { label: 'Not covered', value: merchants.length - overview.covered, color: 'var(--c-series-1)' },
-              ]}
-              centerValue={formatNumber(merchants.length)}
-              centerLabel="merchants"
-              size={150}
+          <Card title="Where the opportunity is" description="Each suggestion's revenue, biggest first.">
+            <BarRows
+              rows={plays
+                .map((p) => ({ label: p.suggestion.question, value: Math.round(p.result.rows.reduce((t, r) => t + r.revenue, 0)), meta: `${p.result.rows.length} merchants` }))
+                .filter((r) => r.value > 0)
+                .sort((a, b) => b.value - a.value)}
+              formatValue={formatCompactCurrency}
             />
           </Card>
 
-          <Card title="Busiest segments, last 30 days" description="Where disputes are actually being raised.">
-            <BarRows
-              rows={groups.map((g) => ({ label: g.label, value: g.cases, meta: formatCompactCurrency(g.value) }))}
-            />
+          <Card title="What we have decided so far" description="Every suggestion saved out of Create, by what happened to it.">
+            {saved.length ? (
+              <Donut
+                data={[
+                  { label: 'Applied', value: saved.filter((x) => x.status === 'applied').length, color: 'var(--c-success)' },
+                  { label: 'Saved', value: saved.filter((x) => x.status === 'saved').length },
+                  { label: 'Dismissed', value: saved.filter((x) => x.status === 'dismissed').length, color: 'var(--c-series-neutral)' },
+                ]}
+                centerValue={formatNumber(saved.length)}
+                centerLabel="decisions"
+                size={150}
+              />
+            ) : (
+              <EmptyState icon="archive" title="Nothing decided yet" hint="Anything you save or apply in Create is counted here." />
+            )}
           </Card>
         </div>
 
@@ -224,9 +251,9 @@ export function SuggestionsTab({ saved, standingRules = [], merchants = MERCHANT
                 {result.plain && <p className="play__plain">{result.plain}</p>}
                 <div className="row row--between row--nowrap" style={{ marginTop: 'auto' }}>
                   <span className="micro subtle">
-                    {result.rows.length ? `Act now · ${formatNumber(result.rows.length)} merchants` : 'Nothing to do'}
+                    {result.rows.length ? `${formatNumber(result.rows.length)} merchants affected` : 'Nothing to do'}
                   </span>
-                  <Button variant="secondary" size="sm" onClick={() => setSub('suggestions')}>See all</Button>
+                  <Button variant="secondary" size="sm" onClick={() => setSub('suggestions')}>See it</Button>
                 </div>
               </div>
             </Card>
@@ -273,6 +300,25 @@ export function SuggestionsTab({ saved, standingRules = [], merchants = MERCHANT
                   each one earns more than we expect to pay out" is unreadable
                   to someone meeting the product for the first time. */}
               {result.plain && <p className="play__plain">{result.plain}</p>}
+
+              {/* Today beside afterwards, so the claim is checkable and the
+                  cost is as visible as the gain. */}
+              {result.changes && (
+                <table className="ba">
+                  <thead>
+                    <tr><th /><th>Now</th><th>If applied</th></tr>
+                  </thead>
+                  <tbody>
+                    {result.changes.map((c) => (
+                      <tr key={c.label}>
+                        <td className="ba__label">{c.label}</td>
+                        <td className="ba__before">{c.before}</td>
+                        <td className={`ba__after ${c.good ? 'is-good' : ''} ${c.bad ? 'is-bad' : ''}`.trim()}>{c.after}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
 
               <details className="play__why">
                 <summary>How we worked that out</summary>
