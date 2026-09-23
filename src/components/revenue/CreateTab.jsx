@@ -168,7 +168,7 @@ function CriterionRow({ criterion, onChange, onRemove, canRemove, fields = CRITE
   );
 }
 
-export function CreateTab({ prefill, onSaved }) {
+export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
   const { notify } = useToast();
   const ctx = prefill.ctx;
 
@@ -226,8 +226,8 @@ export function CreateTab({ prefill, onSaved }) {
      be the accounts you touched most recently; here it is the busiest by case
      activity, which is the same idea and computed rather than hardcoded. */
   const mostActive = useMemo(
-    () => activityIndex(MERCHANTS, CASES).slice(0, 6).map((a) => a.merchant),
-    [],
+    () => activityIndex(merchants, CASES).slice(0, 6).map((a) => a.merchant),
+    [merchants],
   );
 
   /**
@@ -262,10 +262,10 @@ export function CreateTab({ prefill, onSaved }) {
      actually removed — "412 matched, filters removed 88" is information, a
      single final count is not. */
   const preFiltered = useMemo(() => (mode === 'merchant'
-    ? MERCHANTS.filter((m) => picked.includes(m.id))
-    : matchMerchants(MERCHANTS, criteria, 'all', ctx)),
+    ? merchants.filter((m) => picked.includes(m.id))
+    : matchMerchants(merchants, criteria, 'all', ctx)),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [mode, picked, criteria]);
+  [mode, picked, criteria, merchants]);
 
   const subjects = useMemo(
     () => (filters.length ? matchMerchants(preFiltered, filters, 'all', ctx) : preFiltered),
@@ -527,7 +527,7 @@ export function CreateTab({ prefill, onSaved }) {
               >
                 {mode === 'merchant' ? (
                   <MerchantSearch
-                    merchants={MERCHANTS}
+                    merchants={merchants}
                     groups={MERCHANT_GROUPS}
                     selected={picked}
                     onChange={setPicked}

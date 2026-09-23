@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Card, Badge, Button, EmptyState, StatusIcon } from '@/components/ui/Surface';
+import { Card, Badge, Button, EmptyState, Kpi, StatusIcon, SubTabs } from '@/components/ui/Surface';
+import { BarRows, Donut } from '@/components/charts/Charts';
 import { DataTable } from '@/components/ui/DataTable';
 import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
@@ -11,7 +12,8 @@ import { flagsFor } from '@/data/merchant-flags';
 import { hasAlert } from '@/data/notifications-store';
 import { markRuleRun, removeStandingRule, toggleStandingRule } from '@/data/standing-rules';
 import { BULK_ACTIONS, bulkActionFor, ruleDrift } from '@/domain/bulk-actions';
-import { CATEGORIES, SUGGESTIONS, activityByGroup, activityIndex, categoryFor, matchMerchants } from '@/domain/revenue';
+import { CATEGORIES, SUGGESTIONS, activityByGroup, activityIndex, categoryFor, expectedAnnualLoss, matchMerchants } from '@/domain/revenue';
+import { weeklySeries } from '@/domain/metrics';
 import { useToast } from '@/context/ToastContext';
 import { formatCompactCurrency, formatDate, formatNumber, formatPercent } from '@/utils/format';
 
@@ -59,20 +61,28 @@ function ActivityBar({ score }) {
   );
 }
 
-export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
+const SUB_TABS = [
+  { value: 'dashboard', label: 'Dashboard' },
+  { value: 'suggestions', label: 'Suggestions' },
+  { value: 'activity', label: 'Activity' },
+  { value: 'current', label: 'Current' },
+];
+
+export function SuggestionsTab({ saved, standingRules = [], merchants = MERCHANTS, onOpenInCreate }) {
   const { notify } = useToast();
   const ctx = { settingsFor };
   const [filter, setFilter] = useState('all');
+  const [sub, setSub] = useState('dashboard');
 
-  const activity = useMemo(() => activityIndex(MERCHANTS, CASES), []);
-  const groups = useMemo(() => activityByGroup(MERCHANTS, CASES), []);
+  const activity = useMemo(() => activityIndex(merchants, CASES), [merchants]);
+  const groups = useMemo(() => activityByGroup(merchants, CASES), [merchants]);
 
   const plays = useMemo(
     () => SUGGESTIONS
-      .map((s) => ({ suggestion: s, result: s.run(MERCHANTS, ctx), category: PLAY_CATEGORY[s.id] ?? 'revenue' }))
+      .map((s) => ({ suggestion: s, result: s.run(merchants, ctx), category: PLAY_CATEGORY[s.id] ?? 'revenue' }))
       .filter((p) => filter === 'all' || p.category === filter),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filter],
+    [filter, merchants],
   );
 
   const merchantColumns = [
@@ -125,9 +135,109 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
     },
   ];
 
+  /* Headline numbers for the Dashboard, all from the scoped selection. */
+  const overview = useMemo(() => {
+    const covered = merchants.filter((m) => settingsFor(m.id).enabled);
+    const uncovered = merchants.filter((m) => !settingsFor(m.id).enabled && m.status === 'Active');
+    const atRisk = merchants.filter((m) => (m.chargebackRatio ?? 0) >= 0.65 || m.riskTier === 'High');
+    return {
+      covered: covered.length,
+      uncovered,
+      uncapturedRevenue: uncovered.reduce((t, m) => t + (m.projectedVolume ?? 0) * 0.0025, 0),
+      carried: covered.reduce((t, m) => t + expectedAnnualLoss(m), 0),
+      atRisk,
+    };
+  }, [merchants]);
+
+  const topThree = plays.slice(0, 3);
+
   return (
     <div className="stack">
+      <Card bodyClassName="card__body--flush">
+        <div style={{ padding: '0 var(--s-4)' }}>
+          <SubTabs tabs={SUB_TABS} value={sub} onChange={setSub} />
+        </div>
+      </Card>
+
+      {/* ---------------- Dashboard ---------------- *
+          The one-screen picture: where you stand, and the three things most
+          worth doing about it. Everything here is a roll-up of the other three
+          tabs rather than new information, so it is the right place to land. */}
+      {sub === 'dashboard' && (
+      <>
+        <div className="kpi-row">
+          <Kpi
+            label="Not covered yet"
+            value={formatNumber(overview.uncovered.length)}
+            meta={`${formatCompactCurrency(overview.uncapturedRevenue)} a year if we sold them cover`}
+            spark={weeklySeries(CASES, 12)}
+          />
+          <Kpi
+            label="Chargebacks we carry"
+            value={formatCompactCurrency(overview.carried)}
+            meta={`Across the ${formatNumber(overview.covered)} we already cover`}
+            invert
+            spark={weeklySeries(CASES, 12, (c) => c.disputeAmount)}
+          />
+          <Kpi
+            label="Needing attention"
+            value={formatNumber(overview.atRisk.length)}
+            meta="High risk, or disputing over 0.65%"
+            invert
+            spark={weeklySeries(CASES, 12, () => 1, (c) => overview.atRisk.some((m) => m.id === c.merchantId))}
+          />
+          <Kpi
+            label="Merchants in scope"
+            value={formatNumber(merchants.length)}
+            meta={`${formatNumber(overview.covered)} covered, ${formatNumber(merchants.length - overview.covered)} not`}
+            spark={weeklySeries(CASES, 12)}
+          />
+        </div>
+
+        <div className="grid grid--2">
+          <Card title="Who we cover today" description="Merchants whose chargebacks we have taken on, against those we have not." bodyClassName="card__body--chart card__body--pie-row">
+            <Donut
+              data={[
+                { label: 'Covered', value: overview.covered },
+                { label: 'Not covered', value: merchants.length - overview.covered, color: 'var(--c-series-1)' },
+              ]}
+              centerValue={formatNumber(merchants.length)}
+              centerLabel="merchants"
+              size={150}
+            />
+          </Card>
+
+          <Card title="Busiest segments, last 30 days" description="Where disputes are actually being raised.">
+            <BarRows
+              rows={groups.map((g) => ({ label: g.label, value: g.cases, meta: formatCompactCurrency(g.value) }))}
+            />
+          </Card>
+        </div>
+
+        <span className="t-section-label">The three things most worth doing</span>
+        <div className="grid grid--3">
+          {topThree.map(({ suggestion, result }) => (
+            <Card key={suggestion.id} bodyClassName="card__body--tight">
+              <div className="stack stack--tight" style={{ height: '100%' }}>
+                <span className="small strong">{suggestion.question}</span>
+                <span className="ask-headline ask-headline--sm">{result.headline(FMT)}</span>
+                {result.plain && <p className="play__plain">{result.plain}</p>}
+                <div className="row row--between row--nowrap" style={{ marginTop: 'auto' }}>
+                  <span className="micro subtle">
+                    {result.rows.length ? `Act now · ${formatNumber(result.rows.length)} merchants` : 'Nothing to do'}
+                  </span>
+                  <Button variant="secondary" size="sm" onClick={() => setSub('suggestions')}>See all</Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </>
+      )}
+
       {/* ---------------- What to do ---------------- */}
+      {sub === 'suggestions' && (
+      <>
       <div className="row row--between row--nowrap" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
         <span className="t-section-label">What we think is worth doing</span>
         <div className="ask-chips">
@@ -211,7 +321,12 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
         ))}
       </div>
 
+      </>
+      )}
+
       {/* ---------------- Where to look ---------------- */}
+      {sub === 'activity' && (
+      <>
       <span className="t-section-label">Where the activity is, last 30 days</span>
 
       <div className="grid grid--2">
@@ -263,7 +378,12 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
         />
       </Card>
 
-      {/* ---------------- Standing rules ---------------- */}
+      </>
+      )}
+
+      {/* ---------------- Standing rules and history ---------------- */}
+      {sub === 'current' && (
+      <>
       <span className="t-section-label">Standing rules</span>
 
       <Card bodyClassName="card__body--tight">
@@ -380,6 +500,8 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
           </div>
         )}
       </Card>
+      </>
+      )}
     </div>
   );
 }

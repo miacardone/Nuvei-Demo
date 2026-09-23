@@ -5,6 +5,9 @@ import Icon from '@/components/ui/Icon';
 import SuggestionsTab from '@/components/revenue/SuggestionsTab';
 import CreateTab from '@/components/revenue/CreateTab';
 import { settingsFor } from '@/data/indemnification';
+import { MERCHANTS } from '@/data/portfolio';
+import { MERCHANT_GROUPS } from '@/data/merchants';
+import { SelectField } from '@/components/ui/Form';
 import useIndemnification from '@/hooks/useIndemnification';
 import useSavedSuggestions from '@/hooks/useSavedSuggestions';
 import useStandingRules from '@/hooks/useStandingRules';
@@ -44,6 +47,15 @@ export function RevenueRules() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [tab, setTab] = useState('suggestions');
+
+  /* One picker for the whole screen. Both tabs read the same selection, so
+     narrowing to a segment up here narrows the suggestions, the activity and
+     the standing-rule counts together rather than each tab carrying its own
+     idea of who is in scope. */
+  const [scope, setScope] = useState('all');
+  const scoped = scope === 'all'
+    ? MERCHANTS
+    : MERCHANTS.filter((m) => (scope.startsWith('g:') ? m.groupId === scope.slice(2) : m.id === scope));
   const [prefill, setPrefill] = useState({ ctx: { settingsFor } });
   const [seed, setSeed] = useState(0);
 
@@ -74,6 +86,20 @@ export function RevenueRules() {
       <PageHeader
         title="Revenue rules"
         description="Ask what your merchants could be worth, or let the console tell you — then apply it to the ones it affects."
+        actions={(
+          <SelectField
+            aria-label="Merchants in scope"
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            options={[
+              { value: 'all', label: `All merchants (${MERCHANTS.length})` },
+              ...MERCHANT_GROUPS
+                .filter((g) => MERCHANTS.some((m) => m.groupId === g.id))
+                .map((g) => ({ value: `g:${g.id}`, label: `${g.label} (${MERCHANTS.filter((m) => m.groupId === g.id).length})` })),
+              ...MERCHANTS.map((m) => ({ value: m.id, label: m.name })),
+            ]}
+          />
+        )}
       />
 
       <div className="stack">
@@ -106,11 +132,11 @@ export function RevenueRules() {
         </Card>
 
         {tab === 'suggestions' && (
-          <SuggestionsTab saved={saved} standingRules={standingRules} onOpenInCreate={openInCreate} />
+          <SuggestionsTab saved={saved} standingRules={standingRules} merchants={scoped} onOpenInCreate={openInCreate} />
         )}
 
         {tab === 'create' && (
-          <CreateTab key={seed} prefill={prefill} onSaved={() => setTab('suggestions')} />
+          <CreateTab key={seed} prefill={prefill} merchants={scoped} onSaved={() => setTab('suggestions')} />
         )}
 
         <Card bodyClassName="card__body--tight">
