@@ -1660,3 +1660,8 @@
 /* Three ways to begin, sized so none of them looks like the default. */
 .starters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
 @media (max-width: 760px) { .starters { grid-template-columns: minmax(0, 1fr); } }
+
+/* Before anything has been asked there is no questionnaire to show, so the
+   answer panel takes the full width rather than sitting in a half-empty
+   two-column grid beside a column of controls nobody has asked for yet. */
+.ask--solo { grid-template-columns: minmax(0, 1fr); }

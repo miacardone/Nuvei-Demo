@@ -184,6 +184,11 @@ export function CreateTab({ prefill, onSaved }) {
   const [selected, setSelected] = useState(new Set());
   const [confirming, setConfirming] = useState(false);
   const [starter, setStarter] = useState(null);
+  /* The questionnaire is hidden until it is actually wanted. It appears when
+     you choose to build by hand, and also the moment a command or a quick
+     start fills it in — because the whole point of those two is that they
+     hand you an editable rule to check, not a result you cannot see into. */
+  const [formTouched, setFormTouched] = useState(false);
 
   // What happens at the end, and whether it happens once or keeps happening.
   const [actionId, setActionId] = useState(prefill.action ?? 'indemnify');
@@ -193,6 +198,7 @@ export function CreateTab({ prefill, onSaved }) {
   const goal = goalFor(goalId);
   const goals = category ? goalsFor(category) : [];
   const action = bulkActionFor(actionId) ?? BULK_ACTIONS[0];
+  const showForm = starter === 'manual' || formTouched;
 
   /* What the search offers before anyone types. On a real portfolio this would
      be the accounts you touched most recently; here it is the busiest by case
@@ -226,6 +232,7 @@ export function CreateTab({ prefill, onSaved }) {
       setValues((v) => ({ ...v, rate: String(parsed.pricing.bps) }));
     }
     setSelected(new Set());
+    setFormTouched(true);
   };
 
   /* Step 2 names the merchants you care about; the filters in step 3 trim
@@ -421,8 +428,9 @@ export function CreateTab({ prefill, onSaved }) {
         </div>
       </Card>
 
-      <div className="ask">
+      <div className={`ask ${showForm ? '' : 'ask--solo'}`.trim()}>
         {/* ---------------- Questionnaire ---------------- */}
+        {showForm && (
         <div className="ask__form">
           <Card bodyClassName="card__body--tight">
             <div className="stack stack--tight">
@@ -634,6 +642,7 @@ export function CreateTab({ prefill, onSaved }) {
             </div>
           </Card>
         </div>
+        )}
 
         {/* ---------------- Live answer ---------------- */}
         <div className="ask__answer">
@@ -642,7 +651,9 @@ export function CreateTab({ prefill, onSaved }) {
               <EmptyState
                 icon="chart"
                 title="The answer builds as you ask"
-                hint="Type what you want at the top, pick a start, or work down the questions. Nothing needs saving — the impact appears here as you go."
+                hint={showForm
+                  ? 'Work down the questions on the left. Nothing needs saving — the impact appears here as you go.'
+                  : 'Pick how you want to start above. Whichever route you choose, the answer appears here as you go and nothing is saved until you say so.'}
               />
             </Card>
           ) : (
