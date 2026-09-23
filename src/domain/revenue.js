@@ -104,6 +104,26 @@ export function matchMerchants(merchants, criteria, mode, ctx) {
  */
 export const PRICING_FLOOR_BPS = 15;
 
+/**
+ * What chargeback management earns, per dispute worked.
+ *
+ * The two products are priced on completely different things, which is the
+ * whole reason they are worth comparing. Indemnification is priced on
+ * TURNOVER — a share of everything processed, whether or not anything goes
+ * wrong — and in exchange we absorb the losses. Management is priced on
+ * DISPUTES — a fee for every case we fight — and the merchant keeps its own
+ * liability. So one scales with how big a merchant is and the other with how
+ * much trouble it has, and for any given merchant one of them is clearly the
+ * better fit.
+ */
+export const MANAGEMENT_FEE_PER_CASE = 42;
+
+/** What we would earn working a merchant's disputes for them. */
+export const managementRevenue = (m) => (m.disputeVolume ?? 0) * MANAGEMENT_FEE_PER_CASE;
+
+/** What the merchant wins back when we fight on their behalf. */
+export const recoveredValue = (m) => disputedValue(m) * ((m.winRate ?? 0) / 100);
+
 /** Disputed value we would be on the hook for, before anything is won back. */
 export const disputedValue = (m) => (m.projectedVolume ?? 0) * ((m.chargebackRatio ?? 0) / 100);
 
@@ -270,6 +290,35 @@ export const SUGGESTIONS = [
     },
   },
   {
+    id: 'chargebacks-vs-indemnification',
+    question: 'Chargeback management or indemnification?',
+    intent: 'The two models compared across every active merchant.',
+    icon: 'card',
+    run: (merchants) => {
+      const pricing = { basis: 'bps', bps: 25, fee: 0.04 };
+      const active = merchants.filter((m) => m.status !== 'Onboarding');
+
+      const rows = active.map((m) => {
+        const indemnify = projectMerchant(m, pricing);
+        const manage = managementRevenue(m);
+        return { ...indemnify, manage, better: manage > indemnify.net ? 'manage' : 'indemnify', gap: Math.abs(manage - indemnify.net) };
+      }).sort((a, b) => b.gap - a.gap);
+
+      const indemnifyNet = rows.reduce((s, r) => s + r.net, 0);
+      const manageNet = rows.reduce((s, r) => s + r.manage, 0);
+      const liability = rows.reduce((s, r) => s + r.loss, 0);
+
+      return {
+        pricing,
+        rows,
+        criteria: [{ field: 'status', operator: 'isNot', value: 'Onboarding' }],
+        mode: 'all',
+        headline: (f) => `${f.money(indemnifyNet)} vs ${f.money(manageNet)}`,
+        because: `Indemnification at 25 bps nets ${fmtMoney(indemnifyNet)} but puts ${fmtMoney(liability)} of chargeback liability on us. Management earns ${fmtMoney(manageNet)} at ${fmtMoney(MANAGEMENT_FEE_PER_CASE)} a dispute and carries none of it. One is priced on turnover, the other on trouble — which is why the right answer differs merchant by merchant.`,
+      };
+    },
+  },
+  {
     id: 'whole-book',
     question: 'What if we indemnified every merchant at 25 bps?',
     intent: 'A scenario across every active merchant, priced the same way.',
@@ -307,6 +356,7 @@ export const suggestionFor = (id) => SUGGESTIONS.find((s) => s.id === id);
 export const CATEGORIES = [
   { id: 'revenue', label: 'Grow revenue', hint: 'Pricing and uncaptured income.', icon: 'chart' },
   { id: 'indemnification', label: 'Indemnification', hint: 'Who to cover, and at what rate.', icon: 'shield' },
+  { id: 'chargebacks', label: 'Chargeback management', hint: 'Fighting and winning disputes, rather than carrying them.', icon: 'card' },
   { id: 'risk', label: 'Reduce risk', hint: 'Exposure and chargeback ratios.', icon: 'alert' },
   { id: 'operations', label: 'Operations', hint: 'Where the dispute load actually sits.', icon: 'inbox' },
 ];
@@ -513,6 +563,90 @@ export const GOALS = [
         rows,
         apply: covered.length ? { enabled: true, basis: 'bps', bps: Math.ceil(breakEvenBps(covered) * 1.6), fee: 0.04 } : null,
         applyLabel: covered.length ? `Re-price at ${Math.ceil(breakEvenBps(covered) * 1.6)} bps` : null,
+      };
+    },
+  },
+  {
+    id: 'manage-vs-indemnify',
+    category: 'chargebacks',
+    label: 'Manage their chargebacks, or indemnify them?',
+    blurb: 'Compares the two models side by side, per merchant.',
+    inputs: [{ key: 'rate', label: 'Indemnification rate to compare against', type: 'number', suffix: 'bps', default: 25, step: 1 }],
+    answer: ({ subjects, values }) => {
+      const pricing = { basis: 'bps', bps: Number(values.rate) || 0, fee: 0.04 };
+
+      const rows = subjects.map((m) => {
+        const indemnify = projectMerchant(m, pricing);
+        const manage = managementRevenue(m);
+        return {
+          ...indemnify,
+          /* Management carries no liability, so its net IS its revenue. That
+             asymmetry is the point of the comparison, not a rounding of it. */
+          manage,
+          better: manage > indemnify.net ? 'manage' : 'indemnify',
+          gap: Math.abs(manage - indemnify.net),
+        };
+      }).sort((a, b) => b.gap - a.gap);
+
+      const manageWins = rows.filter((r) => r.better === 'manage');
+      const indemnifyWins = rows.filter((r) => r.better === 'indemnify');
+      const indemnifyNet = rows.reduce((s2, r) => s2 + r.net, 0);
+      const manageNet = rows.reduce((s2, r) => s2 + r.manage, 0);
+
+      return {
+        headline: `${indemnifyWins.length} to indemnify, ${manageWins.length} to manage`,
+        headlineNote: `Indemnification priced at ${pricing.bps} bps, management at ${fmtMoney(MANAGEMENT_FEE_PER_CASE)} per dispute worked.`,
+        narrative: `Indemnifying all of them nets ${fmtMoney(indemnifyNet)} but means carrying ${fmtMoney(rows.reduce((s2, r) => s2 + r.loss, 0))} of expected losses. Managing all of them earns ${fmtMoney(manageNet)} with no liability at all. ${
+          manageWins.length
+            ? `${manageWins.length === 1 ? 'One merchant is' : `${manageWins.length} merchants are`} worth more to us as management — they generate plenty of disputes without the turnover to justify a rate on it.`
+            : 'Every merchant here is worth more indemnified than managed, because their turnover outweighs their dispute count.'
+        }`,
+        stats: [
+          { label: 'Indemnify, net', value: fmtMoney(indemnifyNet), tone: indemnifyNet >= manageNet ? 'good' : undefined },
+          { label: 'Manage, net', value: fmtMoney(manageNet), tone: manageNet > indemnifyNet ? 'good' : undefined },
+          { label: 'Liability if indemnified', value: fmtMoney(rows.reduce((s2, r) => s2 + r.loss, 0)), tone: 'bad' },
+          { label: 'Liability if managed', value: fmtMoney(0), tone: 'good' },
+        ],
+        rows,
+        apply: { enabled: true, ...pricing },
+        applyLabel: `Indemnify at ${pricing.bps} bps`,
+      };
+    },
+  },
+  {
+    id: 'recovery',
+    category: 'chargebacks',
+    label: 'How much are we winning back?',
+    blurb: 'What defending their disputes actually recovers.',
+    inputs: [],
+    answer: ({ subjects }) => {
+      const rows = subjects
+        .map((m) => ({ ...projectMerchant(m, { basis: 'bps', bps: 0, fee: 0 }), recovered: recoveredValue(m) }))
+        .sort((a, b) => b.recovered - a.recovered);
+
+      const recovered = rows.reduce((s2, r) => s2 + r.recovered, 0);
+      const disputed = subjects.reduce((s2, m) => s2 + disputedValue(m), 0);
+      const withVolume = subjects.filter((m) => (m.disputeVolume ?? 0) > 0);
+      const avgWin = withVolume.length
+        ? withVolume.reduce((s2, m) => s2 + (m.winRate ?? 0), 0) / withVolume.length
+        : 0;
+      const weakest = [...withVolume].sort((a, b) => (a.winRate ?? 0) - (b.winRate ?? 0))[0];
+
+      return {
+        headline: fmtMoney(recovered),
+        headlineNote: `Won back out of ${fmtMoney(disputed)} disputed, at an average win rate of ${avgWin.toFixed(0)}%.`,
+        narrative: weakest
+          ? `${weakest.name} is the weakest at ${(weakest.winRate ?? 0).toFixed(0)}%, which is where extra evidence or a better representment packet would pay for itself fastest. Every point of win rate across this selection is worth about ${fmtMoney(disputed / 100)} a year.`
+          : 'No dispute volume in this selection to recover anything from.',
+        stats: [
+          { label: 'Recovered', value: fmtMoney(recovered), tone: 'good' },
+          { label: 'Disputed', value: fmtMoney(disputed) },
+          { label: 'Average win rate', value: `${avgWin.toFixed(0)}%` },
+          { label: 'Worth 1pt of win rate', value: fmtMoney(disputed / 100) },
+        ],
+        rows,
+        apply: null,
+        applyLabel: null,
       };
     },
   },

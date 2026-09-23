@@ -61,7 +61,7 @@ const PAGES = flattenNav();
 const PAGE_SYNONYMS = {
   [acquirerRoutes.caseManagement]: 'disputes cases chargebacks claims queue work',
   [acquirerRoutes.representment]: 'fight defend evidence packet respond',
-  [acquirerRoutes.revenueRules]: 'indemnification indemnify pricing bps suggestions rules revenue',
+  [acquirerRoutes.revenueRules]: 'indemnification indemnify pricing bps suggestions rules revenue chargeback management manage',
   [acquirerRoutes.portfolioMerchants]: 'clients accounts merchants book portfolio',
   [acquirerRoutes.risk]: 'exposure ratio threshold risky',
   [acquirerRoutes.settlement]: 'money payout deductions batches funding',
@@ -164,5 +164,5 @@ export function searchEverything(query) {
 export const SEARCH_HINTS = [
   { label: 'FlightPath', kind: 'a merchant' },
   { label: 'webhooks', kind: 'a page' },
-  { label: 'which merchants should we indemnify', kind: 'a question' },
+  { label: 'chargeback management vs indemnification', kind: 'a comparison' },
 ];

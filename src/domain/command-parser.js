@@ -36,8 +36,15 @@ const ACTION_WORDS = [
   { id: 'export', words: ['export', 'download', 'csv', 'spreadsheet'], category: 'operations', goalId: 'load' },
 ];
 
+/* "Chargeback management" is a product, not a synonym for a chargeback, so it
+   is matched on the phrase rather than on the word — otherwise every sentence
+   containing "chargeback" would be dragged into it. */
+const CHARGEBACK_PHRASES = /\b(chargeback management|manage chargebacks|managing chargebacks|vs indemnification|versus indemnification|compared to indemnification|manage or indemnify|indemnify or manage)\b/;
+
 /** Questions that name a goal without naming an action. */
 const GOAL_PHRASES = [
+  { match: CHARGEBACK_PHRASES, category: 'chargebacks', goalId: 'manage-vs-indemnify' },
+  { match: /\b(winning back|win back|recovered|recovery|win rate|representment)\b/, category: 'chargebacks', goalId: 'recovery' },
   { match: /\b(uncaptured|left on the table|missing revenue|more revenue|increase revenue|grow revenue)\b/, category: 'revenue', goalId: 'revenue-left' },
   { match: /\b(what should we charge|what to charge|how much should we charge|recommend a rate|right rate)\b/, category: 'revenue', goalId: 'what-to-charge' },
   { match: /\b(should we indemnify|worth indemnifying|who to indemnify|should we cover)\b/, category: 'indemnification', goalId: 'should-indemnify' },

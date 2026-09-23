@@ -38,8 +38,17 @@ const PLAY_CATEGORY = {
   'increase-revenue': 'revenue',
   underpriced: 'indemnification',
   'over-exposed': 'risk',
+  'chargebacks-vs-indemnification': 'chargebacks',
   'whole-book': 'revenue',
 };
+
+/** The question each category opens on when a play is sent into Create. */
+const goalForCategory = (category) => ({
+  risk: 'exposure',
+  revenue: 'revenue-left',
+  chargebacks: 'manage-vs-indemnify',
+  operations: 'load',
+}[category] ?? 'should-indemnify');
 
 function ActivityBar({ score }) {
   return (
@@ -177,7 +186,7 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
                       mode: 'criteria',
                       criteria: result.criteria.map((c) => ({ ...c, value: String(c.value) })),
                       category,
-                      goalId: category === 'risk' ? 'exposure' : category === 'revenue' ? 'revenue-left' : 'should-indemnify',
+                      goalId: goalForCategory(category),
                     })}
                   >
                     Open in Create
