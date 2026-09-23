@@ -51,12 +51,25 @@ export function useAdvancedFilters(columns = []) {
     const active = Object.entries(filters).filter(([, v]) => hasValue(v));
     if (!active.length) return (rows) => rows;
 
-    const kindOf = (key) => columns.find((c) => c.key === key)?.filter?.kind ?? 'text';
+    const colOf = (key) => columns.find((c) => c.key === key);
+    const kindOf = (key) => colOf(key)?.filter?.kind ?? 'text';
+
+    /**
+     * A column whose displayed value is DERIVED rather than a field on the row
+     * — "Marks", say, which is computed from a separate flags store — has
+     * nothing at row[key] to match against. `filterValue` lets such a column
+     * say what it should be filtered on; everything else reads the field, as
+     * before.
+     */
+    const valueOf = (key, row) => {
+      const col = colOf(key);
+      return col?.filterValue ? col.filterValue(row) : row?.[key];
+    };
 
     return (rows) =>
       rows.filter((row) =>
         active.every(([key, cond]) => {
-          const raw = row?.[key];
+          const raw = valueOf(key, row);
           const kind = kindOf(key);
 
           if (kind === 'number') {

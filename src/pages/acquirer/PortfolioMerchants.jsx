@@ -85,7 +85,6 @@ export function PortfolioMerchants() {
     return rows;
   }, [filtered, sort]);
 
-  const pageRows = useMemo(() => sorted.slice((page - 1) * pageSize, page * pageSize), [sorted, page, pageSize]);
 
   /* Sparklines for the strip above. Each one is computed from the same source
      as the figure it sits under — merchant count from the roster's own
@@ -149,7 +148,18 @@ export function PortfolioMerchants() {
     { key: 'status', header: 'Status', align: 'center', fw: 7, sortable: true, filter: { kind: 'select', options: ['Active', 'Under review', 'Suspended', 'Onboarding'] }, cell: (r) => <StatusIcon icon={STATUS_ICON[r.status] ?? 'inbox'} tone={STATUS_TONE[r.status] ?? 'neutral'} label={r.status} /> },
     { key: 'riskTier', header: 'Risk tier', align: 'center', fw: 6, sortable: true, filter: { kind: 'select', options: ['Low', 'Medium', 'High'] }, cell: (r) => <StatusIcon icon={RISK_ICON[r.riskTier] ?? 'activity'} tone={RISK_TONE[r.riskTier] ?? 'neutral'} label={`${r.riskTier} risk`} /> },
     {
-      key: 'marks', header: 'Marks', align: 'center', fw: 6, sortable: false, filter: false,
+      /* Filterable, so the marks are a way to find merchants rather than only
+         a thing to notice in passing. Without this the watchlist existed only
+         as scattered icons you had to spot by eye. */
+      key: 'marks', header: 'Marks', align: 'center', fw: 6, sortable: false,
+      filter: { kind: 'select', options: ['Watchlist', 'Flagged for review', 'Has an owner', 'None'] },
+      filterValue: (r) => {
+        const f = flagsFor(r.id);
+        if (f.watchlist) return 'Watchlist';
+        if (f.review) return 'Flagged for review';
+        if (f.owner) return 'Has an owner';
+        return 'None';
+      },
       exportValue: (r) => [flagsFor(r.id).review && 'review', flagsFor(r.id).watchlist && 'watchlist', flagsFor(r.id).owner].filter(Boolean).join(' '),
       cell: (r) => {
         const f = flagsFor(r.id);
@@ -192,6 +202,16 @@ export function PortfolioMerchants() {
 
   const advanced = useAdvancedFilters(columns);
 
+  /* The advanced filters have to actually be applied. They were collected and
+     counted but never used, so setting one changed the badge and nothing else
+     — and paging has to happen after the filter, or you page through rows the
+     filter has already excluded. */
+  const visibleRows = useMemo(() => advanced.apply(sorted), [advanced, sorted]);
+  const pageRows = useMemo(
+    () => visibleRows.slice((page - 1) * pageSize, page * pageSize),
+    [visibleRows, page, pageSize],
+  );
+
 
   return (
     <>
@@ -228,7 +248,7 @@ export function PortfolioMerchants() {
             hidden={hidden}
             onHiddenChange={setHidden}
             exportColumns={visibleColumns}
-            exportRows={sorted}
+            exportRows={visibleRows}
             exportName="portfolio-merchants"
             onCopied={(ok) => notify(ok ? 'Copied to clipboard.' : 'Your browser blocked clipboard access.', ok ? 'success' : 'danger')}
           />
@@ -243,7 +263,7 @@ export function PortfolioMerchants() {
             onRowClick={(row) => setDetail(row)}
           />
 
-          <Pagination total={sorted.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
+          <Pagination total={visibleRows.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(s) => { setPageSize(s); setPage(1); }} />
         </Card>
       </div>
 

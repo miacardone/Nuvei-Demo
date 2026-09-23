@@ -8,12 +8,13 @@ import { MERCHANTS } from '@/data/portfolio';
 import { CASES } from '@/data/cases';
 import { settingsFor } from '@/data/indemnification';
 import { STATUSES, markSuggestion } from '@/data/suggestions-store';
-import { flagsFor } from '@/data/merchant-flags';
+import { flagsFor, setFlags } from '@/data/merchant-flags';
 import { hasAlert } from '@/data/notifications-store';
 import { markRuleRun, removeStandingRule, toggleStandingRule } from '@/data/standing-rules';
 import { BULK_ACTIONS, bulkActionFor, ruleDrift } from '@/domain/bulk-actions';
 import { CATEGORIES, SUGGESTIONS, activityByGroup, activityIndex, categoryFor, expectedAnnualLoss, matchMerchants } from '@/domain/revenue';
 import { weeklySeries } from '@/domain/metrics';
+import useMerchantFlags from '@/hooks/useMerchantFlags';
 import { useToast } from '@/context/ToastContext';
 import { formatCompactCurrency, formatDate, formatNumber, formatPercent } from '@/utils/format';
 
@@ -73,6 +74,14 @@ export function SuggestionsTab({ saved, standingRules = [], merchants = MERCHANT
   const ctx = { settingsFor };
   const [filter, setFilter] = useState('all');
   const [sub, setSub] = useState('dashboard');
+
+  /* Read through the flags store so removing one re-renders immediately. */
+  const flags = useMerchantFlags();
+  const watched = useMemo(
+    () => merchants.filter((m) => flagsFor(m.id).watchlist),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [merchants, flags],
+  );
 
   const activity = useMemo(() => activityIndex(merchants, CASES), [merchants]);
   const groups = useMemo(() => activityByGroup(merchants, CASES), [merchants]);
@@ -430,6 +439,70 @@ export function SuggestionsTab({ saved, standingRules = [], merchants = MERCHANT
       {/* ---------------- Standing rules and history ---------------- */}
       {sub === 'current' && (
       <>
+      {/* The watchlist lives here because this is the "what is currently on"
+          tab. Before this, Watch all wrote a marker into the Portfolio table
+          and there was nowhere to go and read the list back — an action whose
+          result you cannot find is barely an action. */}
+      <span className="t-section-label">Watchlist</span>
+
+      <Card bodyClassName="card__body--tight">
+        {watched.length === 0 ? (
+          <EmptyState
+            icon="eye"
+            title="Nobody on the watchlist"
+            hint="Use Watch all on a suggestion, or the Add to watchlist action in Create, to keep merchants here where you can find them."
+          />
+        ) : (
+          <div className="stack stack--tight">
+            <p className="micro subtle" style={{ margin: 0 }}>
+              Merchants someone asked to keep an eye on. Being here changes nothing about their pricing or
+              their cases — it is a bookmark.
+            </p>
+            {watched.map((m) => {
+              const f = flagsFor(m.id);
+              return (
+                <div key={m.id} className="standing-row">
+                  <div className="stack stack--xtight" style={{ minWidth: 0 }}>
+                    <div className="row row--xtight row--nowrap">
+                      <span className="small strong truncate">{m.name}</span>
+                      {f.review && <Badge tone="warning" dot>Flagged for review</Badge>}
+                    </div>
+                    <span className="micro subtle">
+                      {m.groupLabel} · {m.riskTier} risk · {formatPercent(m.chargebackRatio, 2)} chargeback ratio
+                      {f.note ? ` — ${f.note}` : ''}
+                    </span>
+                  </div>
+
+                  <span className="mono small strong standing-row__drift">{formatCompactCurrency(m.exposure ?? 0)}</span>
+
+                  <div className="row row--xtight row--nowrap">
+                    <Tooltip label="Ask a question about this merchant in Create." side="top">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon="chart"
+                        onClick={() => onOpenInCreate({ mode: 'merchant', merchantIds: [m.id], category: 'indemnification', goalId: 'should-indemnify' })}
+                      >
+                        Ask
+                      </Button>
+                    </Tooltip>
+                    <Tooltip label="Take this merchant off the watchlist." side="top">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon="close"
+                        aria-label={`Remove ${m.name} from the watchlist`}
+                        onClick={() => { setFlags(m.id, { watchlist: false }); notify(`${m.name} removed from the watchlist.`, 'success'); }}
+                      />
+                    </Tooltip>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
       <span className="t-section-label">Standing rules</span>
 
       <Card bodyClassName="card__body--tight">
