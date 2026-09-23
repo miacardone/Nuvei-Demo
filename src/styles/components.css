@@ -1656,3 +1656,7 @@
 }
 .standing-row + .standing-row { border-top: 1px solid var(--c-line); }
 .standing-row__drift { text-align: right; }
+
+/* Three ways to begin, sized so none of them looks like the default. */
+.starters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
+@media (max-width: 760px) { .starters { grid-template-columns: minmax(0, 1fr); } }

@@ -45,6 +45,17 @@ const MODES = [
   { id: 'criteria', label: 'Per criteria', icon: 'sliders', hint: 'Describe them — works at any size.' },
 ];
 
+/**
+ * Three ways to begin, offered as a choice rather than all at once. Only one
+ * of them is ever needed, so showing all three expanded made the screen look
+ * like a form with three sections to complete.
+ */
+const STARTERS = [
+  { id: 'describe', label: 'Describe it', icon: 'search', hint: 'Type what you want in plain English.' },
+  { id: 'quick', label: 'Quick start', icon: 'layers', hint: 'Pick a common starting point.' },
+  { id: 'manual', label: 'Build it myself', icon: 'sliders', hint: 'Work down the questions below.' },
+];
+
 /** One click fills every step. The fastest route for the things people do most. */
 const QUICK_STARTS = [
   {
@@ -172,6 +183,7 @@ export function CreateTab({ prefill, onSaved }) {
   const [values, setValues] = useState({});
   const [selected, setSelected] = useState(new Set());
   const [confirming, setConfirming] = useState(false);
+  const [starter, setStarter] = useState(null);
 
   // What happens at the end, and whether it happens once or keeps happening.
   const [actionId, setActionId] = useState(prefill.action ?? 'indemnify');
@@ -361,23 +373,51 @@ export function CreateTab({ prefill, onSaved }) {
 
   return (
     <div className="stack">
-      {/* ---------------- Entry points ---------------- */}
+      {/* ---------------- Entry points ---------------- *
+          One choice, then one control. Showing the command bar, its six
+          examples and four quick-start buttons all at once read as a list of
+          things you had to do rather than three alternatives, only one of
+          which anyone needs. Nothing is revealed until a route is picked. */}
       <Card bodyClassName="card__body--tight">
         <div className="stack stack--tight">
-          <CommandBar onParsed={fillFrom} />
+          <span className="t-section-label">How do you want to start?</span>
 
-          <div className="quickstarts">
-            <span className="micro subtle" style={{ flex: 'none' }}>Or start from</span>
-            {QUICK_STARTS.map((qs) => (
-              <button key={qs.id} type="button" className="quickstart" onClick={() => fillFrom(qs.fill)}>
-                <Icon name={qs.icon} size={14} />
-                <span className="stack stack--xtight" style={{ minWidth: 0 }}>
-                  <span className="quickstart__label">{qs.label}</span>
-                  <span className="quickstart__hint">{qs.hint}</span>
-                </span>
+          <div className="starters">
+            {STARTERS.map((st) => (
+              <button
+                key={st.id}
+                type="button"
+                className={`ask-mode ${starter === st.id ? 'is-active' : ''}`.trim()}
+                onClick={() => setStarter(starter === st.id ? null : st.id)}
+              >
+                <Icon name={st.icon} size={15} />
+                <span className="ask-mode__label">{st.label}</span>
+                <span className="ask-mode__hint">{st.hint}</span>
               </button>
             ))}
           </div>
+
+          {starter === 'describe' && <CommandBar onParsed={fillFrom} />}
+
+          {starter === 'quick' && (
+            <div className="quickstarts">
+              {QUICK_STARTS.map((qs) => (
+                <button key={qs.id} type="button" className="quickstart" onClick={() => fillFrom(qs.fill)}>
+                  <Icon name={qs.icon} size={14} />
+                  <span className="stack stack--xtight" style={{ minWidth: 0 }}>
+                    <span className="quickstart__label">{qs.label}</span>
+                    <span className="quickstart__hint">{qs.hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {starter === 'manual' && (
+            <p className="micro subtle" style={{ margin: 0 }}>
+              Work down the questions below — the answer appears on the right as you go.
+            </p>
+          )}
         </div>
       </Card>
 
