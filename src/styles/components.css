@@ -1768,3 +1768,20 @@
 @media (max-width: 860px) {
   .topbar__link { font-size: 0; gap: 0; padding: 4px; }
 }
+
+/* The plain-English line on a suggestion card. Sized to be read first — it is
+   the only part someone meeting the product cold can use. */
+.play__plain {
+  margin: 0; font-size: var(--fs-small); line-height: 1.45; color: var(--c-ink);
+}
+.play__why { margin: 0; }
+.play__why summary {
+  cursor: pointer; list-style: none;
+  font-size: var(--fs-micro); color: var(--c-ink-subtle);
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.play__why summary::-webkit-details-marker { display: none; }
+.play__why summary:hover { color: var(--c-primary); }
+
+/* The plain sentence at the top of an answer. */
+.ask-plain { margin: 0; font-size: var(--fs-body); line-height: 1.45; color: var(--c-ink); }

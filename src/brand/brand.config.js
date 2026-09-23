@@ -185,9 +185,9 @@ export const nuveiBrand = {
    * it; only the book has a different owner.
    */
   flagshipMerchant: {
-    name: 'Northgate Retail Group',
-    vertical: 'Omnichannel retail',
-    mccCode: '5999',
+    name: 'Meridian Air Group',
+    vertical: 'Full-service airline and holiday packages',
+    mccCode: '4511',
     onboardedDate: '2018-02-02',
   },
 
@@ -229,15 +229,20 @@ export const nuveiBrand = {
 
   /** A processor's book spans verticals rather than sitting in one, so these
    *  are the categories the portfolio screens actually draw from. */
+  /* This branch of Nuvei handles travel and hospitality only, so every MCC
+     here belongs to that vertical. Reason codes and dispute behaviour differ
+     sharply across travel — an airline ticket, a hotel night and a car hire
+     deposit fail in different ways — which is the point of keeping the list
+     specific rather than generic. */
   mccs: [
-    { code: '5999', label: 'Miscellaneous and Specialty Retail' },
-    { code: '5816', label: 'Digital Goods — Games' },
-    { code: '7372', label: 'Computer Software and SaaS' },
+    { code: '4511', label: 'Airlines and Air Carriers' },
     { code: '4722', label: 'Travel Agencies and Tour Operators' },
+    { code: '7011', label: 'Lodging — Hotels and Resorts' },
     { code: '5812', label: 'Eating Places and Restaurants' },
-    { code: '5411', label: 'Grocery Stores and Supermarkets' },
-    { code: '7995', label: 'Betting and Gaming' },
-    { code: '6012', label: 'Financial Institutions — Merchandise' },
+    { code: '7512', label: 'Car Rental Agencies' },
+    { code: '4411', label: 'Cruise Lines' },
+    { code: '4112', label: 'Passenger Railways' },
+    { code: '7996', label: 'Attractions and Tourist Experiences' },
   ],
 
   acquirers: ['Nuvei', 'Chase', 'WorldPay', 'Adyen', 'Checkout', 'DLocal'],

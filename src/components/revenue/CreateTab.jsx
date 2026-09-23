@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Card, Badge, Button, EmptyState } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
 import { SelectField, TextField } from '@/components/ui/Form';
-import { TruncatedText } from '@/components/ui/Overlay';
+import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
 import MerchantSearch from '@/components/ui/MerchantSearch';
 import { Modal } from '@/components/ui/Modal';
 import Icon from '@/components/ui/Icon';
@@ -334,8 +334,16 @@ export function CreateTab({ prefill, onSaved }) {
         <div className="stack stack--xtight">
           <span className="row row--xtight row--nowrap" style={{ minWidth: 0 }}>
             <TruncatedText value={r.merchant.name} className="small strong" />
-            {flagsFor(r.merchant.id).watchlist && <Icon name="eye" size={11} className="subtle" />}
-            {flagsFor(r.merchant.id).review && <Icon name="searchCheck" size={11} style={{ color: 'var(--c-warning)' }} />}
+            {flagsFor(r.merchant.id).watchlist && (
+              <Tooltip label="On the watchlist — someone asked to keep an eye on this merchant." side="top" wide>
+                <span style={{ display: 'inline-flex' }}><Icon name="eye" size={11} className="subtle" /></span>
+              </Tooltip>
+            )}
+            {flagsFor(r.merchant.id).review && (
+              <Tooltip label="Flagged for risk review — queued for the underwriting team to look at." side="top" wide>
+                <span style={{ display: 'inline-flex' }}><Icon name="searchCheck" size={11} style={{ color: 'var(--c-warning)' }} /></span>
+              </Tooltip>
+            )}
           </span>
           <span className="micro subtle">{r.merchant.groupLabel} · {r.merchant.riskTier} risk</span>
         </div>
@@ -708,7 +716,11 @@ export function CreateTab({ prefill, onSaved }) {
                     <Badge tone="primary">{formatNumber(subjects.length)} in scope</Badge>
                   </div>
 
-                  <p className="small" style={{ margin: 0 }}>{answer.narrative}</p>
+                  {/* Plain sentence first — it is the part that tells someone
+                      what is being suggested and why without knowing the
+                      product. The workings follow. */}
+                  {answer.plain && <p className="ask-plain">{answer.plain}</p>}
+                  <p className="small subtle" style={{ margin: 0 }}>{answer.narrative}</p>
 
                   <div className="projection">
                     {answer.stats.map((s) => (
@@ -750,6 +762,18 @@ export function CreateTab({ prefill, onSaved }) {
                     }),
                   }}
                 />
+                {/* Merchants this answer advises against are not in the table
+                    and not in what Apply touches. Saying so is the difference
+                    between "we left them out" and the reader wondering where
+                    they went. */}
+                {answer.excluded?.length > 0 && (
+                  <p className="msearch__note" style={{ borderTop: '1px solid var(--c-line)' }}>
+                    <b>{formatNumber(answer.excluded.length)} left out</b> — {answer.excludedReason}:
+                    {' '}{answer.excluded.slice(0, 4).map((r) => r.merchant.name).join(', ')}
+                    {answer.excluded.length > 4 ? ` and ${answer.excluded.length - 4} more` : ''}.
+                    {' '}They are not included in what Apply does.
+                  </p>
+                )}
                 {truncated && (
                   <p className="msearch__note" style={{ borderTop: '1px solid var(--c-line)' }}>
                     Showing the first {ROW_SAMPLE} of {formatNumber(rows.length)}. The figures above are calculated

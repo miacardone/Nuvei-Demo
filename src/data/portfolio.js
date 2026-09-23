@@ -132,16 +132,16 @@ function buildChecklist(currentIndex, blocked) {
  * rather than one slice of it.
  */
 const PIPELINE_PROSPECTS = [
-  { name: 'Halcyon Outfitters', groupId: 'retail', vertical: 'Outdoor apparel retail', mccCode: '5651', mccLabel: 'Family Clothing Stores', projectedVolume: 18_400_000 },
-  { name: 'Verity Home', groupId: 'retail', vertical: 'Furniture and homeware', mccCode: '5712', mccLabel: 'Furniture & Home Furnishings', projectedVolume: 31_900_000 },
-  { name: 'Kestrel Audio', groupId: 'digital', vertical: 'Music streaming subscriptions', mccCode: '5815', mccLabel: 'Digital Goods — Audiovisual', projectedVolume: 26_200_000 },
-  { name: 'Northgate Studios', groupId: 'digital', vertical: 'Games and in-app purchases', mccCode: '5816', mccLabel: 'Digital Goods — Games', projectedVolume: 44_500_000 },
-  { name: 'Anvil Analytics', groupId: 'digital', vertical: 'B2B SaaS subscriptions', mccCode: '7372', mccLabel: 'Computer Programming & Data Processing', projectedVolume: 12_700_000 },
-  { name: 'Cobalt Rail', groupId: 'travel', vertical: 'Rail ticketing', mccCode: '4112', mccLabel: 'Passenger Railways', projectedVolume: 53_100_000 },
-  { name: 'Solstice Resorts', groupId: 'travel', vertical: 'Resort and hotel group', mccCode: '7011', mccLabel: 'Lodging — Hotels & Motels', projectedVolume: 67_800_000 },
-  { name: 'Meridian Charter', groupId: 'travel', vertical: 'Private charter booking', mccCode: '4511', mccLabel: 'Airlines & Air Carriers', projectedVolume: 22_300_000 },
-  { name: 'Lumen Credit Union', groupId: 'financial', vertical: 'Member account top-ups', mccCode: '6012', mccLabel: 'Financial Institutions', projectedVolume: 39_600_000 },
-  { name: 'Torrent Exchange', groupId: 'financial', vertical: 'Regulated digital asset exchange', mccCode: '6051', mccLabel: 'Quasi-Cash — Financial Institutions', projectedVolume: 71_200_000 },
+  { name: 'Cobalt Rail', groupId: 'ground', vertical: 'Intercity rail ticketing', mccCode: '4112', mccLabel: 'Passenger Railways', projectedVolume: 53_100_000 },
+  { name: 'Solstice Resorts', groupId: 'lodging', vertical: 'All-inclusive resort group', mccCode: '7011', mccLabel: 'Lodging — Hotels and Resorts', projectedVolume: 67_800_000 },
+  { name: 'Meridian Charter', groupId: 'air', vertical: 'Private charter booking', mccCode: '4511', mccLabel: 'Airlines and Air Carriers', projectedVolume: 22_300_000 },
+  { name: 'Halcyon Voyages', groupId: 'experiences', vertical: 'Expedition cruise operator', mccCode: '4411', mccLabel: 'Cruise Lines', projectedVolume: 18_400_000 },
+  { name: 'Verity Serviced Apartments', groupId: 'lodging', vertical: 'Extended-stay apartments', mccCode: '7011', mccLabel: 'Lodging — Hotels and Resorts', projectedVolume: 31_900_000 },
+  { name: 'Kestrel Airways', groupId: 'air', vertical: 'Regional short-haul carrier', mccCode: '4511', mccLabel: 'Airlines and Air Carriers', projectedVolume: 26_200_000 },
+  { name: 'Northgate Attractions', groupId: 'experiences', vertical: 'Theme parks and attractions', mccCode: '7996', mccLabel: 'Attractions and Tourist Experiences', projectedVolume: 44_500_000 },
+  { name: 'Anvil Coach Tours', groupId: 'ground', vertical: 'Coach touring operator', mccCode: '4112', mccLabel: 'Passenger Railways', projectedVolume: 12_700_000 },
+  { name: 'Lumen Restaurant Group', groupId: 'dining', vertical: 'Casual dining chain', mccCode: '5812', mccLabel: 'Eating Places and Restaurants', projectedVolume: 39_600_000 },
+  { name: 'Torrent Travel Agency', groupId: 'air', vertical: 'Corporate travel management', mccCode: '4722', mccLabel: 'Travel Agencies and Tour Operators', projectedVolume: 71_200_000 },
 ];
 
 const groupLabelFor = (groupId) => MERCHANT_GROUPS.find((g) => g.id === groupId)?.label ?? '—';

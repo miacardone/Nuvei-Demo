@@ -77,6 +77,28 @@ export function RevenueRules() {
       />
 
       <div className="stack">
+        {/* A plain statement of what this screen is for. Everything below it
+            assumes you already know what indemnification is and why a
+            chargeback ratio matters; someone opening it cold does not. */}
+        <Card bodyClassName="card__body--tight">
+          <div className="row row--xtight row--nowrap" style={{ alignItems: 'flex-start' }}>
+            <Icon name="info" size={15} style={{ marginTop: 2, color: 'var(--c-primary)', flex: 'none' }} />
+            <div className="stack stack--xtight">
+              <span className="small strong">What this screen is for</span>
+              <p className="small" style={{ margin: 0 }}>
+                Chargebacks cost your merchants money. You can sell them protection from that — you take
+                on the losses, they pay you a small slice of what they process. This screen works out
+                <b> who is worth protecting, what to charge them,</b> and lets you apply it to a whole
+                group of merchants at once instead of one at a time.
+              </p>
+              <p className="micro subtle" style={{ margin: 0 }}>
+                <b>Suggestions</b> tells you what it already thinks is worth doing.
+                {' '}<b>Create</b> is where you ask your own question. Nothing is saved until you press a button.
+              </p>
+            </div>
+          </div>
+        </Card>
+
         <Card bodyClassName="card__body--flush">
           <div style={{ padding: '0 var(--s-4)' }}>
             <Tabs tabs={TABS} value={tab} onChange={setTab} />

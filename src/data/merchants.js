@@ -21,11 +21,17 @@ import brand from '@/brand/brand.config';
 
 /** Groups exist so the scope picker can offer a roll-up as well as one
  *  merchant. A merchant with no `groupId` is its own scope. */
+/* This branch of Nuvei processes travel and hospitality only, so the groups
+   are segments WITHIN travel rather than whole industries. That distinction
+   matters for disputes: an airline seat, a hotel night and a car-hire deposit
+   fail in genuinely different ways and at different rates, so segmenting by
+   "retail vs digital" would tell an operator here nothing at all. */
 export const MERCHANT_GROUPS = [
-  { id: 'retail', label: 'Retail & Commerce' },
-  { id: 'digital', label: 'Digital & Gaming' },
-  { id: 'travel', label: 'Travel & Hospitality' },
-  { id: 'financial', label: 'Financial Services' },
+  { id: 'air', label: 'Air & OTA' },
+  { id: 'lodging', label: 'Hotels & Lodging' },
+  { id: 'dining', label: 'Dining & Venues' },
+  { id: 'ground', label: 'Ground & Car Hire' },
+  { id: 'experiences', label: 'Cruise & Experiences' },
 ];
 
 /**
@@ -38,7 +44,7 @@ const FLAGSHIP_STUB = {
   name: brand.flagshipMerchant.name,
   vertical: brand.flagshipMerchant.vertical,
   mccCode: brand.flagshipMerchant.mccCode,
-  groupId: 'retail',
+  groupId: 'air',
   status: 'Active',
   riskTier: 'Low',
   onboardedDate: brand.flagshipMerchant.onboardedDate,
@@ -48,15 +54,15 @@ const FLAGSHIP_STUB = {
 };
 
 const PEER_STUBS = [
-  { id: 'brightwave', name: 'Brightwave Electronics', vertical: 'Consumer electronics retail', mccCode: '5999', groupId: 'retail', status: 'Active', riskTier: 'Low', onboardedDate: '2018-06-11', projectedVolume: 214_500_000, disputeWeight: 9 },
-  { id: 'pixelforge', name: 'PixelForge Studios', vertical: 'Games and in-app purchases', mccCode: '5816', groupId: 'digital', status: 'Active', riskTier: 'Medium', onboardedDate: '2020-09-14', projectedVolume: 118_300_000, disputeWeight: 6 },
-  { id: 'lattice', name: 'Lattice Software', vertical: 'B2B SaaS subscriptions', mccCode: '7372', groupId: 'digital', status: 'Active', riskTier: 'Low', onboardedDate: '2019-03-19', projectedVolume: 159_400_000, disputeWeight: 5 },
-  { id: 'flightpath', name: 'FlightPath Travel', vertical: 'Discount airline OTA', mccCode: '4722', groupId: 'travel', status: 'Suspended', riskTier: 'High', onboardedDate: '2017-08-30', projectedVolume: 92_700_000, disputeWeight: 18 },
-  { id: 'harborside', name: 'Harborside Dining Group', vertical: 'Restaurant group', mccCode: '5812', groupId: 'travel', status: 'Active', riskTier: 'Low', onboardedDate: '2021-05-08', projectedVolume: 41_800_000, disputeWeight: 4 },
+  { id: 'brightwave', name: 'Brightwave Hotels', vertical: 'City hotel group', mccCode: '7011', groupId: 'lodging', status: 'Active', riskTier: 'Low', onboardedDate: '2018-06-11', projectedVolume: 214_500_000, disputeWeight: 9 },
+  { id: 'pixelforge', name: 'Coastline Cruises', vertical: 'Ocean cruise operator', mccCode: '4411', groupId: 'experiences', status: 'Active', riskTier: 'Medium', onboardedDate: '2020-09-14', projectedVolume: 118_300_000, disputeWeight: 6 },
+  { id: 'lattice', name: 'Lattice Rail', vertical: 'Intercity rail ticketing', mccCode: '4112', groupId: 'ground', status: 'Active', riskTier: 'Low', onboardedDate: '2019-03-19', projectedVolume: 159_400_000, disputeWeight: 5 },
+  { id: 'flightpath', name: 'FlightPath Travel', vertical: 'Discount airline OTA', mccCode: '4722', groupId: 'air', status: 'Suspended', riskTier: 'High', onboardedDate: '2017-08-30', projectedVolume: 92_700_000, disputeWeight: 18 },
+  { id: 'harborside', name: 'Harborside Dining Group', vertical: 'Restaurant and venue group', mccCode: '5812', groupId: 'dining', status: 'Active', riskTier: 'Low', onboardedDate: '2021-05-08', projectedVolume: 41_800_000, disputeWeight: 4 },
   // Not live yet — weight 0, so the case book gives them nothing.
-  { id: 'freshline', name: 'Freshline Markets', vertical: 'Online grocery', mccCode: '5411', groupId: 'retail', status: 'Onboarding', riskTier: 'Medium', onboardedDate: null, projectedVolume: 55_200_000, disputeWeight: 0 },
-  { id: 'goldenspin', name: 'GoldenSpin Gaming', vertical: 'Licensed online gaming', mccCode: '7995', groupId: 'digital', status: 'Under review', riskTier: 'High', onboardedDate: '2019-11-20', projectedVolume: 74_600_000, disputeWeight: 12 },
-  { id: 'meridian', name: 'Meridian Digital Bank', vertical: 'Neobank top-ups', mccCode: '6012', groupId: 'financial', status: 'Onboarding', riskTier: 'High', onboardedDate: null, projectedVolume: 63_900_000, disputeWeight: 0 },
+  { id: 'freshline', name: 'Summit Lodges', vertical: 'Ski and mountain resorts', mccCode: '7011', groupId: 'lodging', status: 'Onboarding', riskTier: 'Medium', onboardedDate: null, projectedVolume: 55_200_000, disputeWeight: 0 },
+  { id: 'goldenspin', name: 'Driveline Car Hire', vertical: 'Airport car rental', mccCode: '7512', groupId: 'ground', status: 'Under review', riskTier: 'High', onboardedDate: '2019-11-20', projectedVolume: 74_600_000, disputeWeight: 12 },
+  { id: 'meridian', name: 'Wanderlust Experiences', vertical: 'Tours, attractions and activities', mccCode: '7996', groupId: 'experiences', status: 'Onboarding', riskTier: 'High', onboardedDate: null, projectedVolume: 63_900_000, disputeWeight: 0 },
 ];
 
 const MCC_BY_CODE = Object.fromEntries(brand.mccs.map((m) => [m.code, m]));

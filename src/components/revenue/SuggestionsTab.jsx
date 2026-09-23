@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Card, Badge, Button, EmptyState, StatusIcon } from '@/components/ui/Surface';
 import { DataTable } from '@/components/ui/DataTable';
-import { TruncatedText } from '@/components/ui/Overlay';
+import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
 import Icon from '@/components/ui/Icon';
 import { MERCHANTS } from '@/data/portfolio';
 import { CASES } from '@/data/cases';
@@ -157,7 +157,17 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
                 <span className="ask-headline ask-headline--sm">{result.headline(FMT)}</span>
               </div>
 
-              <p className="micro subtle" style={{ margin: 0 }}>{result.because}</p>
+              {/* The plain sentence leads. It says what is being suggested and
+                  why in words anyone can read; the workings sit underneath for
+                  whoever wants them. A card whose only explanation is "at 25 bps
+                  each one earns more than we expect to pay out" is unreadable
+                  to someone meeting the product for the first time. */}
+              {result.plain && <p className="play__plain">{result.plain}</p>}
+
+              <details className="play__why">
+                <summary>How we worked that out</summary>
+                <p className="micro subtle" style={{ margin: '4px 0 0' }}>{result.because}</p>
+              </details>
 
               <div className="row row--between row--nowrap" style={{ marginTop: 'auto', flexWrap: 'wrap', gap: 'var(--s-2)' }}>
                 <span className="micro subtle">{formatNumber(result.rows.length)} merchant{result.rows.length === 1 ? '' : 's'}</span>
@@ -167,17 +177,19 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
                       but adding a set of merchants to a watchlist is not a
                       decision that needs a six-step form. */}
                   {result.rows.length > 0 && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon="eye"
-                      onClick={() => {
-                        const msg = bulkActionFor('watchlist').run(result.rows.map((r) => r.merchant), {});
-                        notify(msg, 'success');
-                      }}
-                    >
-                      Watch all
-                    </Button>
+                    <Tooltip label={`Put all ${result.rows.length} on the watchlist so they are easy to find later. Changes nothing about their pricing or their cases.`} side="top" wide>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon="eye"
+                        onClick={() => {
+                          const msg = bulkActionFor('watchlist').run(result.rows.map((r) => r.merchant), {});
+                          notify(msg, 'success');
+                        }}
+                      >
+                        Watch all
+                      </Button>
+                    </Tooltip>
                   )}
                   <Button
                     variant="secondary"
@@ -291,18 +303,26 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
                   </div>
 
                   <div className="row row--xtight row--nowrap">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={!rule.enabled || !drift.pending.length}
-                      onClick={() => {
-                        const msg = act.run(drift.pending, rule.config);
-                        markRuleRun(rule.id);
-                        notify(msg, 'success');
-                      }}
+                    <Tooltip
+                      label={drift.pending.length
+                        ? `Apply this rule to the ${drift.pending.length} merchant${drift.pending.length === 1 ? '' : 's'} that qualify but have not had it applied yet.`
+                        : 'Nothing to do — every merchant that qualifies already matches this rule.'}
+                      side="top"
+                      wide
                     >
-                      Run now
-                    </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={!rule.enabled || !drift.pending.length}
+                        onClick={() => {
+                          const msg = act.run(drift.pending, rule.config);
+                          markRuleRun(rule.id);
+                          notify(msg, 'success');
+                        }}
+                      >
+                        Run now
+                      </Button>
+                    </Tooltip>
                     <Button variant="secondary" size="sm" icon={rule.enabled ? 'pause' : 'play'} onClick={() => toggleStandingRule(rule.id)} aria-label={rule.enabled ? 'Pause' : 'Resume'} />
                     <Button variant="secondary" size="sm" icon="trash" onClick={() => { removeStandingRule(rule.id); notify('Standing rule removed.', 'success'); }} aria-label="Remove" />
                   </div>

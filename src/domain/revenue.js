@@ -213,6 +213,9 @@ export const SUGGESTIONS = [
           { field: 'chargebackRatio', operator: 'lt', value: 0.65 },
         ],
         mode: 'all',
+        plain: candidates.length
+          ? `Offer chargeback cover to these ${candidates.length} merchants. They rarely get disputes, so we would collect the fee and pay out very little.`
+          : 'No new merchants worth covering right now.',
         headline: (f) => `${f.number(candidates.length)} merchants, ${f.money(candidates.reduce((s, r) => s + r.net, 0))} net`,
         because: 'Active, below the 0.65% early-warning threshold, and not indemnified today. At 25 bps each one earns more than we expect to pay out.',
       };
@@ -235,6 +238,7 @@ export const SUGGESTIONS = [
         rows,
         criteria: [{ field: 'indemnified', operator: 'is', value: 'no' }],
         mode: 'all',
+        plain: `${rows.length} merchants pay us nothing for chargeback cover today. Selling it to them would be worth this much a year.`,
         headline: (f) => `${f.money(rows.reduce((s, r) => s + r.revenue, 0))} on the table`,
         because: 'Every merchant not currently indemnified, ranked by what 25 bps of their volume would be worth. The top few are where a conversation is worth having.',
       };
@@ -257,6 +261,9 @@ export const SUGGESTIONS = [
         rows,
         criteria: [{ field: 'indemnified', operator: 'is', value: 'yes' }],
         mode: 'all',
+        plain: rows.length
+          ? `We are losing money on these ${rows.length}. They pay less for cover than their chargebacks cost us, so their rate needs to go up.`
+          : 'Every merchant we cover is paying enough. Nothing to fix.',
         headline: (f) => (rows.length
           ? `${f.number(rows.length)} merchants, ${f.money(Math.abs(rows.reduce((s, r) => s + r.net, 0)))} short`
           : 'Nothing underpriced'),
@@ -284,6 +291,7 @@ export const SUGGESTIONS = [
           { field: 'chargebackRatio', operator: 'gte', value: 0.65 },
         ],
         mode: 'all',
+        plain: `We already carry the chargebacks for these ${rows.length}, and they are the riskiest merchants we have. This is what we expect that to cost us.`,
         headline: (f) => `${f.money(rows.reduce((s, r) => s + r.loss, 0))} expected loss`,
         because: 'We carry the chargeback liability for these merchants and they are at or above the early-warning threshold. This is the number to watch, whatever the revenue says.',
       };
@@ -313,6 +321,7 @@ export const SUGGESTIONS = [
         rows,
         criteria: [{ field: 'status', operator: 'isNot', value: 'Onboarding' }],
         mode: 'all',
+        plain: 'Two ways to make money from chargebacks: take them on ourselves for a slice of turnover, or charge a fee to fight each one. The first earns far more but we absorb the losses.',
         headline: (f) => `${f.money(indemnifyNet)} vs ${f.money(manageNet)}`,
         because: `Indemnification at 25 bps nets ${fmtMoney(indemnifyNet)} but puts ${fmtMoney(liability)} of chargeback liability on us. Management earns ${fmtMoney(manageNet)} at ${fmtMoney(MANAGEMENT_FEE_PER_CASE)} a dispute and carries none of it. One is priced on turnover, the other on trouble — which is why the right answer differs merchant by merchant.`,
       };
@@ -333,6 +342,7 @@ export const SUGGESTIONS = [
         rows,
         criteria: [{ field: 'status', operator: 'isNot', value: 'Onboarding' }],
         mode: 'all',
+        plain: 'What we would make if we sold chargeback cover to every live merchant at one flat rate, instead of pricing them one at a time.',
         headline: (f) => `${f.money(rows.reduce((s, r) => s + r.net, 0))} net across ${f.number(rows.length)}`,
         because: `One flat price for everyone. Break-even across these merchants is ${breakEvenBps(active).toFixed(1)} bps, so 25 bps is the margin above that — the losers inside it are the merchants to carve out.`,
       };
@@ -461,6 +471,7 @@ export const GOALS = [
 
       return {
         headline: `${recommended} bps`,
+        plain: `Charge these ${subjects.length === 1 ? 'merchant' : `${subjects.length} merchants`} ${recommended} bps to cover their chargebacks — that is the rate that pays for the losses we expect plus your margin.`,
         headlineNote: floored
           ? `Break-even is only ${be.toFixed(1)} bps, so this is the ${PRICING_FLOOR_BPS} bps floor for handling cost and volatility.`
           : `Break-even is ${be.toFixed(1)} bps. This adds your ${margin}% margin on top.`,
@@ -490,6 +501,9 @@ export const GOALS = [
 
       return {
         headline: fmtMoney(p.revenue),
+        plain: uncovered.length
+          ? `These ${uncovered.length} merchants pay us nothing for chargeback cover today. Offering it at ${pricing.bps} bps would be worth ${fmtMoney(p.revenue)} a year.`
+          : 'Nothing to do — every merchant in this selection already pays for cover.',
         headlineNote: `${uncovered.length} of ${subjects.length} in this selection are not indemnified today.`,
         narrative: uncovered.length
           ? `Priced at ${pricing.bps} bps, the merchants in this selection that carry no arrangement would bring in ${fmtMoney(p.revenue)} a year. After ${fmtMoney(p.loss)} of expected losses that is ${fmtMoney(p.net)} net.`
@@ -519,18 +533,27 @@ export const GOALS = [
       const no = rows.filter((r) => r.net <= 0);
 
       return {
-        headline: `${yes.length} yes, ${no.length} no`,
+        headline: `Cover ${yes.length} of ${rows.length}`,
         headlineNote: `Tested at ${pricing.bps} bps.`,
+        plain: yes.length
+          ? `Indemnify these ${yes.length} — at ${pricing.bps} bps they each pay us more than we expect their chargebacks to cost.`
+          : `Do not indemnify any of these at ${pricing.bps} bps — every one would cost more than it pays.`,
         narrative: yes.length
-          ? `${yes.length} of ${rows.length} earn more than we expect to pay out at this rate — ${fmtMoney(yes.reduce((s, r) => s + r.net, 0))} net between them.${no.length ? ` The other ${no.length} would cost us money at ${pricing.bps} bps and need a higher rate or a decline.` : ''}`
+          ? `${yes.length} of ${rows.length} earn more than we expect to pay out at this rate — ${fmtMoney(yes.reduce((s, r) => s + r.net, 0))} net between them.`
           : `None of these clear their expected losses at ${pricing.bps} bps. Raise the rate or leave the liability with the merchant.`,
         stats: [
           { label: 'Worth covering', value: String(yes.length), tone: 'good' },
-          { label: 'Not at this rate', value: String(no.length), tone: no.length ? 'bad' : undefined },
-          { label: 'Net if all covered', value: fmtMoney(rows.reduce((s, r) => s + r.net, 0)) },
+          { label: 'Revenue', value: fmtMoney(yes.reduce((s, r) => s + r.revenue, 0)) },
+          { label: 'Net', value: fmtMoney(yes.reduce((s, r) => s + r.net, 0)), tone: 'good' },
           { label: 'Break-even', value: `${breakEvenBps(subjects).toFixed(1)} bps` },
         ],
-        rows,
+        /* Only the merchants this answer actually RECOMMENDS. The ones it
+           advises against are handed back separately rather than listed
+           alongside — a table that mixes "do these" with "do not do these"
+           and then applies to all of them is how the wrong thing gets done. */
+        rows: yes,
+        excluded: no,
+        excludedReason: `would cost us money at ${pricing.bps} bps`,
         apply: { enabled: true, ...pricing },
         applyLabel: `Indemnify at ${pricing.bps} bps`,
       };
@@ -560,8 +583,13 @@ export const GOALS = [
           { label: 'Shortfall', value: fmtMoney(gap), tone: short.length ? 'bad' : undefined },
           { label: 'Break-even', value: `${breakEvenBps(covered).toFixed(1)} bps` },
         ],
-        rows,
-        apply: covered.length ? { enabled: true, basis: 'bps', bps: Math.ceil(breakEvenBps(covered) * 1.6), fee: 0.04 } : null,
+        plain: short.length
+          ? `Re-price these ${short.length} — they pay us less than we expect their chargebacks to cost, so we lose money covering them today.`
+          : 'Nothing to do — every merchant you cover is paying enough to cover its own losses.',
+        rows: short,
+        excluded: rows.filter((r) => r.net >= 0),
+        excludedReason: 'already covering their own losses',
+        apply: short.length ? { enabled: true, basis: 'bps', bps: Math.ceil(breakEvenBps(covered) * 1.6), fee: 0.04 } : null,
         applyLabel: covered.length ? `Re-price at ${Math.ceil(breakEvenBps(covered) * 1.6)} bps` : null,
       };
     },
@@ -595,6 +623,7 @@ export const GOALS = [
 
       return {
         headline: `${indemnifyWins.length} to indemnify, ${manageWins.length} to manage`,
+        plain: `For ${indemnifyWins.length} of these, taking on their chargebacks earns more than charging them to fight each one. For ${manageWins.length}, it is the other way round — they have lots of disputes but not enough turnover to price a rate on.`,
         headlineNote: `Indemnification priced at ${pricing.bps} bps, management at ${fmtMoney(MANAGEMENT_FEE_PER_CASE)} per dispute worked.`,
         narrative: `Indemnifying all of them nets ${fmtMoney(indemnifyNet)} but means carrying ${fmtMoney(rows.reduce((s2, r) => s2 + r.loss, 0))} of expected losses. Managing all of them earns ${fmtMoney(manageNet)} with no liability at all. ${
           manageWins.length
@@ -634,6 +663,7 @@ export const GOALS = [
 
       return {
         headline: fmtMoney(recovered),
+        plain: `Fighting these merchants' disputes wins back ${fmtMoney(recovered)} of the ${fmtMoney(disputed)} that gets disputed. Every extra point of win rate is worth about ${fmtMoney(disputed / 100)} a year.`,
         headlineNote: `Won back out of ${fmtMoney(disputed)} disputed, at an average win rate of ${avgWin.toFixed(0)}%.`,
         narrative: weakest
           ? `${weakest.name} is the weakest at ${(weakest.winRate ?? 0).toFixed(0)}%, which is where extra evidence or a better representment packet would pay for itself fastest. Every point of win rate across this selection is worth about ${fmtMoney(disputed / 100)} a year.`
@@ -665,6 +695,7 @@ export const GOALS = [
 
       return {
         headline: fmtMoney(total),
+        plain: `We expect to lose ${fmtMoney(total)} a year to chargebacks across these merchants. This is what it would cost us to carry them.`,
         headlineNote: 'Expected annual chargeback losses across this selection.',
         narrative: worst
           ? `${worst.merchant.name} carries the most at ${fmtMoney(worst.loss)} — ${total ? Math.round((worst.loss / total) * 100) : 0}% of the total. Covering this selection needs at least ${breakEvenBps(subjects).toFixed(1)} bps to break even.`
@@ -699,6 +730,9 @@ export const GOALS = [
 
       return {
         headline: `${over.length} above ${threshold}%`,
+        plain: over.length
+          ? `${over.length} ${over.length === 1 ? 'merchant is' : 'merchants are'} disputing more than ${threshold}% of their sales. That is the level card networks start paying attention at, so these need watching or re-pricing.`
+          : `No merchant here is disputing more than ${threshold}% of their sales, so nothing needs attention on this measure.`,
         headlineNote: `Blended ratio across this selection is ${blended.toFixed(2)}%.`,
         narrative: over.length
           ? `${over.map((r) => r.merchant.name).slice(0, 3).join(', ')}${over.length > 3 ? ` and ${over.length - 3} more` : ''} sit at or above ${threshold}%. They account for ${fmtMoney(over.reduce((s, r) => s + r.loss, 0))} of expected losses.`
@@ -730,6 +764,7 @@ export const GOALS = [
 
       return {
         headline: `${cases} cases`,
+        plain: `These merchants generated ${cases} disputes in the last 30 days and ${overdue} of them are already late. That is where the team's time is going.`,
         headlineNote: 'Raised in the last 30 days across this selection.',
         narrative: top
           ? `${top.merchant.name} is the busiest, with ${top.cases} cases and ${top.overdue} of them overdue. The selection has consumed about ${Math.round(hours)} analyst hours in the last 30 days.`
