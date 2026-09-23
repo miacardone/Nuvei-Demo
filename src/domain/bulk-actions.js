@@ -16,6 +16,7 @@
 
 import { applyIndemnification } from '@/data/indemnification';
 import { setFlagsBulk } from '@/data/merchant-flags';
+import { raiseNotification } from '@/data/notifications-store';
 import { downloadCsv } from '@/utils/export';
 import { formatCompactCurrency, formatCurrency, formatNumber } from '@/utils/format';
 
@@ -74,6 +75,28 @@ export const BULK_ACTIONS = [
     },
   },
   {
+    id: 'alert',
+    label: 'Alert me',
+    hint: 'Raise a notification when a merchant matches.',
+    icon: 'bell',
+    verb: 'Alert on',
+    describe: (count) => `A notification will be raised for ${formatNumber(count)} merchant${count === 1 ? '' : 's'} that match right now. Leave the rule standing and you will be told about anything that matches later, wherever you are in the console.`,
+    run: (merchants, config) => {
+      const raised = merchants.filter((m) => raiseNotification({
+        title: config?.ruleName ? `${config.ruleName}` : 'Merchants matched your rule',
+        detail: `${m.name} — ${(m.chargebackRatio ?? 0).toFixed(2)}% chargeback ratio, ${formatCompactCurrency(m.projectedVolume ?? 0)} annual volume.`,
+        /* One alert per merchant per rule. Without this the rule would shout
+           again on every page load, which is how people learn to ignore a
+           bell. */
+        alertKey: `${config?.ruleId ?? 'once'}:${m.id}`,
+      })).length;
+
+      return raised
+        ? `${formatNumber(raised)} alert${raised === 1 ? '' : 's'} raised — check the bell.`
+        : 'Already alerted on all of these.';
+    },
+  },
+  {
     id: 'export',
     label: 'Export the list',
     hint: 'Download the selection as a spreadsheet.',
@@ -111,7 +134,7 @@ export const bulkActionFor = (id) => BULK_ACTIONS.find((a) => a.id === id);
  * what it would do. That is the only number that makes a rule worth leaving
  * switched on.
  */
-export function ruleDrift(rule, merchants, { settingsFor, flagsFor }) {
+export function ruleDrift(rule, merchants, { settingsFor, flagsFor, alreadyAlerted = () => true }) {
   const conforms = (m) => {
     if (rule.action === 'indemnify') {
       const s = settingsFor(m.id);
@@ -122,6 +145,7 @@ export function ruleDrift(rule, merchants, { settingsFor, flagsFor }) {
     if (rule.action === 'review') return flagsFor(m.id).review === true;
     if (rule.action === 'watchlist') return flagsFor(m.id).watchlist === true;
     if (rule.action === 'assign') return flagsFor(m.id).owner === rule.config.owner;
+    if (rule.action === 'alert') return alreadyAlerted(rule.id, m.id);
     return true; // export has nothing to conform to
   };
 

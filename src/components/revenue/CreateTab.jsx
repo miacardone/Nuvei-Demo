@@ -311,12 +311,21 @@ export function CreateTab({ prefill, onSaved }) {
      actually carries a price. */
   const priced = Boolean(answer?.apply);
 
+  /** What a saved suggestion or standing rule gets called. Declared before
+      actionConfig, which names the rule in the alerts it raises. */
+  const title = goal && subjects.length
+    ? `${goal.label} — ${mode === 'merchant' && subjects.length === 1 ? subjects[0].name : `${subjects.length} merchants`}`
+    : 'Untitled suggestion';
+
   /** The config the chosen action will run with. */
   const actionConfig = useMemo(() => {
     if (actionId === 'indemnify') return answer?.apply ?? { basis: 'bps', bps: 25, fee: 0.04 };
     if (actionId === 'assign') return { owner };
+    /* An alert needs to know which rule it came from so it can avoid telling
+       you about the same merchant twice. */
+    if (actionId === 'alert') return { ruleName: title, ruleId: standing ? 'pending' : 'once' };
     return {};
-  }, [actionId, answer, owner]);
+  }, [actionId, answer, owner, standing, title]);
 
   const resultColumns = [
     {
@@ -350,10 +359,6 @@ export function CreateTab({ prefill, onSaved }) {
       : [{ key: 'exposure', header: 'Open exposure', fw: 7, align: 'right', cell: (r) => <span className="mono small">{formatCompactCurrency(r.merchant.exposure ?? 0)}</span> }]),
   ];
 
-  const title = goal && subjects.length
-    ? `${goal.label} — ${mode === 'merchant' && subjects.length === 1 ? subjects[0].name : `${subjects.length} merchants`}`
-    : 'Untitled suggestion';
-
   const save = () => {
     saveSuggestion({
       title,
@@ -370,16 +375,22 @@ export function CreateTab({ prefill, onSaved }) {
     setConfirming(false);
     if (!chosen.length) return;
 
+    let config = actionConfig;
+
     if (standing && !action.readOnly) {
-      addStandingRule({
+      const rule = addStandingRule({
         name: title,
         action: actionId,
         config: actionConfig,
         criteria: mode === 'criteria' ? [...criteria, ...filters] : [...filters],
       });
+      /* Run under the rule's real id, so the alerts raised now carry the same
+         key the standing watcher will use later and it does not duplicate
+         them on the next page load. */
+      config = { ...actionConfig, ruleId: rule.id };
     }
 
-    const message = action.run(chosen.map((r) => r.merchant), actionConfig);
+    const message = action.run(chosen.map((r) => r.merchant), config);
 
     // Read-only actions change nothing, so they do not belong in the record of
     // decisions taken — an export is not a decision.

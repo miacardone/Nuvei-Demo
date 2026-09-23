@@ -8,6 +8,7 @@ import { CASES } from '@/data/cases';
 import { settingsFor } from '@/data/indemnification';
 import { STATUSES, markSuggestion } from '@/data/suggestions-store';
 import { flagsFor } from '@/data/merchant-flags';
+import { hasAlert } from '@/data/notifications-store';
 import { markRuleRun, removeStandingRule, toggleStandingRule } from '@/data/standing-rules';
 import { BULK_ACTIONS, bulkActionFor, ruleDrift } from '@/domain/bulk-actions';
 import { CATEGORIES, SUGGESTIONS, activityByGroup, activityIndex, categoryFor, matchMerchants } from '@/domain/revenue';
@@ -269,7 +270,7 @@ export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
             </p>
             {standingRules.map((rule) => {
               const qualifying = matchMerchants(MERCHANTS, rule.criteria, 'all', ctx);
-              const drift = ruleDrift(rule, qualifying, { settingsFor, flagsFor });
+              const drift = ruleDrift(rule, qualifying, { settingsFor, flagsFor, alreadyAlerted: (ruleId, merchantId) => hasAlert(`${ruleId}:${merchantId}`) });
               const act = bulkActionFor(rule.action);
               return (
                 <div key={rule.id} className="standing-row">

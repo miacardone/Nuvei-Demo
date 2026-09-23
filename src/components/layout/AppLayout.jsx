@@ -3,6 +3,9 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Icon from '@/components/ui/Icon';
 import OmniSearch from '@/components/layout/OmniSearch';
+import useNotifications from '@/hooks/useNotifications';
+import useStandingAlerts from '@/hooks/useStandingAlerts';
+import { markAllRead, markRead } from '@/data/notifications-store';
 import { Popover, Tooltip } from '@/components/ui/Overlay';
 import { useAuth } from '@/context/AuthContext';
 import { useBrand } from '@/brand/BrandProvider';
@@ -12,18 +15,14 @@ import { relativeTime } from '@/utils/format';
 
 const SIDEBAR_KEY = 'edc.sidebarCollapsed';
 
-const NOTIFICATIONS = [
-  { id: 'n1', title: 'Cases due within 24 hours', detail: '18 cases across three queues.', hours: 1, read: false },
-  { id: 'n2', title: 'Consolidation detected', detail: 'A transaction is disputed through two channels.', hours: 3, read: false },
-  { id: 'n3', title: 'Upload completed', detail: '147 of 148 rows imported.', hours: 6, read: true },
-];
-
 function Topbar({ onOpenNav }) {
   const { user, signOut } = useAuth();
   const brand = useBrand();
   const { routes, meta } = usePerspective();
   const navigate = useNavigate();
-  const [notes, setNotes] = useState(NOTIFICATIONS);
+  /* The bell reads a store rather than local state, so a standing rule
+     elsewhere in the console can raise an alert into it. */
+  const notes = useNotifications();
 
   const unread = notes.filter((n) => !n.read).length;
   const homeRoute = routes.dashboard ?? routes.overview;
@@ -84,14 +83,14 @@ function Topbar({ onOpenNav }) {
                   type="button"
                   className="micro"
                   style={{ border: 0, background: 'transparent', color: 'var(--c-primary)', cursor: 'pointer', fontWeight: 600 }}
-                  onClick={() => setNotes((p) => p.map((n) => ({ ...n, read: true })))}
+                  onClick={markAllRead}
                 >
                   Mark all read
                 </button>
               )}
             </div>
             {notes.map((n) => (
-              <button key={n.id} type="button" className="popover__item" style={{ alignItems: 'flex-start' }} onClick={() => setNotes((p) => p.map((x) => (x.id === n.id ? { ...x, read: true } : x)))}>
+              <button key={n.id} type="button" className="popover__item" style={{ alignItems: 'flex-start' }} onClick={() => markRead(n.id)}>
                 <span className={`dot ${n.read ? '' : 'dot--primary'}`} style={{ marginTop: 5, background: n.read ? 'transparent' : undefined }} />
                 <span style={{ minWidth: 0 }}>
                   <span className="small strong" style={{ display: 'block' }}>{n.title}</span>
@@ -155,6 +154,11 @@ function useViewport() {
 }
 
 export function AppLayout() {
+  /* Mounted here rather than on Revenue rules, so a standing alert rule fires
+     wherever you are in the console — which is the only thing that makes it an
+     alert rather than a report you have to go and read. */
+  useStandingAlerts();
+
   const width = useViewport();
   const [preferred, setPreferred] = useState(() => readPref(SIDEBAR_KEY) === 'true');
   const [drawerOpen, setDrawerOpen] = useState(false);
