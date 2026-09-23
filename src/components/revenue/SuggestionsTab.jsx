@@ -186,14 +186,14 @@ export function SuggestionsTab({ saved, onOpenInCreate }) {
           </div>
         </Card>
 
-        <Card title="Coverage across the book" bodyClassName="card__body--tight">
+        <Card title="Coverage across your merchants" bodyClassName="card__body--tight">
           <div className="stack stack--tight">
             {CATEGORIES.filter((c) => c.id !== 'operations').map((c) => {
               const covered = MERCHANTS.filter((m) => settingsFor(m.id).enabled);
               const stat = c.id === 'indemnification'
                 ? { value: `${covered.length} of ${MERCHANTS.length}`, note: 'merchants indemnified' }
                 : c.id === 'revenue'
-                  ? { value: formatCompactCurrency(MERCHANTS.reduce((s, m) => s + (m.projectedVolume ?? 0), 0)), note: 'annual volume in the book' }
+                  ? { value: formatCompactCurrency(MERCHANTS.reduce((s, m) => s + (m.projectedVolume ?? 0), 0)), note: 'annual volume across all merchants' }
                   : { value: formatPercent(MERCHANTS.filter((m) => m.disputeVolume > 0).reduce((s, m) => s + m.chargebackRatio, 0) / Math.max(MERCHANTS.filter((m) => m.disputeVolume > 0).length, 1), 2), note: 'average chargeback ratio' };
               return (
                 <div key={c.id} className="group-row">

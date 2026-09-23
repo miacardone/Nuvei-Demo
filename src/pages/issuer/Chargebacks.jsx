@@ -167,7 +167,7 @@ export function Chargebacks() {
               <EmptyState
                 icon="search"
                 title="No chargebacks match this view"
-                hint="Widen the filters to see more of the book."
+                hint="Widen the filters to see more cases."
                 action={<Button variant="secondary" icon="refresh" onClick={() => { setStatuses([]); setSearch(''); }}>Reset filters</Button>}
               />
             }

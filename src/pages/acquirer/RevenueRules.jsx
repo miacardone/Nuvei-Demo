@@ -50,7 +50,7 @@ export function RevenueRules() {
     <>
       <PageHeader
         title="Revenue rules"
-        description="Ask what the book could be worth, or let the console tell you — then apply it to the merchants it affects."
+        description="Ask what your merchants could be worth, or let the console tell you — then apply it to the ones it affects."
       />
 
       <div className="stack">

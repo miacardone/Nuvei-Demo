@@ -134,8 +134,8 @@ export function Cardholders() {
       <div className="stack">
         <div className="kpi-row" style={{ gap: 'var(--s-3)' }}>
           <Kpi label="Cardholders" value={formatNumber(totals.count)} meta={`${formatNumber(totals.active)} active`} spark={sparks.cardholders} />
-          <Kpi label="Repeat filers" value={formatNumber(totals.repeatFilers)} meta={`${formatPercent((totals.repeatFilers / totals.count) * 100, 0)} of the book`} invert spark={sparks.repeats} />
-          <Kpi label="Lifetime spend" value={formatCompactCurrency(totals.lifetimeSpend)} meta="Across this book" spark={sparks.spend} />
+          <Kpi label="Repeat filers" value={formatNumber(totals.repeatFilers)} meta={`${formatPercent((totals.repeatFilers / totals.count) * 100, 0)} of all cardholders`} invert spark={sparks.repeats} />
+          <Kpi label="Lifetime spend" value={formatCompactCurrency(totals.lifetimeSpend)} meta="Across these cardholders" spark={sparks.spend} />
           <Kpi label="Disputes raised" value={formatNumber(totals.disputes)} meta={`Across ${ISSUING_BANK.shortName}`} invert spark={sparks.disputes} />
         </div>
 

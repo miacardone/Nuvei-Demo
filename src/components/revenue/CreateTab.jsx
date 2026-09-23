@@ -40,8 +40,8 @@ import { formatCompactCurrency, formatNumber, formatPercent } from '@/utils/form
  * could never scroll, which is why it carries the segment framing.
  */
 const MODES = [
-  { id: 'merchant', label: 'Named accounts', icon: 'briefcase', hint: 'Search for specific merchants.' },
-  { id: 'criteria', label: 'Segment', icon: 'sliders', hint: 'Describe them — works at any size.' },
+  { id: 'merchant', label: 'Per merchant', icon: 'briefcase', hint: 'Pick specific merchants or merchant types.' },
+  { id: 'criteria', label: 'Per criteria', icon: 'sliders', hint: 'Describe them — works at any size.' },
 ];
 
 const blankCriterion = () => ({ field: 'chargebackRatio', operator: 'lt', value: '0.65' });
@@ -545,10 +545,15 @@ export function CreateTab({ prefill, onSaved }) {
               )}
             </Card>
 
-            <Card bodyClassName="card__body--tight">
+            {/* Pinned to the bottom of the answer column. It was the last card
+                under a table that can run to fifty rows, which put the only
+                two actions on the screen below the fold — the reader had to
+                scroll past everything to find out they could do anything. */}
+            <Card bodyClassName="card__body--tight" className="ask__actions">
               <div className="row row--between row--nowrap" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
                 <span className="micro subtle">
-                  Nothing is saved until you choose. Applying writes to the merchant records this affects.
+                  {formatNumber(chosen.length)} merchant{chosen.length === 1 ? '' : 's'} selected ·
+                  {' '}nothing is saved until you choose
                 </span>
                 <div className="row row--tight row--nowrap">
                   <Button variant="secondary" icon="archive" onClick={save}>Save as suggestion</Button>

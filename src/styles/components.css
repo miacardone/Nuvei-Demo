@@ -1561,3 +1561,13 @@
   color: var(--c-ink-subtle);
   letter-spacing: 0.04em;
 }
+
+/* The Create tab's action bar sticks to the bottom of the answer column, so
+   Apply and Save are reachable without scrolling past a fifty-row table. */
+.ask__actions {
+  position: sticky;
+  bottom: var(--s-3);
+  z-index: 5;
+  box-shadow: var(--shadow-raised);
+  border-color: var(--c-line-strong);
+}

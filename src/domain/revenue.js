@@ -201,7 +201,7 @@ export const SUGGESTIONS = [
   {
     id: 'increase-revenue',
     question: 'How can we increase revenue?',
-    intent: 'The biggest uncaptured indemnification revenue in the book, ranked.',
+    intent: 'The biggest uncaptured indemnification revenue, ranked.',
     icon: 'chart',
     run: (merchants, ctx) => {
       const pricing = { basis: 'bps', bps: 25, fee: 0.04 };
@@ -271,7 +271,7 @@ export const SUGGESTIONS = [
   },
   {
     id: 'whole-book',
-    question: 'What if we indemnified the whole book at 25 bps?',
+    question: 'What if we indemnified every merchant at 25 bps?',
     intent: 'A scenario across every active merchant, priced the same way.',
     icon: 'layers',
     run: (merchants) => {
@@ -285,7 +285,7 @@ export const SUGGESTIONS = [
         criteria: [{ field: 'status', operator: 'isNot', value: 'Onboarding' }],
         mode: 'all',
         headline: (f) => `${f.money(rows.reduce((s, r) => s + r.net, 0))} net across ${f.number(rows.length)}`,
-        because: `One flat price for everyone. Break-even across this book is ${breakEvenBps(active).toFixed(1)} bps, so 25 bps is the margin above that — the losers inside it are the merchants to carve out.`,
+        because: `One flat price for everyone. Break-even across these merchants is ${breakEvenBps(active).toFixed(1)} bps, so 25 bps is the margin above that — the losers inside it are the merchants to carve out.`,
       };
     },
   },
