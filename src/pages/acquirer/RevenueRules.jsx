@@ -6,6 +6,8 @@ import CreateTab from '@/components/revenue/CreateTab';
 import { settingsFor } from '@/data/indemnification';
 import useIndemnification from '@/hooks/useIndemnification';
 import useSavedSuggestions from '@/hooks/useSavedSuggestions';
+import useStandingRules from '@/hooks/useStandingRules';
+import useMerchantFlags from '@/hooks/useMerchantFlags';
 
 /**
  * REVENUE RULES
@@ -34,7 +36,9 @@ export function RevenueRules() {
   // Both tabs read indemnification and saved suggestions, and both write them,
   // so the page subscribes once and every figure stays in step.
   useIndemnification();
+  useMerchantFlags();
   const saved = useSavedSuggestions();
+  const standingRules = useStandingRules();
 
   const [tab, setTab] = useState('suggestions');
   const [prefill, setPrefill] = useState({ ctx: { settingsFor } });
@@ -61,7 +65,7 @@ export function RevenueRules() {
         </Card>
 
         {tab === 'suggestions' && (
-          <SuggestionsTab saved={saved} onOpenInCreate={openInCreate} />
+          <SuggestionsTab saved={saved} standingRules={standingRules} onOpenInCreate={openInCreate} />
         )}
 
         {tab === 'create' && (

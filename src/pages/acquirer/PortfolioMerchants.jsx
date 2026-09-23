@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, Kpi, StatusIcon } from '@/components/ui/Surface';
 import { DataTable, Pagination, TableToolbar } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
-import { TruncatedText } from '@/components/ui/Overlay';
+import { Tooltip, TruncatedText } from '@/components/ui/Overlay';
+import Icon from '@/components/ui/Icon';
 import { ACQUIRER_NAME, MERCHANTS } from '@/data/portfolio';
 import { CASES } from '@/data/cases';
 import { weeklySeries } from '@/domain/metrics';
@@ -13,6 +14,8 @@ import { isClosed } from '@/domain/statuses';
 import IndemnificationPanel from '@/components/portfolio/IndemnificationPanel';
 import useIndemnification from '@/hooks/useIndemnification';
 import { annualCharge, describe, settingsFor } from '@/data/indemnification';
+import { flagsFor } from '@/data/merchant-flags';
+import useMerchantFlags from '@/hooks/useMerchantFlags';
 import { useToast } from '@/context/ToastContext';
 import { usePerspective } from '@/hooks/usePerspective';
 import { formatCompactCurrency, formatCurrency, formatDate, formatNumber, formatPercent } from '@/utils/format';
@@ -58,6 +61,12 @@ export function PortfolioMerchants() {
   // Subscribing here keeps the column in step with edits made in the panel
   // below without either one owning the other's state.
   const indemnity = useIndemnification();
+
+  /* Bulk actions taken in Revenue rules land here. Subscribing means a
+     watchlist applied to forty merchants on that screen is visible on this
+     one immediately — which is the whole point of the action being real
+     rather than a toast. */
+  const flags = useMerchantFlags();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -139,6 +148,21 @@ export function PortfolioMerchants() {
     { key: 'mccLabel', header: 'MCC', fw: 10, cell: (r) => <TruncatedText value={`${r.mccCode} · ${r.mccLabel}`} tooltip={r.mccLabel} /> },
     { key: 'status', header: 'Status', align: 'center', fw: 7, sortable: true, filter: { kind: 'select', options: ['Active', 'Under review', 'Suspended', 'Onboarding'] }, cell: (r) => <StatusIcon icon={STATUS_ICON[r.status] ?? 'inbox'} tone={STATUS_TONE[r.status] ?? 'neutral'} label={r.status} /> },
     { key: 'riskTier', header: 'Risk tier', align: 'center', fw: 6, sortable: true, filter: { kind: 'select', options: ['Low', 'Medium', 'High'] }, cell: (r) => <StatusIcon icon={RISK_ICON[r.riskTier] ?? 'activity'} tone={RISK_TONE[r.riskTier] ?? 'neutral'} label={`${r.riskTier} risk`} /> },
+    {
+      key: 'marks', header: 'Marks', align: 'center', fw: 6, sortable: false, filter: false,
+      exportValue: (r) => [flagsFor(r.id).review && 'review', flagsFor(r.id).watchlist && 'watchlist', flagsFor(r.id).owner].filter(Boolean).join(' '),
+      cell: (r) => {
+        const f = flagsFor(r.id);
+        if (!f.review && !f.watchlist && !f.owner) return <span className="micro subtle">—</span>;
+        return (
+          <span className="row row--xtight row--nowrap" style={{ justifyContent: 'center' }}>
+            {f.review && <Tooltip label={f.note ?? 'Flagged for risk review'}><span><Icon name="searchCheck" size={13} style={{ color: 'var(--c-warning)' }} /></span></Tooltip>}
+            {f.watchlist && <Tooltip label="On the watchlist"><span><Icon name="eye" size={13} className="subtle" /></span></Tooltip>}
+            {f.owner && <Tooltip label={`Owned by ${f.owner}`}><span><Icon name="user" size={13} className="subtle" /></span></Tooltip>}
+          </span>
+        );
+      },
+    },
     { key: 'disputeVolume', filter: { kind: 'number' }, header: 'Dispute volume', fw: 7, align: 'right', sortable: true, cell: (r) => <span className="mono small">{formatNumber(r.disputeVolume)}</span> },
     { key: 'chargebackRatio', filter: { kind: 'number' }, header: 'Chargeback ratio', fw: 7, align: 'right', sortable: true, cell: (r) => <span className="mono small">{r.disputeVolume ? formatPercent(r.chargebackRatio, 2) : '—'}</span> },
     { key: 'exposure', filter: { kind: 'number' }, header: 'Exposure', fw: 8, align: 'right', sortable: true, cell: (r) => <span className="mono small strong">{formatCurrency(r.exposure)}</span> },

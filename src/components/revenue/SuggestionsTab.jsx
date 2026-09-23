@@ -7,7 +7,10 @@ import { MERCHANTS } from '@/data/portfolio';
 import { CASES } from '@/data/cases';
 import { settingsFor } from '@/data/indemnification';
 import { STATUSES, markSuggestion } from '@/data/suggestions-store';
-import { CATEGORIES, SUGGESTIONS, activityByGroup, activityIndex, categoryFor } from '@/domain/revenue';
+import { flagsFor } from '@/data/merchant-flags';
+import { markRuleRun, removeStandingRule, toggleStandingRule } from '@/data/standing-rules';
+import { BULK_ACTIONS, bulkActionFor, ruleDrift } from '@/domain/bulk-actions';
+import { CATEGORIES, SUGGESTIONS, activityByGroup, activityIndex, categoryFor, matchMerchants } from '@/domain/revenue';
 import { useToast } from '@/context/ToastContext';
 import { formatCompactCurrency, formatDate, formatNumber, formatPercent } from '@/utils/format';
 
@@ -46,7 +49,7 @@ function ActivityBar({ score }) {
   );
 }
 
-export function SuggestionsTab({ saved, onOpenInCreate }) {
+export function SuggestionsTab({ saved, standingRules = [], onOpenInCreate }) {
   const { notify } = useToast();
   const ctx = { settingsFor };
   const [filter, setFilter] = useState('all');
@@ -146,21 +149,40 @@ export function SuggestionsTab({ saved, onOpenInCreate }) {
 
               <p className="micro subtle" style={{ margin: 0 }}>{result.because}</p>
 
-              <div className="row row--between row--nowrap" style={{ marginTop: 'auto' }}>
+              <div className="row row--between row--nowrap" style={{ marginTop: 'auto', flexWrap: 'wrap', gap: 'var(--s-2)' }}>
                 <span className="micro subtle">{formatNumber(result.rows.length)} merchant{result.rows.length === 1 ? '' : 's'}</span>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon="edit"
-                  onClick={() => onOpenInCreate({
-                    mode: 'criteria',
-                    criteria: result.criteria.map((c) => ({ ...c, value: String(c.value) })),
-                    category,
-                    goalId: category === 'risk' ? 'exposure' : category === 'revenue' ? 'revenue-left' : 'should-indemnify',
-                  })}
-                >
-                  Open in Create
-                </Button>
+                <div className="row row--xtight row--nowrap">
+                  {/* Act without leaving the page. The heavier decisions still
+                      route through Create, where the rule can be inspected —
+                      but adding a set of merchants to a watchlist is not a
+                      decision that needs a six-step form. */}
+                  {result.rows.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon="eye"
+                      onClick={() => {
+                        const msg = bulkActionFor('watchlist').run(result.rows.map((r) => r.merchant), {});
+                        notify(msg, 'success');
+                      }}
+                    >
+                      Watch all
+                    </Button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon="edit"
+                    onClick={() => onOpenInCreate({
+                      mode: 'criteria',
+                      criteria: result.criteria.map((c) => ({ ...c, value: String(c.value) })),
+                      category,
+                      goalId: category === 'risk' ? 'exposure' : category === 'revenue' ? 'revenue-left' : 'should-indemnify',
+                    })}
+                  >
+                    Open in Create
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
@@ -217,6 +239,68 @@ export function SuggestionsTab({ saved, onOpenInCreate }) {
           rowKey={(r) => r.merchant.id}
           density="comfortable"
         />
+      </Card>
+
+      {/* ---------------- Standing rules ---------------- */}
+      <span className="t-section-label">Standing rules</span>
+
+      <Card bodyClassName="card__body--tight">
+        {standingRules.length === 0 ? (
+          <EmptyState
+            icon="rules"
+            title="No standing rules"
+            hint="Tick “Keep applying” when you apply something in Create and it will be kept here, reporting anything that qualifies later."
+          />
+        ) : (
+          <div className="stack stack--tight">
+            <p className="micro subtle" style={{ margin: 0 }}>
+              These are re-checked against the portfolio every time this page loads. There is no overnight job —
+              what a standing rule gives you is the gap between what it says and what is actually true, and a
+              way to close it.
+            </p>
+            {standingRules.map((rule) => {
+              const qualifying = matchMerchants(MERCHANTS, rule.criteria, 'all', ctx);
+              const drift = ruleDrift(rule, qualifying, { settingsFor, flagsFor });
+              const act = bulkActionFor(rule.action);
+              return (
+                <div key={rule.id} className="standing-row">
+                  <div className="stack stack--xtight" style={{ minWidth: 0 }}>
+                    <div className="row row--xtight row--nowrap">
+                      <Badge tone={rule.enabled ? 'success' : 'muted'} dot>{rule.enabled ? 'On' : 'Paused'}</Badge>
+                      <span className="small strong truncate">{rule.name}</span>
+                    </div>
+                    <span className="micro subtle">
+                      {act?.label ?? rule.action} · {formatNumber(drift.qualifying)} qualify · {drift.summary}
+                    </span>
+                  </div>
+
+                  <div className="standing-row__drift">
+                    <span className="mono small strong" style={{ color: drift.pending.length ? 'var(--c-warning)' : 'var(--c-success)' }}>
+                      {drift.pending.length ? `${formatNumber(drift.pending.length)} pending` : 'In step'}
+                    </span>
+                  </div>
+
+                  <div className="row row--xtight row--nowrap">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={!rule.enabled || !drift.pending.length}
+                      onClick={() => {
+                        const msg = act.run(drift.pending, rule.config);
+                        markRuleRun(rule.id);
+                        notify(msg, 'success');
+                      }}
+                    >
+                      Run now
+                    </Button>
+                    <Button variant="secondary" size="sm" icon={rule.enabled ? 'pause' : 'play'} onClick={() => toggleStandingRule(rule.id)} aria-label={rule.enabled ? 'Pause' : 'Resume'} />
+                    <Button variant="secondary" size="sm" icon="trash" onClick={() => { removeStandingRule(rule.id); notify('Standing rule removed.', 'success'); }} aria-label="Remove" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Card>
 
       {/* ---------------- What we decided ---------------- */}

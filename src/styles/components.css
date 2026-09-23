@@ -1571,3 +1571,88 @@
   box-shadow: var(--shadow-raised);
   border-color: var(--c-line-strong);
 }
+
+/* ---------- Command bar ---------- *
+ * The fast way in. Deliberately the widest, highest thing on the screen —
+ * it is the control most people should reach for first. */
+
+.cmd { display: flex; flex-direction: column; gap: var(--s-2); }
+.cmd__field {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 0 var(--s-2) 0 var(--s-3); height: 44px;
+  border: 1px solid var(--c-line-strong); border-radius: var(--r-lg);
+  background: var(--c-surface);
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.cmd__field:focus-within { border-color: var(--c-primary); box-shadow: 0 0 0 4px var(--c-primary-tint); }
+.cmd__field input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+  font-family: inherit; font-size: var(--fs-body); color: var(--c-ink);
+}
+.cmd__field input::placeholder { color: var(--c-ink-subtle); }
+.cmd__clear {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: transparent; color: var(--c-ink-subtle); cursor: pointer; padding: 3px;
+}
+
+.cmd__examples { display: flex; flex-wrap: wrap; gap: 5px; }
+.cmd__example {
+  padding: 4px 10px; border-radius: var(--r-pill);
+  border: 1px dashed var(--c-line-strong); background: transparent;
+  font-size: var(--fs-micro); color: var(--c-ink-muted); cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.cmd__example:hover { border-style: solid; border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-wash); }
+
+.cmd__note { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: var(--fs-micro); }
+.cmd__note--miss { color: var(--c-danger); }
+
+.cmd__read {
+  padding: var(--s-2) var(--s-3); border-radius: var(--r-md);
+  background: var(--c-success-tint); border: 1px solid var(--c-line);
+}
+.cmd__tags { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ---------- Quick starts ---------- */
+
+.quickstarts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.quickstart {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: 6px 10px; border-radius: var(--r-md);
+  border: 1px solid var(--c-line); background: var(--c-surface);
+  cursor: pointer; text-align: left; color: var(--c-ink-muted);
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.quickstart:hover { border-color: var(--c-primary); background: var(--c-primary-wash); color: var(--c-primary); }
+.quickstart__label { font-size: var(--fs-small); font-weight: 600; color: var(--c-ink); }
+.quickstart:hover .quickstart__label { color: var(--c-primary); }
+.quickstart__hint { font-size: var(--fs-nano); color: var(--c-ink-subtle); }
+
+/* ---------- Action bar ---------- *
+ * Three questions in one row: what to do, whether it keeps happening, and go. */
+
+.actionbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) auto;
+  align-items: center; gap: var(--s-3);
+}
+.actionbar__what { display: flex; flex-direction: column; gap: var(--s-2); }
+.actionbar__standing {
+  display: flex; align-items: flex-start; gap: var(--s-2);
+  cursor: pointer; min-width: 0;
+}
+.actionbar__go { display: flex; align-items: center; gap: var(--s-2); justify-content: flex-end; }
+
+@media (max-width: 900px) {
+  .actionbar { grid-template-columns: minmax(0, 1fr); }
+  .actionbar__go { justify-content: flex-start; }
+}
+
+/* ---------- Standing rules ---------- */
+
+.standing-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center; gap: var(--s-3); padding: var(--s-2) 0;
+}
+.standing-row + .standing-row { border-top: 1px solid var(--c-line); }
+.standing-row__drift { text-align: right; }

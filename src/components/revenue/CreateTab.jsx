@@ -6,11 +6,15 @@ import { TruncatedText } from '@/components/ui/Overlay';
 import MerchantSearch from '@/components/ui/MerchantSearch';
 import { Modal } from '@/components/ui/Modal';
 import Icon from '@/components/ui/Icon';
+import CommandBar from '@/components/revenue/CommandBar';
 import { MERCHANTS } from '@/data/portfolio';
 import { MERCHANT_GROUPS } from '@/data/merchants';
 import { CASES } from '@/data/cases';
-import { applyIndemnification, settingsFor } from '@/data/indemnification';
+import { flagsFor } from '@/data/merchant-flags';
 import { saveSuggestion } from '@/data/suggestions-store';
+import { addStandingRule } from '@/data/standing-rules';
+import { ASSIGNABLE } from '@/data/people';
+import { BULK_ACTIONS, bulkActionFor } from '@/domain/bulk-actions';
 import {
   CATEGORIES, CRITERIA_FIELDS, CRITERIA_TYPES, SOLUTION_TYPES, activityIndex,
   categoryFor, criteriaTypeFor, fieldFor, fieldsForType, goalFor, goalsFor,
@@ -20,28 +24,73 @@ import { useToast } from '@/context/ToastContext';
 import { formatCompactCurrency, formatNumber, formatPercent } from '@/utils/format';
 
 /**
- * CREATE — a questionnaire on the left, a live answer on the right.
+ * CREATE — three ways in, one workspace.
  *
- * The questions reveal one at a time: you cannot be asked what you want to
- * know before you have said what you are trying to do, and showing all of it
- * at once is what makes a form like this feel like paperwork. Nothing has to
- * be saved or submitted — the panel on the right recomputes on every change,
- * so the answer is visible while the question is still being asked.
+ *   Type it   — the command bar parses a sentence and fills the form in.
+ *   Start it  — a preset fills every step in one click.
+ *   Build it  — the questionnaire, for when you want to say it exactly.
  *
- * Two subjects, chosen at the top: PER MERCHANT picks named merchants, PER
- * CRITERIA describes them by their properties. Everything downstream is
- * identical, which is why the mode is a toggle rather than two screens.
+ * All three write to the same state, so they are entry points rather than
+ * modes, and the answer on the right recomputes on every change. Nothing has
+ * to be saved before you can see what a rule would do.
+ *
+ * The action taken at the end is no longer only pricing: the bar at the foot
+ * carries the whole bulk-action set, and a rule can be applied once or left
+ * standing. That is what the screen needed in order to be a single place to
+ * work from, rather than a calculator that sends you elsewhere to act.
  */
 
-/**
- * Two ways to name a subject, and at real portfolio size they are not equal.
- * Picking merchants by name is for named accounts — a handful you already have
- * in mind. Describing them by their properties is how you address a book you
- * could never scroll, which is why it carries the segment framing.
- */
 const MODES = [
   { id: 'merchant', label: 'Per merchant', icon: 'briefcase', hint: 'Pick specific merchants or merchant types.' },
   { id: 'criteria', label: 'Per criteria', icon: 'sliders', hint: 'Describe them — works at any size.' },
+];
+
+/** One click fills every step. The fastest route for the things people do most. */
+const QUICK_STARTS = [
+  {
+    id: 'qs-cover',
+    label: 'Find who to cover',
+    hint: 'No arrangement today',
+    icon: 'shield',
+    fill: {
+      mode: 'criteria', category: 'indemnification', goalId: 'should-indemnify', solution: 'recommend',
+      criteriaType: 'coverage', action: 'indemnify',
+      criteria: [{ field: 'indemnified', operator: 'is', value: 'no' }],
+    },
+  },
+  {
+    id: 'qs-price',
+    label: 'Work out a price',
+    hint: 'Recommend a rate',
+    icon: 'chart',
+    fill: {
+      mode: 'criteria', category: 'revenue', goalId: 'what-to-charge', solution: 'recommend',
+      criteriaType: 'risk', action: 'indemnify',
+      criteria: [{ field: 'riskTier', operator: 'is', value: 'Low' }],
+    },
+  },
+  {
+    id: 'qs-exposure',
+    label: 'Check our exposure',
+    hint: 'Where the liability sits',
+    icon: 'alert',
+    fill: {
+      mode: 'criteria', category: 'risk', goalId: 'exposure', solution: 'recommend',
+      criteriaType: 'risk', action: 'watchlist',
+      criteria: [{ field: 'chargebackRatio', operator: 'gte', value: '0.2' }],
+    },
+  },
+  {
+    id: 'qs-underpriced',
+    label: 'Find the underpriced',
+    hint: 'Covered, but not covering',
+    icon: 'searchCheck',
+    fill: {
+      mode: 'criteria', category: 'indemnification', goalId: 'underpriced', solution: 'recommend',
+      criteriaType: 'coverage', action: 'indemnify',
+      criteria: [{ field: 'indemnified', operator: 'is', value: 'yes' }],
+    },
+  },
 ];
 
 const blankCriterion = () => ({ field: 'chargebackRatio', operator: 'lt', value: '0.65' });
@@ -124,21 +173,53 @@ export function CreateTab({ prefill, onSaved }) {
   const [selected, setSelected] = useState(new Set());
   const [confirming, setConfirming] = useState(false);
 
+  // What happens at the end, and whether it happens once or keeps happening.
+  const [actionId, setActionId] = useState(prefill.action ?? 'indemnify');
+  const [owner, setOwner] = useState(ASSIGNABLE[0]?.email ?? '');
+  const [standing, setStanding] = useState(false);
+
   const goal = goalFor(goalId);
   const goals = category ? goalsFor(category) : [];
+  const action = bulkActionFor(actionId) ?? BULK_ACTIONS[0];
 
-  /* What the search offers before anyone types. On a real book this would be
-     the accounts you touched most recently; here it is the busiest by case
+  /* What the search offers before anyone types. On a real portfolio this would
+     be the accounts you touched most recently; here it is the busiest by case
      activity, which is the same idea and computed rather than hardcoded. */
   const mostActive = useMemo(
     () => activityIndex(MERCHANTS, CASES).slice(0, 6).map((a) => a.merchant),
     [],
   );
 
-  /* Step 2 names the book you care about; the filters in step 3 trim it. Kept
-     as two passes so the form can report how much the filters actually removed
-     — "412 matched, filters removed 88" is information, a single final count
-     is not. */
+  /**
+   * One entry point for the command bar and the quick starts alike. Both are
+   * only ways of filling this form in, so both go through the same setter and
+   * leave the reader looking at an editable rule rather than a result they
+   * cannot inspect.
+   */
+  const fillFrom = (parsed) => {
+    if (parsed.mode) setMode(parsed.mode);
+    if (parsed.merchantIds?.length) setPicked(parsed.merchantIds);
+    if (parsed.criteria?.length) {
+      setCriteria(parsed.criteria.map((c) => ({ ...c, value: String(c.value) })));
+      // Show the criteria type that actually owns the parsed fields.
+      const owning = CRITERIA_TYPES.find((t) => parsed.criteria.some((c) => t.fields.includes(c.field)));
+      if (owning) setCriteriaType(owning.id);
+    }
+    if (parsed.criteriaType) setCriteriaType(parsed.criteriaType);
+    if (parsed.category) setCategory(parsed.category);
+    if (parsed.goalId) setGoalId(parsed.goalId);
+    if (parsed.solution) setSolution(parsed.solution);
+    if (parsed.action && bulkActionFor(parsed.action)) setActionId(parsed.action);
+    if (parsed.pricing?.basis === 'bps') {
+      setValues((v) => ({ ...v, rate: String(parsed.pricing.bps) }));
+    }
+    setSelected(new Set());
+  };
+
+  /* Step 2 names the merchants you care about; the filters in step 3 trim
+     them. Kept as two passes so the form can report how much the filters
+     actually removed — "412 matched, filters removed 88" is information, a
+     single final count is not. */
   const preFiltered = useMemo(() => (mode === 'merchant'
     ? MERCHANTS.filter((m) => picked.includes(m.id))
     : matchMerchants(MERCHANTS, criteria, 'all', ctx)),
@@ -178,25 +259,34 @@ export function CreateTab({ prefill, onSaved }) {
 
   /* A segment can name more merchants than anyone will ever scroll, so the
      table shows a sample and says so. The figures above it are computed over
-     the whole match, never over the sample — the two must not be confused,
-     which is why the count is stated on the card rather than left implied. */
+     the whole match, never over the sample. */
   const ROW_SAMPLE = 50;
   const rows = answer?.rows ?? [];
   const sampled = rows.slice(0, ROW_SAMPLE);
   const truncated = rows.length > ROW_SAMPLE;
 
   /* A question about risk prices nothing, so its revenue and net columns are
-     a wall of $0 — three columns of noise that invite the reader to wonder
-     what they did wrong. They appear only when the answer actually carries a
-     price. */
+     a wall of $0 — three columns of noise. They appear only when the answer
+     actually carries a price. */
   const priced = Boolean(answer?.apply);
+
+  /** The config the chosen action will run with. */
+  const actionConfig = useMemo(() => {
+    if (actionId === 'indemnify') return answer?.apply ?? { basis: 'bps', bps: 25, fee: 0.04 };
+    if (actionId === 'assign') return { owner };
+    return {};
+  }, [actionId, answer, owner]);
 
   const resultColumns = [
     {
       key: 'name', header: 'Merchant', fw: 13,
       cell: (r) => (
         <div className="stack stack--xtight">
-          <TruncatedText value={r.merchant.name} className="small strong" />
+          <span className="row row--xtight row--nowrap" style={{ minWidth: 0 }}>
+            <TruncatedText value={r.merchant.name} className="small strong" />
+            {flagsFor(r.merchant.id).watchlist && <Icon name="eye" size={11} className="subtle" />}
+            {flagsFor(r.merchant.id).review && <Icon name="searchCheck" size={11} style={{ color: 'var(--c-warning)' }} />}
+          </span>
           <span className="micro subtle">{r.merchant.groupLabel} · {r.merchant.riskTier} risk</span>
         </div>
       ),
@@ -235,362 +325,425 @@ export function CreateTab({ prefill, onSaved }) {
     onSaved?.();
   };
 
-  const applyNow = () => {
+  const commit = () => {
     setConfirming(false);
-    if (!answer?.apply || !chosen.length) return;
-    chosen.forEach((r) => applyIndemnification(r.merchant.id, answer.apply));
-    saveSuggestion({
-      title,
-      category,
-      mode,
-      summary: answer ? `${answer.headline} · applied to ${chosen.length}` : '',
-      merchantCount: chosen.length,
-      status: 'applied',
-      actionedAt: new Date().toISOString(),
-      actionNote: 'Applied from Create.',
-    });
-    notify(`Applied to ${formatNumber(chosen.length)} merchant${chosen.length === 1 ? '' : 's'}.`, 'success');
-    onSaved?.();
+    if (!chosen.length) return;
+
+    if (standing && !action.readOnly) {
+      addStandingRule({
+        name: title,
+        action: actionId,
+        config: actionConfig,
+        criteria: mode === 'criteria' ? [...criteria, ...filters] : [...filters],
+      });
+    }
+
+    const message = action.run(chosen.map((r) => r.merchant), actionConfig);
+
+    // Read-only actions change nothing, so they do not belong in the record of
+    // decisions taken — an export is not a decision.
+    if (!action.readOnly) {
+      saveSuggestion({
+        title,
+        category,
+        mode,
+        summary: `${action.label} · ${chosen.length} merchant${chosen.length === 1 ? '' : 's'}${standing ? ' · left standing' : ''}`,
+        merchantCount: chosen.length,
+        status: 'applied',
+        actionedAt: new Date().toISOString(),
+        actionNote: standing ? 'Applied, and left as a standing rule.' : 'Applied from Create.',
+      });
+    }
+
+    notify(standing && !action.readOnly ? `${message} Rule left standing.` : message, 'success');
+    if (!action.readOnly) onSaved?.();
   };
 
   return (
-    <div className="ask">
-      {/* ---------------- Questionnaire ---------------- */}
-      <div className="ask__form">
-        <Card bodyClassName="card__body--tight">
-          <div className="stack stack--tight">
-            <span className="t-section-label">Ask about</span>
-            <div className="ask-modes">
-              {MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className={`ask-mode ${mode === m.id ? 'is-active' : ''}`.trim()}
-                  onClick={() => { setMode(m.id); setSelected(new Set()); }}
-                >
-                  <Icon name={m.icon} size={15} />
-                  <span className="ask-mode__label">{m.label}</span>
-                  <span className="ask-mode__hint">{m.hint}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </Card>
+    <div className="stack">
+      {/* ---------------- Entry points ---------------- */}
+      <Card bodyClassName="card__body--tight">
+        <div className="stack stack--tight">
+          <CommandBar onParsed={fillFrom} />
 
-        <Card bodyClassName="card__body--tight">
-          <div className="ask-steps">
-            <Step index={1} title="What are you trying to do?" done={Boolean(category)} active>
-              <div className="ask-chips">
-                {CATEGORIES.map((c) => (
+          <div className="quickstarts">
+            <span className="micro subtle" style={{ flex: 'none' }}>Or start from</span>
+            {QUICK_STARTS.map((qs) => (
+              <button key={qs.id} type="button" className="quickstart" onClick={() => fillFrom(qs.fill)}>
+                <Icon name={qs.icon} size={14} />
+                <span className="stack stack--xtight" style={{ minWidth: 0 }}>
+                  <span className="quickstart__label">{qs.label}</span>
+                  <span className="quickstart__hint">{qs.hint}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <div className="ask">
+        {/* ---------------- Questionnaire ---------------- */}
+        <div className="ask__form">
+          <Card bodyClassName="card__body--tight">
+            <div className="stack stack--tight">
+              <span className="t-section-label">Ask about</span>
+              <div className="ask-modes">
+                {MODES.map((m) => (
                   <button
-                    key={c.id}
+                    key={m.id}
                     type="button"
-                    className={`ask-chip ${category === c.id ? 'is-active' : ''}`.trim()}
-                    onClick={() => { setCategory(c.id); setGoalId(''); setValues({}); }}
+                    className={`ask-mode ${mode === m.id ? 'is-active' : ''}`.trim()}
+                    onClick={() => { setMode(m.id); setSelected(new Set()); }}
                   >
-                    <Icon name={c.icon} size={13} />
-                    <span>{c.label}</span>
+                    <Icon name={m.icon} size={15} />
+                    <span className="ask-mode__label">{m.label}</span>
+                    <span className="ask-mode__hint">{m.hint}</span>
                   </button>
                 ))}
               </div>
-              {category && <p className="micro subtle" style={{ margin: '4px 0 0' }}>{categoryFor(category)?.hint}</p>}
-            </Step>
+            </div>
+          </Card>
 
-            <Step
-              index={2}
-              title={mode === 'merchant' ? 'Which merchants or merchant types?' : 'Criteria type'}
-              hint={mode === 'merchant' ? 'Search by name or take a whole type' : 'What kind of criteria?'}
-              done={subjects.length > 0}
-              active={Boolean(category)}
-            >
-              {mode === 'merchant' ? (
-                <MerchantSearch
-                  merchants={MERCHANTS}
-                  groups={MERCHANT_GROUPS}
-                  selected={picked}
-                  onChange={setPicked}
-                  suggestions={mostActive}
-                />
-              ) : (
-                <div className="stack stack--tight">
-                  <div className="ask-chips">
-                    {CRITERIA_TYPES.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className={`ask-chip ${criteriaType === t.id ? 'is-active' : ''}`.trim()}
-                        onClick={() => {
-                          setCriteriaType(t.id);
-                          const first = fieldsForType(t.id)[0];
-                          setCriteria([{
-                            field: first.key,
-                            operator: operatorsFor(first.kind)[0].value,
-                            value: first.kind === 'select' ? first.options[0] : '',
-                          }]);
-                        }}
-                      >
-                        <Icon name={t.icon} size={13} />
-                        <span>{t.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="micro subtle" style={{ margin: 0 }}>{criteriaTypeFor(criteriaType)?.hint}</p>
-
-                  {criteria.map((c, i) => (
-                    <CriterionRow
-                      key={i}
-                      criterion={c}
-                      fields={fieldsForType(criteriaType)}
-                      canRemove={criteria.length > 1}
-                      onChange={(next) => setCriteria((p) => p.map((x, j) => (j === i ? next : x)))}
-                      onRemove={() => setCriteria((p) => p.filter((_, j) => j !== i))}
-                    />
-                  ))}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon="plus"
-                    onClick={() => {
-                      const first = fieldsForType(criteriaType)[0];
-                      setCriteria((p) => [...p, {
-                        field: first.key,
-                        operator: operatorsFor(first.kind)[0].value,
-                        value: first.kind === 'select' ? first.options[0] : '',
-                      }]);
-                    }}
-                  >
-                    Add criterion
-                  </Button>
-                </div>
-              )}
-              {subjects.length > 0 && (
-                <p className="micro subtle" style={{ margin: '6px 0 0' }}>
-                  {formatNumber(subjects.length)} merchant{subjects.length === 1 ? '' : 's'} selected.
-                </p>
-              )}
-            </Step>
-
-            {/* Filters narrow whatever step 2 produced. They are the same
-                machinery as criteria but a separate question: step 2 names the
-                book you care about, this trims it. Optional, and skipped
-                entirely if nothing is added. */}
-            <Step
-              index={3}
-              title="Narrow it down"
-              hint="Optional"
-              done={filters.length > 0}
-              active={subjects.length > 0 || filters.length > 0}
-            >
-              <div className="stack stack--tight">
-                {filters.map((c, i) => (
-                  <CriterionRow
-                    key={i}
-                    criterion={c}
-                    fields={CRITERIA_FIELDS}
-                    canRemove
-                    onChange={(next) => setFilters((p) => p.map((x, j) => (j === i ? next : x)))}
-                    onRemove={() => setFilters((p) => p.filter((_, j) => j !== i))}
-                  />
-                ))}
-                <Button variant="secondary" size="sm" icon="filter" onClick={() => setFilters((p) => [...p, blankCriterion()])}>
-                  Add a filter
-                </Button>
-                {filters.length > 0 && preFilterCount !== subjects.length && (
-                  <p className="micro subtle" style={{ margin: 0 }}>
-                    Filters removed {formatNumber(preFilterCount - subjects.length)} of {formatNumber(preFilterCount)}.
-                  </p>
-                )}
-              </div>
-            </Step>
-
-            <Step
-              index={4}
-              title="What do you want to know?"
-              hint="Your question"
-              done={Boolean(goal)}
-              active={Boolean(category) && subjects.length > 0}
-            >
-              {category ? (
-                <div className="stack stack--xtight">
-                  {goals.map((g) => (
+          <Card bodyClassName="card__body--tight">
+            <div className="ask-steps">
+              <Step index={1} title="What are you trying to do?" done={Boolean(category)} active>
+                <div className="ask-chips">
+                  {CATEGORIES.map((c) => (
                     <button
-                      key={g.id}
+                      key={c.id}
                       type="button"
-                      className={`ask-goal ${goalId === g.id ? 'is-active' : ''}`.trim()}
-                      onClick={() => { setGoalId(g.id); setValues({}); }}
+                      className={`ask-chip ${category === c.id ? 'is-active' : ''}`.trim()}
+                      onClick={() => { setCategory(c.id); setGoalId(''); setValues({}); }}
                     >
-                      <span className="ask-goal__label">{g.label}</span>
-                      <span className="ask-goal__blurb">{g.blurb}</span>
+                      <Icon name={c.icon} size={13} />
+                      <span>{c.label}</span>
                     </button>
                   ))}
                 </div>
-              ) : (
-                <p className="micro subtle" style={{ margin: 0 }}>Choose what you are trying to do first.</p>
-              )}
-            </Step>
+                {category && <p className="micro subtle" style={{ margin: '4px 0 0' }}>{categoryFor(category)?.hint}</p>}
+              </Step>
 
-            <Step
-              index={5}
-              title="What kind of answer?"
-              hint="Solution type"
-              done={Boolean(goal)}
-              active={Boolean(goal)}
-            >
-              <div className="stack stack--xtight">
-                {SOLUTION_TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`ask-goal ${solution === t.id ? 'is-active' : ''}`.trim()}
-                    onClick={() => setSolution(t.id)}
-                  >
-                    <span className="ask-goal__label">{t.label}</span>
-                    <span className="ask-goal__blurb">{t.hint}</span>
-                  </button>
-                ))}
-              </div>
-            </Step>
+              <Step
+                index={2}
+                title={mode === 'merchant' ? 'Which merchants or merchant types?' : 'Criteria type'}
+                hint={mode === 'merchant' ? 'Search by name or take a whole type' : 'What kind of criteria?'}
+                done={subjects.length > 0}
+                active={Boolean(category)}
+              >
+                {mode === 'merchant' ? (
+                  <MerchantSearch
+                    merchants={MERCHANTS}
+                    groups={MERCHANT_GROUPS}
+                    selected={picked}
+                    onChange={setPicked}
+                    suggestions={mostActive}
+                  />
+                ) : (
+                  <div className="stack stack--tight">
+                    <div className="ask-chips">
+                      {CRITERIA_TYPES.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={`ask-chip ${criteriaType === t.id ? 'is-active' : ''}`.trim()}
+                          onClick={() => {
+                            setCriteriaType(t.id);
+                            const first = fieldsForType(t.id)[0];
+                            setCriteria([{
+                              field: first.key,
+                              operator: operatorsFor(first.kind)[0].value,
+                              value: first.kind === 'select' ? first.options[0] : '',
+                            }]);
+                          }}
+                        >
+                          <Icon name={t.icon} size={13} />
+                          <span>{t.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="micro subtle" style={{ margin: 0 }}>{criteriaTypeFor(criteriaType)?.hint}</p>
 
-            {Boolean(goal?.inputs?.length) && (
-              <Step index={6} title="Set the numbers" done active>
+                    {criteria.map((c, i) => (
+                      <CriterionRow
+                        key={i}
+                        criterion={c}
+                        fields={fieldsForType(criteriaType)}
+                        canRemove={criteria.length > 1}
+                        onChange={(next) => setCriteria((p) => p.map((x, j) => (j === i ? next : x)))}
+                        onRemove={() => setCriteria((p) => p.filter((_, j) => j !== i))}
+                      />
+                    ))}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon="plus"
+                      onClick={() => {
+                        const first = fieldsForType(criteriaType)[0];
+                        setCriteria((p) => [...p, {
+                          field: first.key,
+                          operator: operatorsFor(first.kind)[0].value,
+                          value: first.kind === 'select' ? first.options[0] : '',
+                        }]);
+                      }}
+                    >
+                      Add criterion
+                    </Button>
+                  </div>
+                )}
+                {subjects.length > 0 && (
+                  <p className="micro subtle" style={{ margin: '6px 0 0' }}>
+                    {formatNumber(subjects.length)} merchant{subjects.length === 1 ? '' : 's'} selected.
+                  </p>
+                )}
+              </Step>
+
+              <Step
+                index={3}
+                title="Narrow it down"
+                hint="Optional"
+                done={filters.length > 0}
+                active={subjects.length > 0 || filters.length > 0}
+              >
                 <div className="stack stack--tight">
-                  {goal.inputs.map((input) => (
-                    <TextField
-                      key={input.key}
-                      label={input.label}
-                      type={input.type}
-                      step={input.step}
-                      value={values[input.key] ?? input.default}
-                      onChange={(e) => setValues((v) => ({ ...v, [input.key]: e.target.value }))}
-                      hint={input.suffix ? `In ${input.suffix}` : undefined}
+                  {filters.map((c, i) => (
+                    <CriterionRow
+                      key={i}
+                      criterion={c}
+                      fields={CRITERIA_FIELDS}
+                      canRemove
+                      onChange={(next) => setFilters((p) => p.map((x, j) => (j === i ? next : x)))}
+                      onRemove={() => setFilters((p) => p.filter((_, j) => j !== i))}
                     />
+                  ))}
+                  <Button variant="secondary" size="sm" icon="filter" onClick={() => setFilters((p) => [...p, blankCriterion()])}>
+                    Add a filter
+                  </Button>
+                  {filters.length > 0 && preFilterCount !== subjects.length && (
+                    <p className="micro subtle" style={{ margin: 0 }}>
+                      Filters removed {formatNumber(preFilterCount - subjects.length)} of {formatNumber(preFilterCount)}.
+                    </p>
+                  )}
+                </div>
+              </Step>
+
+              <Step
+                index={4}
+                title="What do you want to know?"
+                hint="Your question"
+                done={Boolean(goal)}
+                active={Boolean(category) && subjects.length > 0}
+              >
+                {category ? (
+                  <div className="stack stack--xtight">
+                    {goals.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        className={`ask-goal ${goalId === g.id ? 'is-active' : ''}`.trim()}
+                        onClick={() => { setGoalId(g.id); setValues({}); }}
+                      >
+                        <span className="ask-goal__label">{g.label}</span>
+                        <span className="ask-goal__blurb">{g.blurb}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="micro subtle" style={{ margin: 0 }}>Choose what you are trying to do first.</p>
+                )}
+              </Step>
+
+              <Step
+                index={5}
+                title="What kind of answer?"
+                hint="Solution type"
+                done={Boolean(goal)}
+                active={Boolean(goal)}
+              >
+                <div className="stack stack--xtight">
+                  {SOLUTION_TYPES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`ask-goal ${solution === t.id ? 'is-active' : ''}`.trim()}
+                      onClick={() => setSolution(t.id)}
+                    >
+                      <span className="ask-goal__label">{t.label}</span>
+                      <span className="ask-goal__blurb">{t.hint}</span>
+                    </button>
                   ))}
                 </div>
               </Step>
-            )}
-          </div>
-        </Card>
-      </div>
 
-      {/* ---------------- Live answer ---------------- */}
-      <div className="ask__answer">
-        {!answer ? (
-          <Card>
-            <EmptyState
-              icon="chart"
-              title="The answer builds as you ask"
-              hint="Choose what you are trying to do, who it is about, and what you want to know. Nothing needs saving — the impact appears here as you go."
-            />
-          </Card>
-        ) : (
-          <div className="stack">
-            <Card bodyClassName="card__body--tight">
-              <div className="stack stack--tight">
-                <div className="row row--between row--nowrap" style={{ alignItems: 'flex-start' }}>
-                  <div className="stack stack--xtight">
-                    <span className="t-section-label">{goal.label}</span>
-                    <span className="ask-headline">{answer.headline}</span>
-                    <span className="micro subtle">{answer.headlineNote}</span>
+              {Boolean(goal?.inputs?.length) && (
+                <Step index={6} title="Set the numbers" done active>
+                  <div className="stack stack--tight">
+                    {goal.inputs.map((input) => (
+                      <TextField
+                        key={input.key}
+                        label={input.label}
+                        type={input.type}
+                        step={input.step}
+                        value={values[input.key] ?? input.default}
+                        onChange={(e) => setValues((v) => ({ ...v, [input.key]: e.target.value }))}
+                        hint={input.suffix ? `In ${input.suffix}` : undefined}
+                      />
+                    ))}
                   </div>
-                  <Badge tone="primary">{formatNumber(subjects.length)} in scope</Badge>
-                </div>
-
-                <p className="small" style={{ margin: 0 }}>{answer.narrative}</p>
-
-                <div className="projection">
-                  {answer.stats.map((s) => (
-                    <div key={s.label} className="projection__cell">
-                      <span className="projection__label">{s.label}</span>
-                      <span
-                        className="projection__value"
-                        style={s.tone ? { color: s.tone === 'good' ? 'var(--c-success)' : 'var(--c-danger)' } : undefined}
-                      >
-                        {s.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-
-            <Card
-              title={`Who this affects — ${formatNumber(rows.length)} merchant${rows.length === 1 ? '' : 's'}`}
-              action={
-                <span className="micro subtle">
-                  {selected.size ? `${formatNumber(selected.size)} picked out` : 'Everything matched — tick rows to narrow'}
-                </span>
-              }
-              bodyClassName="card__body--flush"
-            >
-              <DataTable
-                columns={resultColumns}
-                rows={sampled}
-                rowKey={(r) => r.merchant.id}
-                density="comfortable"
-                selection={{
-                  selected,
-                  onToggle: (id) => setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; }),
-                  onToggleAll: (ids, check) => setSelected((p) => {
-                    const n = new Set(p);
-                    ids.forEach((id) => (check ? n.add(id) : n.delete(id)));
-                    return n;
-                  }),
-                }}
-              />
-              {truncated && (
-                <p className="msearch__note" style={{ borderTop: '1px solid var(--c-line)' }}>
-                  Showing the first {ROW_SAMPLE} of {formatNumber(rows.length)}. The figures above are calculated
-                  across all {formatNumber(rows.length)}, not this sample — narrow the segment to see fewer.
-                </p>
+                </Step>
               )}
-            </Card>
+            </div>
+          </Card>
+        </div>
 
-            {/* Pinned to the bottom of the answer column. It was the last card
-                under a table that can run to fifty rows, which put the only
-                two actions on the screen below the fold — the reader had to
-                scroll past everything to find out they could do anything. */}
-            <Card bodyClassName="card__body--tight" className="ask__actions">
-              <div className="row row--between row--nowrap" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
-                <span className="micro subtle">
-                  {formatNumber(chosen.length)} merchant{chosen.length === 1 ? '' : 's'} selected ·
-                  {' '}nothing is saved until you choose
-                </span>
-                <div className="row row--tight row--nowrap">
-                  <Button variant="secondary" icon="archive" onClick={save}>Save as suggestion</Button>
-                  {answer.apply && (
-                    <Button variant="primary" icon="check" disabled={!chosen.length} onClick={() => setConfirming(true)}>
-                      {answer.applyLabel} to {formatNumber(chosen.length)}
-                    </Button>
-                  )}
-                </div>
-              </div>
+        {/* ---------------- Live answer ---------------- */}
+        <div className="ask__answer">
+          {!answer ? (
+            <Card>
+              <EmptyState
+                icon="chart"
+                title="The answer builds as you ask"
+                hint="Type what you want at the top, pick a start, or work down the questions. Nothing needs saving — the impact appears here as you go."
+              />
             </Card>
-          </div>
-        )}
+          ) : (
+            <div className="stack">
+              <Card bodyClassName="card__body--tight">
+                <div className="stack stack--tight">
+                  <div className="row row--between row--nowrap" style={{ alignItems: 'flex-start' }}>
+                    <div className="stack stack--xtight">
+                      <span className="t-section-label">{goal.label}</span>
+                      <span className="ask-headline">{answer.headline}</span>
+                      <span className="micro subtle">{answer.headlineNote}</span>
+                    </div>
+                    <Badge tone="primary">{formatNumber(subjects.length)} in scope</Badge>
+                  </div>
+
+                  <p className="small" style={{ margin: 0 }}>{answer.narrative}</p>
+
+                  <div className="projection">
+                    {answer.stats.map((s) => (
+                      <div key={s.label} className="projection__cell">
+                        <span className="projection__label">{s.label}</span>
+                        <span
+                          className="projection__value"
+                          style={s.tone ? { color: s.tone === 'good' ? 'var(--c-success)' : 'var(--c-danger)' } : undefined}
+                        >
+                          {s.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+
+              <Card
+                title={`Who this affects — ${formatNumber(rows.length)} merchant${rows.length === 1 ? '' : 's'}`}
+                action={
+                  <span className="micro subtle">
+                    {selected.size ? `${formatNumber(selected.size)} picked out` : 'Everything matched — tick rows to narrow'}
+                  </span>
+                }
+                bodyClassName="card__body--flush"
+              >
+                <DataTable
+                  columns={resultColumns}
+                  rows={sampled}
+                  rowKey={(r) => r.merchant.id}
+                  density="comfortable"
+                  selection={{
+                    selected,
+                    onToggle: (id) => setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; }),
+                    onToggleAll: (ids, check) => setSelected((p) => {
+                      const n = new Set(p);
+                      ids.forEach((id) => (check ? n.add(id) : n.delete(id)));
+                      return n;
+                    }),
+                  }}
+                />
+                {truncated && (
+                  <p className="msearch__note" style={{ borderTop: '1px solid var(--c-line)' }}>
+                    Showing the first {ROW_SAMPLE} of {formatNumber(rows.length)}. The figures above are calculated
+                    across all {formatNumber(rows.length)}, not this sample — narrow the segment to see fewer.
+                  </p>
+                )}
+              </Card>
+
+              {/* Pinned to the bottom of the answer column: what to do, whether
+                  it keeps happening, and the two commits. */}
+              <Card bodyClassName="card__body--tight" className="ask__actions">
+                <div className="actionbar">
+                  <div className="actionbar__what">
+                    <SelectField
+                      aria-label="What to do"
+                      value={actionId}
+                      onChange={(e) => setActionId(e.target.value)}
+                      options={BULK_ACTIONS.map((a) => ({ value: a.id, label: a.label }))}
+                    />
+                    {action.needsOwner && (
+                      <SelectField
+                        aria-label="Owner"
+                        value={owner}
+                        onChange={(e) => setOwner(e.target.value)}
+                        options={ASSIGNABLE.map((u) => ({ value: u.email, label: u.name }))}
+                      />
+                    )}
+                  </div>
+
+                  {!action.readOnly && (
+                    <label className="actionbar__standing">
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={standing}
+                        onChange={(e) => setStanding(e.target.checked)}
+                      />
+                      <span className="stack stack--xtight">
+                        <span className="small">Keep applying</span>
+                        <span className="micro subtle">Leave it standing for anything that qualifies later</span>
+                      </span>
+                    </label>
+                  )}
+
+                  <div className="actionbar__go">
+                    <Button variant="secondary" icon="archive" onClick={save}>Save</Button>
+                    <Button
+                      variant="primary"
+                      icon={action.readOnly ? 'download' : 'check'}
+                      disabled={!chosen.length}
+                      onClick={() => (action.readOnly ? commit() : setConfirming(true))}
+                    >
+                      {action.verb} {formatNumber(chosen.length)}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* A segment rule can rewrite a commercial term on more merchants than
-          anyone can check by eye, and there is no undo. The confirmation
-          states the blast radius in the units that matter — how many accounts,
-          how much volume, and what is being written — before it happens. */}
+      {/* A rule can rewrite a commercial term on more merchants than anyone can
+          check by eye, and there is no undo. The confirmation states the blast
+          radius in the units that matter before anything is written. */}
       <Modal
         open={confirming}
         onClose={() => setConfirming(false)}
-        title="Apply to merchant records"
-        subtitle={answer?.applyLabel ?? undefined}
+        title={action.label}
+        subtitle={standing ? 'Applied now, and left standing' : 'Applied once'}
         footer={(
           <>
             <Button variant="secondary" onClick={() => setConfirming(false)}>Cancel</Button>
-            <Button variant="primary" icon="check" onClick={applyNow}>
-              Apply to {formatNumber(chosen.length)} merchant{chosen.length === 1 ? '' : 's'}
+            <Button variant="primary" icon="check" onClick={commit}>
+              {action.verb} {formatNumber(chosen.length)} merchant{chosen.length === 1 ? '' : 's'}
             </Button>
           </>
         )}
       >
         <div className="stack">
           <p className="small" style={{ margin: 0 }}>
-            This writes the arrangement to every merchant listed below. It takes effect immediately across the
-            console and there is no undo.
+            {action.describe(chosen.length, actionConfig)} It takes effect immediately across the console and
+            there is no undo.
+            {standing && ' The rule is also left standing, and will report anything that qualifies later.'}
           </p>
 
           <div className="projection">
@@ -598,7 +751,7 @@ export function CreateTab({ prefill, onSaved }) {
               <span className="projection__label">Merchants</span>
               <span className="projection__value">{formatNumber(chosen.length)}</span>
               <span className="projection__note">
-                {selected.size ? 'the rows you picked out' : 'everything the segment matched'}
+                {selected.size ? 'the rows you picked out' : 'everything matched'}
               </span>
             </div>
             <div className="projection__cell">
@@ -611,16 +764,20 @@ export function CreateTab({ prefill, onSaved }) {
             <div className="projection__cell">
               <span className="projection__label">Revenue</span>
               <span className="projection__value">
-                {formatCompactCurrency(chosen.reduce((t, r) => t + r.revenue, 0))}
+                {actionId === 'indemnify' ? formatCompactCurrency(chosen.reduce((t, r) => t + r.revenue, 0)) : '—'}
               </span>
-              <span className="projection__note">per year, at this rate</span>
+              <span className="projection__note">
+                {actionId === 'indemnify' ? 'per year, at this rate' : 'unchanged by this action'}
+              </span>
             </div>
             <div className="projection__cell projection__cell--result">
               <span className="projection__label">Liability taken on</span>
-              <span className="projection__value" style={{ color: 'var(--c-danger)' }}>
-                {formatCompactCurrency(chosen.reduce((t, r) => t + r.loss, 0))}
+              <span className="projection__value" style={{ color: actionId === 'indemnify' ? 'var(--c-danger)' : undefined }}>
+                {actionId === 'indemnify' ? formatCompactCurrency(chosen.reduce((t, r) => t + r.loss, 0)) : '—'}
               </span>
-              <span className="projection__note">expected annual loss</span>
+              <span className="projection__note">
+                {actionId === 'indemnify' ? 'expected annual loss' : 'unchanged by this action'}
+              </span>
             </div>
           </div>
 
