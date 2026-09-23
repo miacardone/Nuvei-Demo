@@ -654,6 +654,69 @@
 .kpi__tooltip-fill { display: flex !important; width: 100% !important; }
 .kpi__spark { flex: none; margin-top: 2px; }
 
+/* ---------- Revenue rules ---------- *
+ * A criterion is one sentence — field, operator, value — so it lays out as a
+ * single row that keeps the three controls proportional rather than letting
+ * the value box swallow the line. */
+
+.rule-criterion {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.1fr) 32px;
+  gap: var(--s-2);
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .rule-criterion { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .rule-criterion > :last-child { grid-column: 2; justify-self: end; }
+}
+
+/* The verdict block under the indemnification form: what the price earns
+   against what it is expected to cost. */
+.indemnity-verdict {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: var(--s-3); border-radius: var(--r-md);
+  background: var(--c-surface-sunken); border: 1px solid var(--c-line);
+}
+
+/* The calculator's output. Four figures reading left to right as one
+   sentence, divided by rules rather than by card borders, so it cannot be
+   mistaken for the KPI strip. */
+.projection {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+.projection__cell {
+  display: flex; flex-direction: column; gap: 2px;
+  padding-left: var(--s-4); border-left: 1px solid var(--c-line);
+}
+.projection__cell:first-child { padding-left: 0; border-left: 0; }
+.projection__cell--result { border-left-color: var(--c-line-strong); }
+.projection__label {
+  font-size: var(--fs-micro); font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--c-ink-muted);
+}
+.projection__value {
+  font-family: var(--font-mono); font-size: 1.375rem; font-weight: 600;
+  letter-spacing: -0.03em; line-height: 1.15;
+}
+.projection__note { font-size: var(--fs-micro); color: var(--c-ink-subtle); }
+
+@media (max-width: 900px) {
+  .projection { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
+  .projection__cell:nth-child(odd) { padding-left: 0; border-left: 0; }
+}
+
+.suggestion__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex: none; border-radius: var(--r-md);
+  background: var(--c-primary-tint); color: var(--c-primary);
+}
+.suggestion__headline {
+  font-family: var(--font-mono);
+  font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--c-ink);
+}
+
 /* ---------- Deviation bars ---------- *
  * Bars measured left/right from a centre line that represents the group
  * average. The name column is a fixed track so every bar starts at the same

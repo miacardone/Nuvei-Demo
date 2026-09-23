@@ -120,23 +120,70 @@ function buildChecklist(currentIndex, blocked) {
   }));
 }
 
-export const ONBOARDING_APPLICATIONS = MERCHANTS.filter((m) => m.status === 'Onboarding').map((m, i) => {
-  const currentIndex = draw.int(1, CHECKLIST_STEPS.length - 1);
-  const blocked = draw.bool(0.4);
+/**
+ * Prospects in the pipeline that are NOT yet in the merchant roster.
+ *
+ * Onboarding previously derived only from merchants already carrying the
+ * "Onboarding" status, of which there are two — so the page showed two cards
+ * and read as unfinished. But an onboarding pipeline is mostly made of
+ * applicants who are not merchants yet; that is the whole point of it. These
+ * are those applicants, spread across the four portfolio groups and across
+ * every stage of the checklist so the page shows the full shape of a pipeline
+ * rather than one slice of it.
+ */
+const PIPELINE_PROSPECTS = [
+  { name: 'Halcyon Outfitters', groupId: 'retail', vertical: 'Outdoor apparel retail', mccCode: '5651', mccLabel: 'Family Clothing Stores', projectedVolume: 18_400_000 },
+  { name: 'Verity Home', groupId: 'retail', vertical: 'Furniture and homeware', mccCode: '5712', mccLabel: 'Furniture & Home Furnishings', projectedVolume: 31_900_000 },
+  { name: 'Kestrel Audio', groupId: 'digital', vertical: 'Music streaming subscriptions', mccCode: '5815', mccLabel: 'Digital Goods — Audiovisual', projectedVolume: 26_200_000 },
+  { name: 'Northgate Studios', groupId: 'digital', vertical: 'Games and in-app purchases', mccCode: '5816', mccLabel: 'Digital Goods — Games', projectedVolume: 44_500_000 },
+  { name: 'Anvil Analytics', groupId: 'digital', vertical: 'B2B SaaS subscriptions', mccCode: '7372', mccLabel: 'Computer Programming & Data Processing', projectedVolume: 12_700_000 },
+  { name: 'Cobalt Rail', groupId: 'travel', vertical: 'Rail ticketing', mccCode: '4112', mccLabel: 'Passenger Railways', projectedVolume: 53_100_000 },
+  { name: 'Solstice Resorts', groupId: 'travel', vertical: 'Resort and hotel group', mccCode: '7011', mccLabel: 'Lodging — Hotels & Motels', projectedVolume: 67_800_000 },
+  { name: 'Meridian Charter', groupId: 'travel', vertical: 'Private charter booking', mccCode: '4511', mccLabel: 'Airlines & Air Carriers', projectedVolume: 22_300_000 },
+  { name: 'Lumen Credit Union', groupId: 'financial', vertical: 'Member account top-ups', mccCode: '6012', mccLabel: 'Financial Institutions', projectedVolume: 39_600_000 },
+  { name: 'Torrent Exchange', groupId: 'financial', vertical: 'Regulated digital asset exchange', mccCode: '6051', mccLabel: 'Quasi-Cash — Financial Institutions', projectedVolume: 71_200_000 },
+];
+
+const groupLabelFor = (groupId) => MERCHANT_GROUPS.find((g) => g.id === groupId)?.label ?? '—';
+
+/** The two roster merchants already flagged Onboarding, plus the prospects. */
+const ONBOARDING_SOURCES = [
+  ...MERCHANTS.filter((m) => m.status === 'Onboarding').map((m) => ({
+    merchantId: m.id,
+    name: m.name,
+    groupId: m.groupId,
+    vertical: m.vertical,
+    mccLabel: m.mccLabel,
+    projectedVolume: m.projectedVolume,
+  })),
+  ...PIPELINE_PROSPECTS.map((p, i) => ({ merchantId: `prospect-${i + 1}`, ...p })),
+];
+
+export const ONBOARDING_APPLICATIONS = ONBOARDING_SOURCES.map((m, i) => {
+  /* Up to and INCLUDING the step count, so some applications come out fully
+     complete. Capping at length - 1 meant nothing ever reached "ready for
+     go-live" and that stage filter could only ever read zero. */
+  const currentIndex = draw.int(1, CHECKLIST_STEPS.length);
+  const blocked = currentIndex < CHECKLIST_STEPS.length && draw.bool(0.3);
 
   return {
     id: `APP-${2001 + i}`,
-    merchantId: m.id,
+    merchantId: m.merchantId,
     merchantName: m.name,
+    groupId: m.groupId,
+    groupLabel: groupLabelFor(m.groupId),
     vertical: m.vertical,
     mccLabel: m.mccLabel,
-    submittedDate: isoDay(NOW - draw.int(10, 45) * DAY),
-    targetGoLive: isoDay(NOW + draw.int(7, 30) * DAY),
+    projectedVolume: m.projectedVolume,
+    submittedDate: isoDay(NOW - draw.int(10, 75) * DAY),
+    targetGoLive: isoDay(NOW + draw.int(7, 60) * DAY),
     assignedAnalyst: draw.pick(REVIEWER_OPTIONS),
     steps: buildChecklist(currentIndex, blocked),
     note: blocked
       ? 'Blocked — awaiting an updated document from the merchant.'
-      : 'On track for the target go-live date.',
+      : currentIndex >= CHECKLIST_STEPS.length
+        ? 'All steps complete — ready to move to Active.'
+        : 'On track for the target go-live date.',
   };
 });
 

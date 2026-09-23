@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PageHeader, Card, Badge, Button, EmptyState, Stepper } from '@/components/ui/Surface';
+import { PageHeader, Card, Badge, Button, EmptyState, Kpi, Stepper } from '@/components/ui/Surface';
 import { Icon } from '@/components/ui/Icon';
 import { ONBOARDING_APPLICATIONS } from '@/data/portfolio';
 import { useToast } from '@/context/ToastContext';
 import { usePerspective } from '@/hooks/usePerspective';
-import { formatDate } from '@/utils/format';
+import { weeklySeries } from '@/domain/metrics';
+import { formatCompactCurrency, formatDate, formatNumber } from '@/utils/format';
 
 /**
  * Onboarding — merchant applications moving through KYC and setup. One card
@@ -60,6 +61,19 @@ function ApplicationCard({ app, onAdvance }) {
   );
 }
 
+const STAGE_FILTERS = [
+  { value: 'all', label: 'All applications' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'ready', label: 'Ready for go-live' },
+];
+
+const stageOf = (app) => {
+  if (app.steps.every((s) => s.status === 'completed')) return 'ready';
+  if (app.steps.some((s) => s.status === 'blocked')) return 'blocked';
+  return 'in_progress';
+};
+
 export function Onboarding() {
   const { notify } = useToast();
   const { terms } = usePerspective();
@@ -67,11 +81,37 @@ export function Onboarding() {
   const merchantFilter = searchParams.get('merchant');
 
   const [apps, setApps] = useState(ONBOARDING_APPLICATIONS);
+  const [stage, setStage] = useState('all');
 
-  const rows = useMemo(
+  const scoped = useMemo(
     () => (merchantFilter ? apps.filter((a) => a.merchantId === merchantFilter) : apps),
     [apps, merchantFilter],
   );
+
+  const rows = useMemo(
+    () => (stage === 'all' ? scoped : scoped.filter((a) => stageOf(a) === stage)),
+    [scoped, stage],
+  );
+
+  const totals = useMemo(() => ({
+    count: scoped.length,
+    blocked: scoped.filter((a) => stageOf(a) === 'blocked').length,
+    ready: scoped.filter((a) => stageOf(a) === 'ready').length,
+    volume: scoped.reduce((s, a) => s + (a.projectedVolume ?? 0), 0),
+  }), [scoped]);
+
+  /* Progress through the checklist is the only thing an application really
+     has to report, so each card's line is the pipeline's completed-step count
+     by submission week — the same shape the KPI above it counts. */
+  const sparks = useMemo(() => {
+    const at = (a) => a.submittedDate;
+    return {
+      count: weeklySeries(scoped, 12, () => 1, () => true, at),
+      blocked: weeklySeries(scoped, 12, () => 1, (a) => stageOf(a) === 'blocked', at),
+      ready: weeklySeries(scoped, 12, () => 1, (a) => stageOf(a) === 'ready', at),
+      volume: weeklySeries(scoped, 12, (a) => a.projectedVolume ?? 0, () => true, at),
+    };
+  }, [scoped]);
 
   const advance = (appId) => {
     setApps((prev) => prev.map((app) => {
@@ -93,15 +133,42 @@ export function Onboarding() {
         description={`Merchant applications moving through KYC and setup, tracked by ${terms.analyst.toLowerCase()}.`}
       />
 
-      {rows.length === 0 ? (
-        <Card>
-          <EmptyState icon="upload" title="No applications in onboarding" hint="Every merchant in the portfolio is either active, under review or suspended." />
-        </Card>
-      ) : (
-        <div className="stack">
-          {rows.map((app) => <ApplicationCard key={app.id} app={app} onAdvance={advance} />)}
+      <div className="stack">
+        <div className="kpi-row">
+          <Kpi label="In pipeline" value={formatNumber(totals.count)} meta="Applications not yet live" spark={sparks.count} />
+          <Kpi label="Blocked" value={formatNumber(totals.blocked)} meta="Waiting on the merchant" invert spark={sparks.blocked} />
+          <Kpi label="Ready for go-live" value={formatNumber(totals.ready)} meta="Every step complete" spark={sparks.ready} />
+          <Kpi label="Projected volume" value={formatCompactCurrency(totals.volume)} meta="Annual, once live" spark={sparks.volume} />
         </div>
-      )}
+
+        {/* Twelve full-width cards is a very long page, so the pipeline reads
+            two-up with a stage filter rather than as one endless column. */}
+        <Card bodyClassName="card__body--tight">
+          <div className="row row--tight" style={{ flexWrap: 'wrap' }}>
+            {STAGE_FILTERS.map((f) => (
+              <Button
+                key={f.value}
+                variant={stage === f.value ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setStage(f.value)}
+              >
+                {f.label}
+                {f.value !== 'all' && ` (${scoped.filter((a) => stageOf(a) === f.value).length})`}
+              </Button>
+            ))}
+          </div>
+        </Card>
+
+        {rows.length === 0 ? (
+          <Card>
+            <EmptyState icon="upload" title="No applications at this stage" hint="Choose another stage to see the rest of the pipeline." />
+          </Card>
+        ) : (
+          <div className="grid grid--2">
+            {rows.map((app) => <ApplicationCard key={app.id} app={app} onAdvance={advance} />)}
+          </div>
+        )}
+      </div>
     </>
   );
 }

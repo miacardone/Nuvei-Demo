@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Badge } from '@/components/ui/Surface';
 import { CheckboxRow, RadioRow, TextField } from '@/components/ui/Form';
 import { useToast } from '@/context/ToastContext';
 import useIndemnification from '@/hooks/useIndemnification';
 import { BASES, annualCharge, applyIndemnification, settingsFor } from '@/data/indemnification';
+import { breakEvenBps, expectedAnnualLoss } from '@/domain/revenue';
+import { ROUTES } from '@/data/navigation';
 import { formatCompactCurrency, formatCurrency, formatNumber } from '@/utils/format';
 
 /**
@@ -25,6 +28,7 @@ import { formatCompactCurrency, formatCurrency, formatNumber } from '@/utils/for
  */
 export function IndemnificationPanel({ merchant }) {
   const { notify } = useToast();
+  const navigate = useNavigate();
   const all = useIndemnification();
   const saved = settingsFor(merchant?.id);
 
@@ -47,6 +51,11 @@ export function IndemnificationPanel({ merchant }) {
     && (draft.basis === 'bps'
       ? !(Number(draft.bps) > 0 && Number(draft.bps) <= 1000)
       : !(Number(draft.fee) > 0));
+
+  /* Priced against what it would cost us, not just what it earns. */
+  const loss = expectedAnnualLoss(merchant);
+  const net = annualCharge(merchant, { ...draft, enabled: true }) - loss;
+  const breakEven = breakEvenBps([merchant]);
 
   const projected = annualCharge(merchant, draft);
 
@@ -140,9 +149,31 @@ export function IndemnificationPanel({ merchant }) {
         </div>
       </fieldset>
 
+      {/* What this merchant would be worth at this price, and the way out to
+          the same question asked across the whole book. A price set here in
+          isolation is a guess; the comparison is what makes it a decision. */}
+      <div className="indemnity-verdict">
+        <div className="row row--between row--nowrap">
+          <span className="micro subtle">Expected annual loss we would absorb</span>
+          <span className="mono small strong">{formatCompactCurrency(loss)}</span>
+        </div>
+        <div className="row row--between row--nowrap">
+          <span className="micro subtle">Net at this price</span>
+          <span className="mono small strong" style={{ color: net >= 0 ? 'var(--c-success)' : 'var(--c-danger)' }}>
+            {net >= 0 ? '+' : '−'}{formatCompactCurrency(Math.abs(net))}
+          </span>
+        </div>
+        <p className="micro subtle" style={{ margin: 0 }}>
+          Break-even for this merchant is {breakEven.toFixed(1)} bps.
+        </p>
+      </div>
+
       <div className="row row--tight">
         <Button variant="primary" onClick={apply} disabled={!dirty || rateInvalid}>Apply</Button>
         {dirty && <Button variant="secondary" onClick={() => setDraft(saved)}>Discard changes</Button>}
+        <Button variant="secondary" icon="chart" onClick={() => navigate(ROUTES.revenueRules)}>
+          Get suggestions
+        </Button>
       </div>
     </div>
   );

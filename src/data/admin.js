@@ -73,8 +73,28 @@ export const WEBHOOK_TOPICS = [
   { id: 'upload.completed', label: 'Upload completed', description: 'A CSV import finished.' },
 ];
 
-/** Starts empty so the Webhooks empty state is the first thing you see. */
-export const WEBHOOKS = [];
+/**
+ * A live integration, not an empty page.
+ *
+ * This deliberately started empty so the empty state was the first thing you
+ * saw, which reads as "unfinished" in a demo rather than as a design choice.
+ * These are the subscriptions an acquirer actually runs: the case lifecycle
+ * into a data warehouse, the deadline warnings into the ops channel, and the
+ * money-adjacent events into the finance system. One is paused on purpose —
+ * a page where every row says Active teaches the reader nothing about what
+ * the status column is for.
+ */
+export const WEBHOOKS = [
+  { id: 'wh1', topic: 'case.created', protocol: 'HTTPS', endpoint: 'https://events.nuvei.example/disputes/v2/case-created', createdBy: USERS[1].email, dateCreated: agoDate(412), status: 'Active' },
+  { id: 'wh2', topic: 'case.status_changed', protocol: 'HTTPS', endpoint: 'https://events.nuvei.example/disputes/v2/lifecycle', createdBy: USERS[1].email, dateCreated: agoDate(412), status: 'Active' },
+  { id: 'wh3', topic: 'case.due_soon', protocol: 'HTTPS', endpoint: 'https://hooks.nuvei.example/ops/deadline-watch', createdBy: USERS[4].email, dateCreated: agoDate(268), status: 'Active' },
+  { id: 'wh4', topic: 'case.overdue', protocol: 'HTTPS', endpoint: 'https://hooks.nuvei.example/ops/escalations', createdBy: USERS[4].email, dateCreated: agoDate(268), status: 'Active' },
+  { id: 'wh5', topic: 'case.decision_recorded', protocol: 'HTTPS', endpoint: 'https://ledger.nuvei.example/settlement/dispute-outcomes', createdBy: USERS[3].email, dateCreated: agoDate(190), status: 'Active' },
+  { id: 'wh6', topic: 'document.received', protocol: 'HTTPS', endpoint: 'https://evidence.nuvei.example/intake/callback', createdBy: USERS[6].email, dateCreated: agoDate(151), status: 'Active' },
+  { id: 'wh7', topic: 'consolidation.detected', protocol: 'HTTPS', endpoint: 'https://events.nuvei.example/disputes/v2/linked-groups', createdBy: USERS[2].email, dateCreated: agoDate(96), status: 'Active' },
+  { id: 'wh8', topic: 'upload.completed', protocol: 'HTTPS', endpoint: 'https://internal.nuvei.example/batch/import-receipt', createdBy: USERS[5].email, dateCreated: agoDate(74), status: 'Active' },
+  { id: 'wh9', topic: 'case.assigned', protocol: 'HTTPS', endpoint: 'https://hooks.nuvei.example/workforce/assignment-feed', createdBy: USERS[7].email, dateCreated: agoDate(38), status: 'Paused' },
+];
 
 /* ------------------------------------------------------------------ *
  * System preferences
