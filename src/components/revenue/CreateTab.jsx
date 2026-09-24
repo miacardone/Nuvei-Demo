@@ -653,12 +653,18 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                 </div>
               </Step>
 
+              {/* Gated on the category alone. It used to require a non-empty
+                  merchant set too, which made the step go dead whenever the
+                  selection was empty — the questions were still listed, just
+                  silently unclickable, so it read as a bug rather than as a
+                  step waiting on something. Picking the question does not
+                  depend on who it applies to; the answer simply waits. */}
               <Step
                 index={4}
                 title="What do you want to know?"
                 hint="Your question"
                 done={Boolean(goal)}
-                active={Boolean(category) && subjects.length > 0}
+                active={Boolean(category)}
               >
                 {category ? (
                   <div className="stack stack--xtight">
@@ -673,6 +679,13 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                         <span className="ask-goal__blurb">{g.blurb}</span>
                       </button>
                     ))}
+                    {subjects.length === 0 && (
+                      <p className="micro subtle" style={{ margin: 0 }}>
+                        {mode === 'merchant'
+                          ? 'Pick the question now — the answer fills in once you choose merchants in step 2.'
+                          : 'Pick the question now — nothing matches the criteria in step 2 yet, so widen them to see the answer.'}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="micro subtle" style={{ margin: 0 }}>Choose what you are trying to do first.</p>
