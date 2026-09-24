@@ -776,15 +776,54 @@
   gap: var(--s-4);
   align-items: start;
 }
+/* Once the questionnaire is showing, the two columns are one screen-high
+   region: the same height as each other, each scrolling inside itself. The
+   questionnaire is a good deal taller than the answer beside it, and used to
+   run the page down past the bottom of the screen — so the answer you were
+   building scrolled away while you worked through the steps. */
+.ask:not(.ask--solo) {
+  align-items: stretch;
+  height: calc(100vh - var(--topbar-h) - var(--s-6));
+}
 .ask__form {
   display: flex; flex-direction: column; gap: var(--s-3);
-  position: sticky; top: var(--s-4);
+  /* min-height:0 is what lets a grid child actually shrink and scroll rather
+     than growing the row to fit its content. */
+  min-height: 0;
+  overflow-y: auto;
+  /* Stop a flick at the end of a column carrying on into the page behind it. */
+  overscroll-behavior: contain;
+  /* Room for the scrollbar, so it sits beside the cards rather than over
+     their edge. */
+  padding-right: var(--s-1);
 }
-.ask__answer { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+.ask__answer {
+  display: flex; flex-direction: column; gap: var(--s-3);
+  min-width: 0; min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--s-1);
+}
 
+/* Before any question is answered the right-hand column holds a single empty
+   state. Let it fill the column so the two sides read as one region rather
+   than a short card floating beside a tall one. */
+.ask:not(.ask--solo) .ask__answer > .card:only-child { flex: 1; }
+
+.ask__form::-webkit-scrollbar,
+.ask__answer::-webkit-scrollbar { width: 6px; }
+.ask__form::-webkit-scrollbar-thumb,
+.ask__answer::-webkit-scrollbar-thumb { background: var(--c-line-strong); border-radius: var(--r-pill); }
+.ask__form::-webkit-scrollbar-track,
+.ask__answer::-webkit-scrollbar-track { background: transparent; }
+
+/* One column below this width: the questionnaire sits above the answer rather
+   than beside it, so a fixed height would trap both in scrollbars inside an
+   already-scrolling page. Let them run and let the page scroll instead. */
 @media (max-width: 1100px) {
   .ask { grid-template-columns: minmax(0, 1fr); }
-  .ask__form { position: static; }
+  .ask:not(.ask--solo) { height: auto; align-items: start; }
+  .ask__form, .ask__answer { overflow: visible; padding-right: 0; }
 }
 
 /* --- Mode switch: two large targets, not a dropdown. The choice changes the
