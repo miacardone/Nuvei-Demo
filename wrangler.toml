@@ -1,0 +1,14 @@
+# Cloudflare Workers — static assets only.
+#
+# The console is a built SPA with no server of its own, so this Worker carries
+# no script: it serves ./dist and nothing else. `single-page-application`
+# handling is what makes a deep link work — /acquirer/revenue-rules is a client
+# route with no file behind it, so any path that does not match a file is
+# served index.html and React Router takes it from there. Without it every
+# route but "/" 404s on refresh.
+name = "nuvei"
+compatibility_date = "2026-09-24"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
