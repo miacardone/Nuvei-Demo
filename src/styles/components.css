@@ -1967,3 +1967,36 @@
 .onb-meta__k { font-size: var(--fs-nano); color: var(--c-ink-subtle); text-transform: uppercase; letter-spacing: 0.04em; }
 .onb-meta__v { font-size: var(--fs-small); font-weight: 600; color: var(--c-ink); min-width: 0; }
 .onb-meta__sub { font-size: var(--fs-nano); color: var(--c-ink-subtle); }
+
+/* ---------- Impact model ---------- */
+/* The same question answered at several values of its dial. Laid out as a row
+   of points rather than a table: the reader is comparing one number across a
+   range, not looking up rows. */
+.impact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: var(--s-2);
+}
+.impact__point {
+  display: grid; gap: 1px;
+  padding: var(--s-2);
+  border: 1px solid var(--c-line); border-radius: var(--r-md);
+  background: var(--c-surface);
+  min-width: 0;
+}
+.impact__point.is-current {
+  border-color: var(--c-primary);
+  background: var(--c-primary-tint);
+}
+.impact__dial {
+  display: flex; align-items: baseline; gap: 4px;
+  font-size: var(--fs-micro); font-weight: 700; color: var(--c-ink-subtle);
+}
+.impact__point.is-current .impact__dial { color: var(--c-primary); }
+.impact__now {
+  font-size: var(--fs-nano); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--c-primary);
+}
+.impact__headline { font-size: var(--fs-small); font-weight: 700; color: var(--c-ink); }
+.impact__stat { font-size: var(--fs-small); font-weight: 600; color: var(--c-ink); }
+.impact__statlabel { font-size: var(--fs-nano); color: var(--c-ink-subtle); }

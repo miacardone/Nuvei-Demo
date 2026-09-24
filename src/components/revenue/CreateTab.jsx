@@ -16,9 +16,9 @@ import { addStandingRule } from '@/data/standing-rules';
 import { ASSIGNABLE } from '@/data/people';
 import { BULK_ACTIONS, bulkActionFor } from '@/domain/bulk-actions';
 import {
-  CATEGORIES, CRITERIA_FIELDS, CRITERIA_TYPES, SOLUTION_TYPES, activityIndex,
-  categoryFor, criteriaTypeFor, fieldFor, fieldsForType, goalFor, goalsFor,
-  matchMerchants, operatorsFor, shapeAnswer,
+  CATEGORIES, CRITERIA_FIELDS, CRITERIA_TYPES, PRICING_FLOOR_BPS, SOLUTION_TYPES,
+  activityIndex, categoryFor, criteriaTypeFor, fieldFor, fieldsForType, goalFor,
+  goalsFor, matchMerchants, operatorsFor, shapeAnswer,
 } from '@/domain/revenue';
 import { useToast } from '@/context/ToastContext';
 import { formatCompactCurrency, formatNumber, formatPercent } from '@/utils/format';
@@ -311,10 +311,69 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
     return out;
   }, [values, goal]);
 
+  /* An impact model is meant to answer "what if the number were different",
+     which needs the goal run more than once. A recommendation is the goal at
+     the number it works out; the model is that same goal at the number either
+     side of it, so the reader can see which way the answer leans and how
+     fast. Without this the model and the recommendation returned identical
+     output — the choice looked live and changed nothing. */
+  const modelled = (base) => {
+    const dial = (goal?.inputs ?? [])[0];
+    const at = Number(effective?.[dial?.key]);
+    if (!dial || !Number.isFinite(at)) return base;
+
+    const step = Number(dial.step) || 1;
+    const runAt = (value) => {
+      try {
+        const a = goal.answer({ subjects, values: { ...effective, [dial.key]: value }, ctx });
+        // Net is the line a reader tracks across the range; fall back to the
+        // last stat for a goal that reports something else.
+        const stat = a.stats?.find((x) => /net/i.test(x.label)) ?? a.stats?.[a.stats.length - 1];
+        return { value, headline: a.headline, stat, current: value === at };
+      } catch {
+        return null;
+      }
+    };
+
+    /* Widen until the answer actually moves. A narrow band around the set
+       value can sit entirely inside a floor or a cap — the pricing floor does
+       exactly this on a low-ratio book — and five identical tiles read as a
+       broken control rather than as a flat curve. */
+    const spans = [1, 2, 4, 8];
+    let points = [];
+    for (const span of spans) {
+      points = [at - 2 * span * step, at - span * step, at, at + span * step, at + 2 * span * step]
+        .filter((v) => v > 0)
+        .map(runAt)
+        .filter(Boolean);
+      const distinct = new Set(points.map((p) => `${p.headline}|${p.stat?.value}`));
+      if (distinct.size > 1) break;
+    }
+    if (points.length < 2) return base;
+
+    const distinct = new Set(points.map((p) => `${p.headline}|${p.stat?.value}`));
+    const lo = points[0].value;
+    const hi = points[points.length - 1].value;
+
+    return {
+      ...base,
+      sensitivity: {
+        label: dial.label,
+        suffix: dial.suffix ?? '',
+        points,
+        // Flat across the whole range we tried: worth one sentence rather than
+        // a row of tiles that all say the same thing.
+        flat: distinct.size === 1,
+        range: [lo, hi],
+      },
+    };
+  };
+
   const answer = useMemo(() => {
     if (!goal || !subjects.length) return null;
     try {
-      return shapeAnswer(goal.answer({ subjects, values: effective, ctx }), solution);
+      const base = shapeAnswer(goal.answer({ subjects, values: effective, ctx }), solution);
+      return base && solution === 'model' ? modelled(base) : base;
     } catch {
       return null;
     }
@@ -783,6 +842,50 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                       </div>
                     ))}
                   </div>
+
+                  {/* Impact model only: the same question answered either side
+                      of the number you set, so the trade-off is visible rather
+                      than something you have to find by typing. */}
+                  {answer.sensitivity?.flat && (
+                    <p className="micro subtle" style={{ margin: 0 }}>
+                      <b>This number is not what decides it.</b>{' '}
+                      Anything from {answer.sensitivity.range[0]}{answer.sensitivity.suffix} to{' '}
+                      {answer.sensitivity.range[1]}{answer.sensitivity.suffix} gives the same answer for
+                      this selection — something else is binding, usually the {PRICING_FLOOR_BPS} bps
+                      floor or the size of the book.
+                    </p>
+                  )}
+
+                  {answer.sensitivity && !answer.sensitivity.flat && (
+                    <div className="stack stack--xtight">
+                      <span className="t-section-label">
+                        If {answer.sensitivity.label.toLowerCase()} moved
+                      </span>
+                      <div className="impact">
+                        {answer.sensitivity.points.map((p) => (
+                          <div
+                            key={p.value}
+                            className={`impact__point ${p.current ? 'is-current' : ''}`.trim()}
+                          >
+                            <span className="impact__dial">
+                              {p.value}{answer.sensitivity.suffix}
+                              {p.current && <span className="impact__now">set</span>}
+                            </span>
+                            <span className="impact__headline">{p.headline}</span>
+                            {p.stat && (
+                              <span
+                                className="impact__stat"
+                                style={p.stat.tone ? { color: p.stat.tone === 'good' ? 'var(--c-success)' : 'var(--c-danger)' } : undefined}
+                              >
+                                {p.stat.value}
+                              </span>
+                            )}
+                            {p.stat && <span className="impact__statlabel">{p.stat.label}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
 
