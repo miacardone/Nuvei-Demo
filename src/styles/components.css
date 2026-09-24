@@ -841,6 +841,19 @@
   overscroll-behavior: contain;
 }
 
+/* Solo — Describe it and Quick start, before the questionnaire is shown.
+   There is no second column to hold level with and nothing to pin, and the
+   tile rules above assume a definite height they do not have here: flex
+   resolved against an indefinite height, so the table clipped at an arbitrary
+   row and the card stopped short of the action bar. Natural flow instead, with
+   the table capped so it cannot run to its full length. */
+.ask--solo .ask__answer,
+.ask--solo .ask__scroll { overflow: visible; }
+.ask--solo .ask__scroll,
+.ask--solo .ask__affects,
+.ask--solo .ask__affects .dt-wrap { flex: none; }
+.ask--solo .ask__affects .dt-wrap { max-height: calc(58px + 7 * 64px); }
+
 .ask__scrollbody::-webkit-scrollbar,
 .ask__affects .dt-wrap::-webkit-scrollbar { width: 6px; }
 .ask__scrollbody::-webkit-scrollbar-thumb,
