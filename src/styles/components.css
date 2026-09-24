@@ -830,15 +830,13 @@
 .ask__affects { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .ask__affects-body { min-height: 0; display: flex; flex-direction: column; }
 
-/* Seven rows before it scrolls. The header row is already sticky, so it stays
-   put while the rows move under it. The table is fixed at comfortable
-   density, where a two-line row measures 64px against a 58px header. Seven is
-   a ceiling, not a floor: on a short window the band has less than seven
-   rows' worth of height to give and the table takes what there is, rather
-   than pushing past the bottom of the card. */
+/* As many rows as the space allows, then it scrolls. No row count is set:
+   the table takes whatever is left between the verdict above it and the
+   action bar below, so the column is full rather than leaving a band of empty
+   card under the last row. The header row is already sticky, so it stays put
+   while the rows move under it. */
 .ask__affects .dt-wrap {
   flex: 1; min-height: 0;
-  max-height: calc(58px + 7 * 64px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -865,6 +863,10 @@
   .ask__panel { flex: none; }
   .ask__scrollbody, .ask__scroll { overflow: visible; }
   .ask__affects { flex: none; }
+  /* Stacked, there is no band to fill, so the table would run to its full
+     length and take the page with it. Seven rows at comfortable density,
+     then it scrolls inside the card as it does beside the questionnaire. */
+  .ask__affects .dt-wrap { max-height: calc(58px + 7 * 64px); }
   /* The table keeps its own scroll at every width — five rows is the point of
      it, not a consequence of the layout. */
 }
@@ -1688,13 +1690,11 @@
 
 /* The Create tab's action bar sticks to the bottom of the answer column, so
    Apply and Save are reachable without scrolling past a fifty-row table. */
-.ask__actions {
-  position: sticky;
-  bottom: var(--s-3);
-  z-index: 5;
-  box-shadow: var(--shadow-raised);
-  border-color: var(--c-line-strong);
-}
+/* The last tile in the answer column. It used to float over a scrolling page,
+   which is what the lift, the shadow and the darker border were for; now it
+   simply sits at the bottom of a column that does not scroll, level with the
+   questionnaire beside it and carrying the same edges as every other card. */
+.ask__actions { flex: none; }
 
 /* ---------- Command bar ---------- *
  * The fast way in. Deliberately the widest, highest thing on the screen —
