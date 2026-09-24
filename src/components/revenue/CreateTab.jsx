@@ -782,7 +782,7 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                     {selected.size ? `${formatNumber(selected.size)} picked out` : 'Everything matched — tick rows to narrow'}
                   </span>
                 }
-                bodyClassName="card__body--flush"
+                bodyClassName="card__body--flush ask__affects-body"
               >
                 <DataTable
                   columns={resultColumns}

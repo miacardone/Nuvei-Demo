@@ -816,33 +816,38 @@
   overscroll-behavior: contain;
 }
 
-/* The answer's middle band: everything between the verdict and the actions. */
+/* The answer's middle band: everything between the verdict and the actions.
+   It hands its height to the table rather than scrolling itself — two nested
+   scrollbars over the same list is the thing this was meant to fix. */
 .ask__scroll {
   flex: 1; min-height: 0;
   display: flex; flex-direction: column; gap: var(--s-3);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: var(--s-1);
+  overflow: hidden;
 }
 
-/* Who this affects: five rows before it scrolls, inside the tile. The header
-   row is already sticky, so it stays put while the rows move under it. The
-   table is fixed at comfortable density, where a two-line row measures 64px
-   against a 58px header. */
+/* Who this affects fills the band, so the notes under the table stay put and
+   only the rows move. */
+.ask__affects { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ask__affects-body { min-height: 0; display: flex; flex-direction: column; }
+
+/* Seven rows before it scrolls. The header row is already sticky, so it stays
+   put while the rows move under it. The table is fixed at comfortable
+   density, where a two-line row measures 64px against a 58px header. Seven is
+   a ceiling, not a floor: on a short window the band has less than seven
+   rows' worth of height to give and the table takes what there is, rather
+   than pushing past the bottom of the card. */
 .ask__affects .dt-wrap {
-  max-height: calc(58px + 5 * 64px);
+  flex: 1; min-height: 0;
+  max-height: calc(58px + 7 * 64px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
 .ask__scrollbody::-webkit-scrollbar,
-.ask__scroll::-webkit-scrollbar,
 .ask__affects .dt-wrap::-webkit-scrollbar { width: 6px; }
 .ask__scrollbody::-webkit-scrollbar-thumb,
-.ask__scroll::-webkit-scrollbar-thumb,
 .ask__affects .dt-wrap::-webkit-scrollbar-thumb { background: var(--c-line-strong); border-radius: var(--r-pill); }
 .ask__scrollbody::-webkit-scrollbar-track,
-.ask__scroll::-webkit-scrollbar-track,
 .ask__affects .dt-wrap::-webkit-scrollbar-track { background: transparent; }
 
 /* Before any question is answered the right-hand column holds a single empty
@@ -858,9 +863,8 @@
   .ask:not(.ask--solo) { height: auto; align-items: start; }
   .ask__form, .ask__answer { overflow: visible; }
   .ask__panel { flex: none; }
-  .ask__scrollbody, .ask__scroll {
-    overflow: visible; padding-right: 0;
-  }
+  .ask__scrollbody, .ask__scroll { overflow: visible; }
+  .ask__affects { flex: none; }
   /* The table keeps its own scroll at every width — five rows is the point of
      it, not a consequence of the layout. */
 }
