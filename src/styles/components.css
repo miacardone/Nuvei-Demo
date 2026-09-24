@@ -785,37 +785,70 @@
   align-items: stretch;
   height: calc(100vh - var(--topbar-h) - var(--s-6));
 }
+/* Neither column scrolls as a whole. Each is a stack of tiles: the ones that
+   hold the answer stay put, and the long content scrolls inside its own tile
+   so a card never has its bottom edge cut off mid-scroll. */
 .ask__form {
   display: flex; flex-direction: column; gap: var(--s-3);
-  /* min-height:0 is what lets a grid child actually shrink and scroll rather
-     than growing the row to fit its content. */
+  /* min-height:0 is what lets a grid child actually shrink rather than
+     growing the row to fit its content. */
   min-height: 0;
-  overflow-y: auto;
-  /* Stop a flick at the end of a column carrying on into the page behind it. */
-  overscroll-behavior: contain;
-  /* Room for the scrollbar, so it sits beside the cards rather than over
-     their edge. */
-  padding-right: var(--s-1);
+  overflow: hidden;
 }
 .ask__answer {
   display: flex; flex-direction: column; gap: var(--s-3);
   min-width: 0; min-height: 0;
+  overflow: hidden;
+}
+
+/* A tile that holds its place while its neighbours scroll. */
+.ask__pinned { flex: none; }
+
+/* The tile that takes the leftover height and scrolls inside itself. */
+.ask__panel {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+}
+.ask__scrollbody {
+  min-height: 0;
+  overflow-y: auto;
+  /* Stop a flick at the end of a tile carrying on into whatever is behind it. */
+  overscroll-behavior: contain;
+}
+
+/* The answer's middle band: everything between the verdict and the actions. */
+.ask__scroll {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; gap: var(--s-3);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: var(--s-1);
 }
+
+/* Who this affects: five rows before it scrolls, inside the tile. The header
+   row is already sticky, so it stays put while the rows move under it. The
+   table is fixed at comfortable density, where a two-line row measures 64px
+   against a 58px header. */
+.ask__affects .dt-wrap {
+  max-height: calc(58px + 5 * 64px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ask__scrollbody::-webkit-scrollbar,
+.ask__scroll::-webkit-scrollbar,
+.ask__affects .dt-wrap::-webkit-scrollbar { width: 6px; }
+.ask__scrollbody::-webkit-scrollbar-thumb,
+.ask__scroll::-webkit-scrollbar-thumb,
+.ask__affects .dt-wrap::-webkit-scrollbar-thumb { background: var(--c-line-strong); border-radius: var(--r-pill); }
+.ask__scrollbody::-webkit-scrollbar-track,
+.ask__scroll::-webkit-scrollbar-track,
+.ask__affects .dt-wrap::-webkit-scrollbar-track { background: transparent; }
 
 /* Before any question is answered the right-hand column holds a single empty
    state. Let it fill the column so the two sides read as one region rather
    than a short card floating beside a tall one. */
 .ask:not(.ask--solo) .ask__answer > .card:only-child { flex: 1; }
-
-.ask__form::-webkit-scrollbar,
-.ask__answer::-webkit-scrollbar { width: 6px; }
-.ask__form::-webkit-scrollbar-thumb,
-.ask__answer::-webkit-scrollbar-thumb { background: var(--c-line-strong); border-radius: var(--r-pill); }
-.ask__form::-webkit-scrollbar-track,
-.ask__answer::-webkit-scrollbar-track { background: transparent; }
 
 /* One column below this width: the questionnaire sits above the answer rather
    than beside it, so a fixed height would trap both in scrollbars inside an
@@ -823,7 +856,13 @@
 @media (max-width: 1100px) {
   .ask { grid-template-columns: minmax(0, 1fr); }
   .ask:not(.ask--solo) { height: auto; align-items: start; }
-  .ask__form, .ask__answer { overflow: visible; padding-right: 0; }
+  .ask__form, .ask__answer { overflow: visible; }
+  .ask__panel { flex: none; }
+  .ask__scrollbody, .ask__scroll {
+    overflow: visible; padding-right: 0;
+  }
+  /* The table keeps its own scroll at every width — five rows is the point of
+     it, not a consequence of the layout. */
 }
 
 /* --- Mode switch: two large targets, not a dropdown. The choice changes the

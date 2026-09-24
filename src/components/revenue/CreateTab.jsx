@@ -507,7 +507,9 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
         {/* ---------------- Questionnaire ---------------- */}
         {showForm && (
         <div className="ask__form">
-          <Card bodyClassName="card__body--tight">
+          {/* Stays put while the steps below it scroll — it is the choice the
+              rest of the questionnaire hangs off. */}
+          <Card bodyClassName="card__body--tight" className="ask__pinned">
             <div className="stack stack--tight">
               <span className="t-section-label">Ask about</span>
               <div className="ask-modes">
@@ -527,7 +529,9 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
             </div>
           </Card>
 
-          <Card bodyClassName="card__body--tight">
+          {/* The steps scroll inside this tile rather than running off the
+              bottom of the column, so the card keeps its own bottom edge. */}
+          <Card bodyClassName="card__body--tight ask__scrollbody" className="ask__panel">
             <div className="ask-steps">
               <Step index={1} title="What are you trying to do?" done={Boolean(category)} active>
                 <div className="ask-chips">
@@ -732,8 +736,11 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
               />
             </Card>
           ) : (
-            <div className="stack">
-              <Card bodyClassName="card__body--tight">
+            <>
+              {/* The verdict stays on screen while the detail under it
+                  scrolls — it is the answer, and scrolling it away to read
+                  the merchants it is about defeats the point. */}
+              <Card bodyClassName="card__body--tight" className="ask__pinned">
                 <div className="stack stack--tight">
                   <div className="row row--between row--nowrap" style={{ alignItems: 'flex-start' }}>
                     <div className="stack stack--xtight">
@@ -766,7 +773,9 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                 </div>
               </Card>
 
+              <div className="ask__scroll">
               <Card
+                className="ask__affects"
                 title={`Who this affects — ${formatNumber(rows.length)} merchant${rows.length === 1 ? '' : 's'}`}
                 action={
                   <span className="micro subtle">
@@ -809,6 +818,7 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                   </p>
                 )}
               </Card>
+              </div>
 
               {/* Pinned to the bottom of the answer column: what to do, whether
                   it keeps happening, and the two commits. */}
@@ -859,7 +869,7 @@ export function CreateTab({ prefill, merchants = MERCHANTS, onSaved }) {
                   </div>
                 </div>
               </Card>
-            </div>
+            </>
           )}
         </div>
       </div>
